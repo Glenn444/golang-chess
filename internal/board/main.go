@@ -20,13 +20,13 @@ type Piecetype struct{
 
 
 
-func Print_board() [][]int  {
+func Print_board() [][]Square  {
 	rows,cols := 8,8
 
-	board := make([][]int,rows)
+	board := make([][]Square,rows)
 
 	for i := range board{
-		board[i] = make([]int, cols)
+		board[i] = make([]Square, cols)
 	}
 
 	return board

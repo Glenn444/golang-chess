@@ -20,6 +20,7 @@ type Piecetype struct{
 
 
 
+
 func Print_board() [][]Square  {
 	rows,cols := 8,8
 

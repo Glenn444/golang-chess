@@ -10,6 +10,7 @@ import (
 
 
 func main() {
+
 	//board_letters := []string{"a","b","c","d","e","f","g","h"}
 	//board := board.Print_board()
 
@@ -32,7 +33,7 @@ func main() {
 
 	pos := utils.Indices_to_chess_notation(4,3)
 	row_pos,col_pos := utils.Chess_notation_to_indices("d5")
-	possible_positions := knight.Get_legal_squares("d5")
+	possible_positions := knight.Get_legal_squares("f4")
 	
 	fmt.Printf("position: %s\n",pos)
 	fmt.Printf("row: %d, col: %d\n",row_pos,col_pos)

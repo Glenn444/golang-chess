@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/Glenn444/golang-chess/internal/bishop"
 	"github.com/Glenn444/golang-chess/internal/knight"
+	"github.com/Glenn444/golang-chess/internal/rook"
 	"github.com/Glenn444/golang-chess/utils"
 )
 
@@ -33,9 +35,14 @@ func main() {
 
 	pos := utils.Indices_to_chess_notation(4,3)
 	row_pos,col_pos := utils.Chess_notation_to_indices("d5")
-	possible_positions := knight.Get_legal_squares("f4")
+	possible_positions_knight := knight.Get_legal_squares("f4")
+	possible_positions_rook := rook.Get_legal_squares("h5")
+	possible_positions_bishop := bishop.Get_legal_squares("h4")
+
 	
 	fmt.Printf("position: %s\n",pos)
 	fmt.Printf("row: %d, col: %d\n",row_pos,col_pos)
-	fmt.Printf("knight squares: %v\n",possible_positions)
+	fmt.Printf("knight squares: %v\n",possible_positions_knight)
+	fmt.Printf("rook squares: %v\n",possible_positions_rook)
+	fmt.Printf("bishop squares: %v\n",possible_positions_bishop)
 }

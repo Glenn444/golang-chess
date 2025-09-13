@@ -1,11 +1,17 @@
-package rook
+package pieces
 
 import (
 	"fmt"
 	"strconv"
 )
 
-func Get_legal_squares(pos string) []string  {
+type Rook struct{
+	Color string
+	PieceType string
+	Position string
+}
+
+func (r Rook) GetLegalSquares() []string  {
 	boardIndex := map[string]int{
 		"a": 0,
 		"b": 1,
@@ -18,8 +24,8 @@ func Get_legal_squares(pos string) []string  {
 	}
 	var possible_possitions []string
 
-	letter := string(pos[0])
-	num,_ := strconv.Atoi(pos[1:])
+	letter := string(r.Position[0])
+	num,_ := strconv.Atoi(r.Position[1:])
 
 	var column_pos []string
 	var row_pos []string

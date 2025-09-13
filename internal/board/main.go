@@ -1,27 +1,34 @@
 package board
 
+import "github.com/Glenn444/golang-chess/internal/pieces"
+
 
 
 type Square struct{
-Color string
 Occupied bool
-Piece Piece
+Piece pieces.PieceInterface
 }
 
-type Piece struct{
+type piece struct{
 Color string
 PieceType string
 Position string
 }
 
-type Piecetype struct{
-
-}
 
 
 
 
-func Print_board() [][]Square  {
+func Create_board() [][]Square  {
+	// n := Square{
+	// 	Occupied: true,
+	// 	Piece: piece{
+	// 		Color: "white",
+	// 		PieceType: "N",
+	// 		Position: "b1",
+	// 	},
+	// }
+	
 	rows,cols := 8,8
 
 	board := make([][]Square,rows)

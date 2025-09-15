@@ -1,8 +1,6 @@
 package board
 
 import (
-	"strings"
-
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
 )
@@ -30,48 +28,131 @@ func Initialise_board(board [][]Square) [][]Square {
 		for j := range row {
 			pos := utils.Indices_to_chess_notation(i, j)
 			switch b[pos] {
-			case "P", "q":
+			case "P", "p":
 				if b[pos] == "P" {
 					board[i][j] = Square{
 						Occupied: true,
 						Piece: pieces.Pawn{
-							Color:     "white",
+							Color:     "w",
 							PieceType: "P",
 							Position:  pos,
 						},
 					}
-				}else{
+				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: piece{
-							Color:     "black",
+						Piece: pieces.Pawn{
+							Color:     "b",
 							PieceType: "P",
 							Position:  pos,
 						},
 					}
 				}
-			case "p", "r", "n", "k", "b":
-				board[i][j] = Square{
-					Occupied: true,
-					Piece: piece{
-						Color:     "black",
-						PieceType: strings.ToUpper(b[pos]),
-						Position:  pos,
-					},
+			case "R", "r":
+				if b[pos] == "R" {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Rook{
+							Color:     "w",
+							PieceType: "R",
+							Position:  pos,
+						},
+					}
+				} else {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Rook{
+							Color:     "b",
+							PieceType: "R",
+							Position:  pos,
+						},
+					}
 				}
-			default:
-				board[i][j] = Square{
-					Occupied: false,
-					Piece: piece{
-						Color:     "",
-						PieceType: "",
-						Position:  "",
-					},
+			case "N", "n":
+				if b[pos] == "N" {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Knight{
+							Color:     "w",
+							PieceType: "N",
+							Position:  pos,
+						},
+					}
+				} else {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Knight{
+							Color:     "b",
+							PieceType: "N",
+							Position:  pos,
+						},
+					}
 				}
+
+			case "B", "b":
+				if b[pos] == "B" {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Bishop{
+							Color:     "w",
+							PieceType: "B",
+							Position:  pos,
+						},
+					}
+				} else {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Bishop{
+							Color:     "b",
+							PieceType: "B",
+							Position:  pos,
+						},
+					}
+				}
+			case "Q", "q":
+				if b[pos] == "Q" {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Queen{
+							Color:     "w",
+							PieceType: "Q",
+							Position:  pos,
+						},
+					}
+				} else {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.Queen{
+							Color:     "b",
+							PieceType: "Q",
+							Position:  pos,
+						},
+					}
+				}
+			case "K", "k":
+				if b[pos] == "K" {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.King{
+							Color:     "w",
+							PieceType: "K",
+							Position:  pos,
+						},
+					}
+				} else {
+					board[i][j] = Square{
+						Occupied: true,
+						Piece: pieces.King{
+							Color:     "b",
+							PieceType: "K",
+							Position:  pos,
+						},
+					}
+				}
+
 			}
 		}
 	}
-
 	return board
 
 }

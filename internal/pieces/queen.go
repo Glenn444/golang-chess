@@ -1,8 +1,8 @@
 package pieces
 
 type Queen struct {
-	Color     string
 	PieceType string
+	Color     string
 	Position  string
 }
 

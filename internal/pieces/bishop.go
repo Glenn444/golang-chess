@@ -10,8 +10,8 @@ var board_letters = []string{"a", "b", "c", "d", "e", "f", "g", "h"}
 var nums = []int{1, 2, 3, 4, 5, 6, 7, 8}
 
 type Bishop struct{
-	Color string
 	PieceType string
+	Color string
 	Position string
 }
 

@@ -6,8 +6,8 @@ import (
 )
 
 type Rook struct{
-	Color string
 	PieceType string
+	Color string
 	Position string
 }
 

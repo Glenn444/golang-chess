@@ -6,8 +6,8 @@ import (
 )
 
 type Pawn struct {
-	Color     string
 	PieceType string
+	Color     string
 	Position  string
 }
 

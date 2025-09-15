@@ -9,15 +9,6 @@ Occupied bool
 Piece pieces.PieceInterface
 }
 
-type piece struct{
-Color string
-PieceType string
-Position string
-}
-
-
-
-
 
 func Create_board() [][]Square  {
 	// n := Square{

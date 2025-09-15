@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Glenn444/golang-chess/internal/board"
-	
+	//"github.com/Glenn444/golang-chess/utils"
 )
 
 type GameState struct{
@@ -18,7 +18,7 @@ func main() {
 
 	b := board.Initialise_board(initialBoard)
 	for i,row := range b{
-		fmt.Printf("%d, %v\n",i,row)
+		fmt.Printf("%d\n",i)
 		fmt.Printf("    ")
 		for _,v := range row{
 			//positon := fmt.Sprintf("%s%d",board_letters[j],i+1)
@@ -35,7 +35,7 @@ func main() {
 
 
 	//pos := utils.Indices_to_chess_notation(0,0)//"a1"
-	//row_pos,col_pos := utils.Chess_notation_to_indices("d5")
+	//row_pos,col_pos := utils.Chess_notation_to_indices("a1")
 	//possible_positions_knight := knight.Get_legal_squares("f4")
 	//possible_positions_rook := rook.Get_legal_squares("h5")
 	//possible_positions_bishop := bishop.Get_legal_squares("f1")

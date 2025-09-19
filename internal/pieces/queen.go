@@ -27,3 +27,16 @@ func (q Queen) GetLegalSquares() []string {
 
 	return positions
 }
+
+
+func (q Queen) GetColor() string {
+    return q.Color
+}
+
+func (q Queen) GetPosition() string {
+    return q.Position
+}
+
+func (q Queen) GetPieceType() string {
+    return q.PieceType
+}

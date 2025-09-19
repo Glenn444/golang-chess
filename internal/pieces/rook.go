@@ -43,3 +43,17 @@ func (r Rook) GetLegalSquares() []string  {
 
 	return possible_possitions
 }
+
+
+
+func (r Rook) GetColor() string {
+    return r.Color
+}
+
+func (r Rook) GetPosition() string {
+    return r.Position
+}
+
+func (r Rook) GetPieceType() string {
+    return r.PieceType
+}

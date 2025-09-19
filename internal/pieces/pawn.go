@@ -42,3 +42,15 @@ func (p Pawn) GetLegalSquares() []string {
 
 	return positions
 }
+
+func (p Pawn) GetColor() string {
+    return p.Color
+}
+
+func (p Pawn) GetPosition() string {
+    return p.Position
+}
+
+func (p Pawn) GetPieceType() string {
+    return p.PieceType
+}

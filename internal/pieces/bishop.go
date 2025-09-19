@@ -66,3 +66,16 @@ func get_horizontal_squares_top_right(pos string) []string {
 
 	return possible_possitions
 }
+
+
+func (b Bishop) GetColor() string {
+    return b.Color
+}
+
+func (b Bishop) GetPosition() string {
+    return b.Position
+}
+
+func (b Bishop) GetPieceType() string {
+    return b.PieceType
+}

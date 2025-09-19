@@ -89,3 +89,15 @@ func get_squares_along_row(pos string) (string, string) {
 	return pos_before, pos_after
 
 }
+
+func (k Knight) GetColor() string {
+    return k.Color
+}
+
+func (k Knight) GetPosition() string {
+    return k.Position
+}
+
+func (k Knight) GetPieceType() string {
+    return k.PieceType
+}

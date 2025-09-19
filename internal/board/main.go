@@ -9,16 +9,12 @@ Occupied bool
 Piece pieces.PieceInterface
 }
 
+type GameState struct {
+	CurrentPlayer string
+	Board [][]Square
+}
 
 func Create_board() [][]Square  {
-	// n := Square{
-	// 	Occupied: true,
-	// 	Piece: piece{
-	// 		Color: "white",
-	// 		PieceType: "N",
-	// 		Position: "b1",
-	// 	},
-	// }
 	
 	rows,cols := 8,8
 

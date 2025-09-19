@@ -38,3 +38,15 @@ func (k King) GetLegalSquares() []string {
 	return moves
 
 }
+
+func (k King) GetColor() string {
+    return k.Color
+}
+
+func (k King) GetPosition() string {
+    return k.Position
+}
+
+func (k King) GetPieceType() string {
+    return k.PieceType
+}

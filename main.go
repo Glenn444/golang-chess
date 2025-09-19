@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/Glenn444/golang-chess/internal/board"
 	//"github.com/Glenn444/golang-chess/internal/board"
 	//"github.com/Glenn444/golang-chess/utils"
 )
 
 type GameState struct {
 	CurrentPlayer string
-	GameOn        bool
+	Board board.Square
 }
 type cliCommand struct {
 	name        string
@@ -19,7 +21,7 @@ type cliCommand struct {
 	callback    func(cfg GameState,move string) error
 }
 var c_player = GameState{
-		CurrentPlayer: "b",
+		CurrentPlayer: "w",
 	}
 func main() {
 

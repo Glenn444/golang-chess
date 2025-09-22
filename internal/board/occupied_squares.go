@@ -3,7 +3,7 @@ package board
 import "github.com/Glenn444/golang-chess/utils"
 
 /*
-- Check if
+- Returns occupied squares
 */
 func Occupied_squares(g GameState, pos string)(string)  {
 	row,col := utils.Chess_notation_to_indices(pos)
@@ -15,3 +15,4 @@ func Occupied_squares(g GameState, pos string)(string)  {
 	}
 	return "OPPONENT_PIECE"
 }
+

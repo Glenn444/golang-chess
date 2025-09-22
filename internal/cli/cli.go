@@ -52,8 +52,8 @@ func Cli(g *board.GameState) {
 				tokens[1] = " "
 				fmt.Println("Error:", err)
 			}
-		} else {
-			fmt.Println("Unknown command")
+		}else{
+			board.Move(g,cmdName)
 		}
 	}
 }
@@ -65,7 +65,7 @@ func cleaninput(text string) []string {
 	//2. to lowercase
 	//3. split to whitespace
 	text = (strings.TrimSpace(text))
-	fmt.Printf("%s\n", text)
+	//fmt.Printf("%s\n", text)
 
 	return strings.Fields(text) //fields splits on any whitespace
 }

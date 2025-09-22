@@ -8,15 +8,16 @@ import (
 )
 
 func main() {
-	initialBoard := board.Create_board()
+	b := board.Create_board()
+	initialBoard_position := board.Initialise_board(b)
 	var game = board.GameState{
 		CurrentPlayer: "w",
-		Board:         initialBoard,
+		Board:         initialBoard_position,
 	}
 
 	cli.Cli(&game)
 
-	// b := board.Initialise_board(initialBoard)
+	
 	// for i,row := range b{
 	// 	fmt.Printf("%d\n",i)
 	// 	fmt.Printf("    ")

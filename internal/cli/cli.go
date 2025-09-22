@@ -45,8 +45,6 @@ func Cli(g *board.GameState) {
 			tokens = append(tokens, " ")
 		}
 
-		//fmt.Println("CMD: ",tokens)
-
 		if cmd, ok := supportedCmds[cmdName]; ok {
 
 			err := cmd.callback(*g, tokens[1])
@@ -77,3 +75,10 @@ func commandExit(_ board.GameState, _ string) error {
 	os.Exit(0)
 	return nil
 }
+
+
+/*
+	Support two commands
+	1. exit - close the game loop
+	2. pboard - print current board state
+*/

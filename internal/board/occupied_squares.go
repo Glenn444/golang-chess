@@ -5,14 +5,14 @@ import "github.com/Glenn444/golang-chess/utils"
 /*
 - Returns occupied squares
 */
-func Occupied_squares(g GameState, pos string)(string)  {
+func Occupied_squares(g GameState, pos string)(bool,string)  {
 	row,col := utils.Chess_notation_to_indices(pos)
 	square := g.Board[row][col]
 	if !square.Occupied{
-		return  "EMPTY"
+		return  false,"EMPTY"
 	}else if square.Piece.GetColor() == g.CurrentPlayer{
-		return  "OWN_PIECE"
+		return  true, "OWN_PIECE"
 	}
-	return "OPPONENT_PIECE"
+	return true, "OPPONENT_PIECE"
 }
 

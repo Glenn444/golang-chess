@@ -24,6 +24,13 @@ func Cli(g *board.GameState) {
 			callback:    commandExit,
 		},
 	}
+	supportedCmds = map[string]cliCommand{
+		"pboard":{
+			name: "pboard",
+			description: "Print current board state",
+			callback: printBoardState(*g,""),
+		},
+	}
 
 	for {
 		if g.CurrentPlayer == "w" {
@@ -81,7 +88,19 @@ func commandExit(_ board.GameState, _ string) error {
 	return nil
 }
 
+func printBoardState(g board.GameState,_ string){
+		for i,row := range g.Board{
+		fmt.Printf("%d\n",i)
+		fmt.Printf("    ")
+		for _,v := range row{
+			//positon := fmt.Sprintf("%s%d",board_letters[j],i+1)
+			fmt.Printf("%v ",v)
 
+		}
+		fmt.Printf("\n")
+
+	}
+}
 /*
 	Support two commands
 	1. exit - close the game loop

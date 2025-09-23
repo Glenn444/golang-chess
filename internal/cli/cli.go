@@ -28,10 +28,10 @@ func Cli(g *board.GameState) {
 	for {
 		if g.CurrentPlayer == "w" {
 			fmt.Printf("White Move > ")
-			g.CurrentPlayer = "b"
+			//g.CurrentPlayer = "b"
 		} else {
 			fmt.Printf("Black Move > ")
-			g.CurrentPlayer = "w"
+			//g.CurrentPlayer = "w"
 		}
 		if !scanner.Scan() {
 			break
@@ -54,6 +54,11 @@ func Cli(g *board.GameState) {
 			}
 		}else{
 			board.Move(g,cmdName)
+			if g.CurrentPlayer == "w"{
+				g.CurrentPlayer = "b"
+			}else{
+				g.CurrentPlayer = "w"
+			}
 		}
 	}
 }

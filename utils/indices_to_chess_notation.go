@@ -14,6 +14,7 @@ func Indices_to_chess_notation(row_pos,col_pos int) string  {
 			letter = v
 		}
 	}
+	//0,0 -> a1
 
 	position = fmt.Sprintf("%s%d",letter,row_pos+1)
 	

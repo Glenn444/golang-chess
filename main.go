@@ -3,8 +3,7 @@ package main
 import (
 	"github.com/Glenn444/golang-chess/internal/board"
 	"github.com/Glenn444/golang-chess/internal/cli"
-	//"github.com/Glenn444/golang-chess/internal/board"
-	//"github.com/Glenn444/golang-chess/utils"
+	
 )
 
 func main() {

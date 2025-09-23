@@ -1,8 +1,6 @@
 package board
 
 import (
-	"fmt"
-
 	"github.com/Glenn444/golang-chess/internal/pieces"
 )
 
@@ -41,15 +39,23 @@ func Create_board() [][]Square {
 
 func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
 	pieceType := string(pos[0])
-	//var positions []string
-	fmt.Printf("PieceType: %s\n", pieceType)
+	pos_sub := pos[1:]
 	for _, square := range g.Board {
 		for _, s := range square {
-			fmt.Print(s)
+			//fmt.Print(s)
 			//fmt.Print(s.Piece.GetPieceType() == pieceType)
 			if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 				legal_squares := s.Piece.GetLegalSquares()
-				fmt.Printf("legal squares: %v", legal_squares)
+				//fmt.Printf("legal squares: %v\n", legal_squares)
+				for _, c_pos := range legal_squares {
+					//fmt.Printf("c_pos: %s, pos: %s\n",c_pos,pos_sub)
+					if c_pos == pos_sub {
+						return s.Piece.GetPosition()
+					}
+				}
+			} else if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer {
+				legal_squares := s.Piece.GetLegalSquares()
+				//fmt.Printf("legal squares: %v\n",legal_squares)
 				for _, c_pos := range legal_squares {
 					if c_pos == pos {
 						return s.Piece.GetPosition()

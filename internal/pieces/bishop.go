@@ -26,11 +26,15 @@ func (b Bishop) GetLegalSquares() []string {
 	return positions
 }
 func get_horizontal_squares_top_left(pos string) []string {
-
+	var diagnol int
 	row, col := utils.Chess_notation_to_indices(pos)
-	diagnol := row - col
+	//diagnol_init := row - col
 	var possible_possitions []string
 
+		if row >= 0 && row < 8 && col >= 0 && col < 8{
+		diagnol = row + col
+	}
+	
 	for _, v := range board_letters {
 		for _, j := range nums {
 			position := fmt.Sprintf("%s%d", v, j)
@@ -47,16 +51,19 @@ func get_horizontal_squares_top_left(pos string) []string {
 }
 
 func get_horizontal_squares_top_right(pos string) []string {
-
+	var diagnol int
 	row, col := utils.Chess_notation_to_indices(pos)
-	diagnol := row + col
+	//dia := row + col
 	var possible_possitions []string
 
+	if row >= 0 && row < 8 && col >= 0 && col < 8{
+		diagnol = row + col
+	}
 	for _, v := range board_letters {
 		for _, j := range nums {
 			position := fmt.Sprintf("%s%d", v, j)
-			row, col := utils.Chess_notation_to_indices(position)
-			diag := row + col
+			row1, col1 := utils.Chess_notation_to_indices(position)
+			diag := row1 + col1
 
 			if diagnol == diag {
 				possible_possitions = append(possible_possitions, position)

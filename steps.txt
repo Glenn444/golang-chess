@@ -1,0 +1,2 @@
+To make a move:
+1. we ofcourse have to loop through the board to find the position and insert the piece

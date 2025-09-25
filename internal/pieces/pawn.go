@@ -54,3 +54,14 @@ func (p Pawn) GetPosition() string {
 func (p Pawn) GetPieceType() string {
     return p.PieceType
 }
+
+func (p *Pawn) AssignPosition(pos string){
+	p.Position = pos
+}
+
+func (p Pawn) String() string {
+    if p.Color == "w" {
+        return "[♙]" // or "wP"
+    }
+    return "[♟]" // or "bP"
+}

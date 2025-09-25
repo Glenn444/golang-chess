@@ -57,3 +57,14 @@ func (r Rook) GetPosition() string {
 func (r Rook) GetPieceType() string {
     return r.PieceType
 }
+
+func (r *Rook) AssignPosition(pos string){
+	r.Position = pos
+}
+
+func (r Rook) String() string {
+    if r.Color == "w" {
+        return "[♖]" // or "wR"
+    }
+    return "[♜]" // or "bR"
+}

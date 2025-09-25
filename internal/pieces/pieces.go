@@ -7,4 +7,6 @@ type PieceInterface interface{
 	GetColor() string
     GetPosition() string
     GetPieceType() string
+	AssignPosition(pos string)
+	String() string
 }

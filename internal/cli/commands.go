@@ -32,7 +32,7 @@ func NewCLI(g *board.GameState) *CLI {
 /*
 	Support two commands
 	1. exit - close the game loop
-	2. pboard - print current board state
+	2. pboard - prints current board state
 */
 func (c *CLI) registerCommands() {
 	c.commands["exit"] = Command{
@@ -67,16 +67,24 @@ func (c *CLI) exitCommand([] string) error {
 }
 
 func (c *CLI) printBoardState([] string) error{
+	fmt.Printf("      a  b  c  d  e  f  g  h\n")
 	for i, row := range c.game.Board {
-		fmt.Printf("%d\n", i)
+		
+		fmt.Printf("%d", i+1)
 		fmt.Printf("    ")
-		for _, v := range row {
-			fmt.Printf("%v ", v)
-
+		for _, s := range row {
+			
+			if s.Occupied{
+			fmt.Printf("%v", s.Piece.String())
+			}else{
+				fmt.Printf("[ ]")
+			}
+			
 		}
-		fmt.Printf("\n")
+	fmt.Printf("\n")
 
 	}
+	fmt.Printf("      a  b  c  d  e  f  g  h\n")
 	return nil
 }
 

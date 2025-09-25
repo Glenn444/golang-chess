@@ -86,3 +86,14 @@ func (b Bishop) GetPosition() string {
 func (b Bishop) GetPieceType() string {
     return b.PieceType
 }
+
+func (b *Bishop) AssignPosition(pos string){
+	b.Position = pos
+}
+
+func (b Bishop) String() string {
+    if b.Color == "w" {
+        return "[♗]" // or "wB" if you prefer text
+    }
+    return "[♝]" // or "bB" if you prefer text
+}

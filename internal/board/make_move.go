@@ -7,14 +7,21 @@ import (
 )
 
 func Move(game *GameState, move string) {
-
+	var move_pos string
 	sourcepos := CurrentPlayer_Occupied_Piece_position(*game, move)
 
-	move_pos := string(move[1:])
+	move_pos = string(move[1:])
+	//pawn move
+	if len(move) == 2{
+		move_pos = move
+	}
+	
 	destrow, destcol := utils.Chess_notation_to_indices(move_pos)
 	sourcerow, sourcecol := utils.Chess_notation_to_indices(sourcepos)
 
 	piece := game.Board[sourcerow][sourcecol].Piece
+	piece.AssignPosition(move_pos)
+	fmt.Printf("Piece pos: %s\n",piece.GetPosition())
 
 	//clear the source square
 	game.Board[sourcerow][sourcecol] = Square{
@@ -22,10 +29,10 @@ func Move(game *GameState, move string) {
 		Piece:    nil,
 	}
 
-	squareOccupied, _ := Occupied_squares(*game, move_pos)
+	squareOccupied, val := Occupied_squares(*game, move_pos)
 	if squareOccupied {
-		fmt.Printf("square occupied")
-		return
+		fmt.Printf("%v %s\n",squareOccupied,val)
+		
 	}
 
 	//destination square

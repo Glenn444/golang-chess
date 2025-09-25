@@ -50,3 +50,14 @@ func (k King) GetPosition() string {
 func (k King) GetPieceType() string {
     return k.PieceType
 }
+
+func (k *King) AssignPosition(pos string){
+	k.Position = pos
+}
+
+func (k *King) String() string {
+    if k.Color == "w" {
+        return "[♔]" // or "wK"
+    }
+    return "[♚]" // or "bK"
+}

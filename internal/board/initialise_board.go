@@ -32,7 +32,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "P" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Pawn{
+						Piece: &pieces.Pawn{
 							Color:     "w",
 							PieceType: "P",
 							Position:  pos,
@@ -41,7 +41,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Pawn{
+						Piece: &pieces.Pawn{
 							Color:     "b",
 							PieceType: "P",
 							Position:  pos,
@@ -52,7 +52,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "R" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Rook{
+						Piece: &pieces.Rook{
 							Color:     "w",
 							PieceType: "R",
 							Position:  pos,
@@ -61,7 +61,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Rook{
+						Piece: &pieces.Rook{
 							Color:     "b",
 							PieceType: "R",
 							Position:  pos,
@@ -72,7 +72,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "N" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Knight{
+						Piece: &pieces.Knight{
 							Color:     "w",
 							PieceType: "N",
 							Position:  pos,
@@ -81,7 +81,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Knight{
+						Piece: &pieces.Knight{
 							Color:     "b",
 							PieceType: "N",
 							Position:  pos,
@@ -93,7 +93,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "B" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Bishop{
+						Piece: &pieces.Bishop{
 							Color:     "w",
 							PieceType: "B",
 							Position:  pos,
@@ -102,7 +102,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Bishop{
+						Piece: &pieces.Bishop{
 							Color:     "b",
 							PieceType: "B",
 							Position:  pos,
@@ -113,7 +113,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "Q" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Queen{
+						Piece: &pieces.Queen{
 							Color:     "w",
 							PieceType: "Q",
 							Position:  pos,
@@ -122,7 +122,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.Queen{
+						Piece: &pieces.Queen{
 							Color:     "b",
 							PieceType: "Q",
 							Position:  pos,
@@ -133,7 +133,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "K" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.King{
+						Piece: &pieces.King{
 							Color:     "w",
 							PieceType: "K",
 							Position:  pos,
@@ -142,7 +142,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: pieces.King{
+						Piece: &pieces.King{
 							Color:     "b",
 							PieceType: "K",
 							Position:  pos,

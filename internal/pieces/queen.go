@@ -40,3 +40,14 @@ func (q Queen) GetPosition() string {
 func (q Queen) GetPieceType() string {
     return q.PieceType
 }
+
+func (q *Queen) AssignPosition(pos string){
+	q.Position = pos
+}
+
+func (q Queen) String() string {
+    if q.Color == "white" {
+        return "[♕]" // or "wQ"
+    }
+    return "[♛]" // or "bQ"
+}

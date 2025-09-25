@@ -47,41 +47,6 @@ func (k Knight) GetLegalSquares() []string {
 	return possible_positions
 }
 
-// func get_squares_along_column(position string) (string, string) {
-// 	letter := string(position[0])
-// 	num, _ := strconv.Atoi(position[1:])
-
-// 	if num < 0 || num > 7{
-// 		return  "",""
-// 	}
-
-// 	pos1 := fmt.Sprintf("%s%d", letter, num-1)
-// 	pos2 := fmt.Sprintf("%s%d", letter, num+1)
-
-// 	return pos1, pos2
-// }
-
-// func get_squares_along_row(pos string) (string, string) {
-
-// 	letter := string(pos[0])
-// 	num, _ := strconv.Atoi(pos[1:])
-// 	if num < 0 || num > 7{
-// 		return  "",""
-// 	}
-
-// 	letter_index := boardIndex[letter]
-// 	letter_before_idx := letter_index - 1
-// 	letter_after_idx := letter_index + 1
-
-// 	letter_before := boardLetters[letter_before_idx]
-// 	letter_after := boardLetters[letter_after_idx]
-
-// 	pos_before := fmt.Sprintf("%s%d", letter_before, num+1)
-// 	pos_after := fmt.Sprintf("%s%d", letter_after, num+1)
-
-// 	return pos_before, pos_after
-
-// }
 
 func (k Knight) GetColor() string {
 	return k.Color
@@ -93,4 +58,15 @@ func (k Knight) GetPosition() string {
 
 func (k Knight) GetPieceType() string {
 	return k.PieceType
+}
+
+func (k *Knight) AssignPosition(pos string){
+	k.Position = pos
+}
+
+func (k Knight) String() string {
+    if k.Color == "w" {
+        return "[♘]" // or "wN"
+    }
+    return "[♞]" // or "bN"
 }

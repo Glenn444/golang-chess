@@ -46,6 +46,7 @@ func get_horizontal_squares_top_left(pos string) []string {
 			}
 		}
 	}
+	
 
 	return possible_possitions
 }

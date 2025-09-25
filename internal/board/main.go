@@ -1,7 +1,10 @@
 package board
 
 import (
+
+
 	"github.com/Glenn444/golang-chess/internal/pieces"
+	"github.com/Glenn444/golang-chess/utils"
 )
 
 type Square struct {
@@ -38,31 +41,49 @@ func Create_board() [][]Square {
 }
 
 func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
-	pieceType := string(pos[0])
-	pos_sub := pos[1:]
-	for _, square := range g.Board {
+	occupied_squares := GetAllOccupiedSquares(g)
+
+	// Check if it's a pawn move (no piece prefix)
+	if len(pos) == 2 && pos[0] >= 'a' && pos[0] <= 'h' {
+		// This is a pawn move like "d4", "e5", etc.
+		pieceType := "P" // or whatever you use for pawns
+		destpos := pos
+
+		for _, square := range g.Board {
+			for _, s := range square {
+				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
+					pieces_squares := s.Piece.GetLegalSquares()
+					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
+					for _, c_pos := range legal_squares {
+						if c_pos == destpos {
+							return s.Piece.GetPosition()
+						}
+					}
+				}
+			}
+		}
+	} else {
+		// This is a piece move like "Nc3", "Qd4", etc.
+		pieceType := string(pos[0])
+		destpos_sub := pos[1:]
+		for _, square := range g.Board {
 		for _, s := range square {
 			//fmt.Print(s)
 			//fmt.Print(s.Piece.GetPieceType() == pieceType)
 			if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
-				legal_squares := s.Piece.GetLegalSquares()
+
+				pieces_squares := s.Piece.GetLegalSquares()
+				legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares,occupied_squares)
 				//fmt.Printf("legal squares: %v\n", legal_squares)
 				for _, c_pos := range legal_squares {
 					//fmt.Printf("c_pos: %s, pos: %s\n",c_pos,pos_sub)
-					if c_pos == pos_sub {
-						return s.Piece.GetPosition()
-					}
-				}
-			} else if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer {
-				legal_squares := s.Piece.GetLegalSquares()
-				//fmt.Printf("legal squares: %v\n",legal_squares)
-				for _, c_pos := range legal_squares {
-					if c_pos == pos {
+					if c_pos == destpos_sub {
 						return s.Piece.GetPosition()
 					}
 				}
 			}
 		}
-	}
+	}}
+
 	return ""
-}
+	}

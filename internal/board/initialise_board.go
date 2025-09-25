@@ -23,6 +23,7 @@ func Initialise_board(board [][]Square) [][]Square {
 		"d8": "q",
 		"e8": "k",
 	}
+	
 
 	for i, row := range board {
 		for j := range row {

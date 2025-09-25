@@ -39,7 +39,6 @@ func (p Pawn) GetLegalSquares() []string {
 			positions = append(positions,pos1,pos1)
 		}
 	}
-
 	return positions
 }
 

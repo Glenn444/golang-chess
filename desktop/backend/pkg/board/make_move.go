@@ -3,7 +3,7 @@ package board
 import (
 	"fmt"
 
-	"github.com/Glenn444/backend/utils"
+	"github.com/Glenn444/golang-chess/backend/utils"
 )
 
 func Move(game *GameState, move string) {

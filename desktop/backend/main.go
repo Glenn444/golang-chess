@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Glenn444/backend/internal/board"
-	"github.com/Glenn444/backend/internal/cli"
+	"github.com/Glenn444/golang-chess/backend/pkg/board"
+	"github.com/Glenn444/golang-chess/backend/pkg/cli"
 	
 )
 

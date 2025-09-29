@@ -3,7 +3,7 @@ package pieces
 import (
 	"fmt"
 
-	"github.com/Glenn444/backend/utils"
+	"github.com/Glenn444/golang-chess/backend/utils"
 )
 
 var board_letters = []string{"a", "b", "c", "d", "e", "f", "g", "h"}

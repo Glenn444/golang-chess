@@ -1,6 +1,6 @@
 package board
 
-import "github.com/Glenn444/backend/utils"
+import "github.com/Glenn444/golang-chess/backend/utils"
 
 /*
 - Returns occupied squares

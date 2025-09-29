@@ -3,8 +3,8 @@ package board
 import (
 
 
-	"github.com/Glenn444/backend/internal/pieces"
-	"github.com/Glenn444/backend/utils"
+	"github.com/Glenn444/golang-chess/backend/pkg/pieces"
+	"github.com/Glenn444/golang-chess/backend/utils"
 )
 
 type Square struct {

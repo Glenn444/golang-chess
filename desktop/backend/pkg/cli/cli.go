@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Glenn444/backend/internal/board"
+	"github.com/Glenn444/golang-chess/backend/pkg/board"
 )
 
 

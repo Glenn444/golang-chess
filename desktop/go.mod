@@ -34,4 +34,6 @@ require (
 	golang.org/x/text v0.22.0 // indirect
 )
 
+replace github.com/Glenn444/golang-chess => ./
+
 // replace github.com/wailsapp/wails/v2 v2.10.2 => /Users/mac/go/pkg/mod

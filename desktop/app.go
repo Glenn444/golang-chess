@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 
-	"github.com/Glenn444/golang-chess/backend/internal/board"
+	"github.com/Glenn444/golang-chess/backend/pkg/board"
 )
 
 // App struct
 type App struct {
 	ctx context.Context
-	//game 
+	game *board.GameState 
 }
 
 // NewApp creates a new App application struct

@@ -2,7 +2,7 @@ package pieces
 
 import (
 
-	"github.com/Glenn444/backend/utils"
+	"github.com/Glenn444/golang-chess/backend/utils"
 )
 
 type Knight struct {

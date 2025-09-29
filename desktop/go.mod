@@ -1,4 +1,4 @@
-module myproject
+module github.com/Glenn444/golang-chess
 
 go 1.23
 

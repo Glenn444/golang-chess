@@ -3,11 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+
+
+	"github.com/Glenn444/golang-chess/backend/internal/board"
 )
 
 // App struct
 type App struct {
 	ctx context.Context
+	//game 
 }
 
 // NewApp creates a new App application struct

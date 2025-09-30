@@ -6,7 +6,7 @@ import (
 	"github.com/Glenn444/golang-chess/backend/utils"
 )
 
-func Move(game *GameState, move string) {
+func Move(game *GameState, move string) error{
 	var move_pos string
 	sourcepos := CurrentPlayer_Occupied_Piece_position(*game, move)
 
@@ -32,7 +32,7 @@ func Move(game *GameState, move string) {
 	squareOccupied, val := Occupied_squares(*game, move_pos)
 	if squareOccupied {
 		fmt.Printf("%v %s\n",squareOccupied,val)
-		
+		return fmt.Errorf("square occupied")
 	}
 
 	//destination square
@@ -47,5 +47,5 @@ func Move(game *GameState, move string) {
 	} else {
 		game.CurrentPlayer = "w"
 	}
-
+	return  nil
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 
 	"github.com/Glenn444/golang-chess/backend/pkg/board"
@@ -23,15 +22,20 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	b := board.Create_board()
+	initialBoard_position := board.Initialise_board(b)
+
+	//Initialize your game
+	a.game = &board.GameState{
+		Board: initialBoard_position,
+		CurrentPlayer: "w",
+	}
 }
 
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
+func (a *App) MakeMove(move string) error {
+	return board.Move(a.game,move)
 }
 
-
-// Greet returns a sum of any given number
-func (a *App) Add(num int) int {
-	return num * 2
+func (a *App) GetBoardState() [][]board.Square{
+	return a.game.Board
 }

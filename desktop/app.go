@@ -39,3 +39,7 @@ func (a *App) MakeMove(move string) error {
 func (a *App) GetBoardState() [][]board.Square{
 	return a.game.Board
 }
+
+func (a *App) GetCurrentPlayer()string  {
+	return a.game.CurrentPlayer
+}

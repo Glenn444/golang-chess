@@ -11,7 +11,7 @@ function App() {
     const updateResultText = (result: number) => setResultText(result);
 
     return (
-        <div id="App">
+        <div id="App" className='flex justify-center'>
             <ChessBoard />
         </div>
     )

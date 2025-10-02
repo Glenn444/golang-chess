@@ -1,7 +1,8 @@
 import {useState} from 'react';
 import logo from './assets/images/logo-universal.png';
-import './App.css';
-import ChessBoard from './components/ChessBoard';
+
+
+import ChessGame from './components/ChessGame';
 
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
 
     return (
         <div id="App" className='flex justify-center'>
-            <ChessBoard />
+            <ChessGame />
         </div>
     )
 }

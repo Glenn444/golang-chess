@@ -1,19 +1,55 @@
-import {useState} from 'react';
+import { useEffect, useState } from 'react';
 import logo from './assets/images/logo-universal.png';
+import { GetBoardState, GetCurrentPlayer, MakeMove } from "../wailsjs/go/main/App";
 
 
 import ChessGame from './components/ChessGame';
 
 
+interface Square{
+    Occupied: boolean;
+	Piece:  Piece
+}
+export interface GameState{
+    Board: Square[][];
+    CurrentPlayer: "w" | "b";
+}
+
+
+
+interface Piece {
+  getLegalSquares(): string[];
+  getColor(): string;
+  getPosition(): string;
+  getPieceType(): string;
+  assignPosition(pos: string): void;
+  toString(): string;
+}
+
 function App() {
-    const [resultText, setResultText] = useState(0);
-    const [num, setNumber] = useState(0);
-    const updateName = (e: any) => setNumber(Number(e.target.value));
-    const updateResultText = (result: number) => setResultText(result);
+    const [gamestate, setGameState] = useState<GameState[]>([])
+
+    const updateGameState = (game: GameState[]) => setGameState(game)
+
+    useEffect(() => {
+
+        GetBoardState()
+            .then(updateGameState)
+            .catch(error => {
+                console.error("Error fetching board state:", error);
+            });
+    }, []);
+
+    function greet() {
+
+        console.log(gamestate);
+    }
+
 
     return (
         <div id="App" className='flex justify-center'>
-            <ChessGame />
+            <button onClick={greet}>Game</button>
+            <ChessGame game={gamestate} />
         </div>
     )
 }

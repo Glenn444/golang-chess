@@ -32,7 +32,7 @@ func (a *App) startup(ctx context.Context) {
 	}
 }
 
-func (a *App) MakeMove(move string) error {
+func (a *App) MakeMove(move string) (game *board.GameState,err error) {
 	return board.Move(a.game,move)
 }
 

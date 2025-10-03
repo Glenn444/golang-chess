@@ -1,9 +1,10 @@
 import React from 'react'
 import backgroundImage from '@/assets/chess-background.jpg';
 import ChessBoard from './ChessBoard';
+import { GameState } from '../App';
 
 
-function ChessGame() {
+function ChessGame({game}:{game:GameState[]}) {
   return (
     <div>
      <h1 className='text-xl'>Chess Game</h1>
@@ -17,7 +18,7 @@ function ChessGame() {
       className='w-[620px] h-[620px] mt-2'
     >
      
-        <ChessBoard />
+        <ChessBoard game={game}/>
     </div>
     
     </div>

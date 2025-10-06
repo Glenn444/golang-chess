@@ -66,7 +66,7 @@ func (k *Knight) AssignPosition(pos string){
 
 func (k Knight) String() string {
     if k.Color == "w" {
-        return "[♘]" // or "wN"
+        return "wN" // or "wN"
     }
-    return "[♞]" // or "bN"
+    return "bN" // or "bN"
 }

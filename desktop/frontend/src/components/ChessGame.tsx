@@ -4,7 +4,7 @@ import ChessBoard from './ChessBoard';
 import { GameState } from '../App';
 
 
-function ChessGame({game}:{game:GameState[]}) {
+function ChessGame({game}:{game:GameState}) {
   return (
     <div>
      <h1 className='text-xl'>Chess Game</h1>

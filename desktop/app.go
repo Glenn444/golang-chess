@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 
-
 	"github.com/Glenn444/golang-chess/backend/pkg/board"
 )
 
@@ -36,10 +35,14 @@ func (a *App) MakeMove(move string) (game *board.GameState,err error) {
 	return board.Move(a.game,move)
 }
 
-func (a *App) GetBoardState() [][]board.Square{
-	return a.game.Board
+func (a *App) GetBoardState() *board.GameState{
+	return a.game
 }
 
 func (a *App) GetCurrentPlayer()string  {
 	return a.game.CurrentPlayer
+}
+
+func (a *App) GetPieceString(row int32,col int32)string{
+	return a.game.Board[row][col].Piece.String()
 }

@@ -28,26 +28,25 @@ func (q Queen) GetLegalSquares() []string {
 	return positions
 }
 
-
 func (q Queen) GetColor() string {
-    return q.Color
+	return q.Color
 }
 
 func (q Queen) GetPosition() string {
-    return q.Position
+	return q.Position
 }
 
 func (q Queen) GetPieceType() string {
-    return q.PieceType
+	return q.PieceType
 }
 
-func (q *Queen) AssignPosition(pos string){
+func (q *Queen) AssignPosition(pos string) {
 	q.Position = pos
 }
 
 func (q Queen) String() string {
-    if q.Color == "white" {
-        return "[♕]" // or "wQ"
-    }
-    return "[♛]" // or "bQ"
+	if q.Color == "white" {
+		return "wQ" // or "wQ"
+	}
+	return "bQ" // or "bQ"
 }

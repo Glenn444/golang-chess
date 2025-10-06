@@ -64,7 +64,7 @@ func (r *Rook) AssignPosition(pos string){
 
 func (r Rook) String() string {
     if r.Color == "w" {
-        return "[♖]" // or "wR"
+        return "wR" // or "wR"
     }
-    return "[♜]" // or "bR"
+    return "bR" // or "bR"
 }

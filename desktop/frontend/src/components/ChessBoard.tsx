@@ -2,7 +2,7 @@ import React from 'react'
 import ChessSquare from './ChessSquare'
 import { GameState } from '../App'
 
-function ChessBoard({game}:{game:GameState[]}) {
+function ChessBoard({game}:{game:GameState}) {
     let file = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     return (
         <div className='grid grid-cols-8 text-white'>

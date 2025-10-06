@@ -60,7 +60,7 @@ func (p *Pawn) AssignPosition(pos string){
 
 func (p Pawn) String() string {
     if p.Color == "w" {
-        return "[♙]" // or "wP"
+        return "wP" // or "wP"
     }
-    return "[♟]" // or "bP"
+    return "bP" // or "bP"
 }

@@ -57,7 +57,7 @@ func (k *King) AssignPosition(pos string){
 
 func (k *King) String() string {
     if k.Color == "w" {
-        return "[♔]" // or "wK"
+        return "wK" // or "wK"
     }
-    return "[♚]" // or "bK"
+    return "bK" // or "bK"
 }

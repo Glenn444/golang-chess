@@ -94,7 +94,7 @@ func (b *Bishop) AssignPosition(pos string){
 
 func (b Bishop) String() string {
     if b.Color == "w" {
-        return "[♗]" // or "wB" if you prefer text
+        return "wB" // or "wB" if you prefer text
     }
-    return "[♝]" // or "bB" if you prefer text
+    return "bB" // or "bB" if you prefer text
 }

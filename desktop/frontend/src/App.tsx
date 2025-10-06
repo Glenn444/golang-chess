@@ -12,24 +12,31 @@ interface Square{
 }
 export interface GameState{
     Board: Square[][];
-    CurrentPlayer: "w" | "b";
+    CurrentPlayer: string;
 }
 
 
 
 interface Piece {
-  getLegalSquares(): string[];
-  getColor(): string;
-  getPosition(): string;
-  getPieceType(): string;
-  assignPosition(pos: string): void;
-  toString(): string;
+  PieceType: string;
+  Color: string;
+  Position: string;
 }
 
 function App() {
-    const [gamestate, setGameState] = useState<GameState[]>([])
+    const emptyState: GameState = {
+    Board: Array(8).fill(null).map(() => 
+        Array(8).fill(null).map(() => ({
+            Occupied: false,
+            Piece: null as any
+        }))
+    ),
+    CurrentPlayer: "w"
+};
+   
+    const [gamestate, setGameState] = useState<GameState>(emptyState)
 
-    const updateGameState = (game: GameState[]) => setGameState(game)
+    const updateGameState = (game: GameState) => setGameState(game)
 
     useEffect(() => {
 

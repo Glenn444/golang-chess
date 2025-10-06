@@ -25,8 +25,12 @@ function ChessSquare({ file, rank, game }: { file: string, rank: number, game: G
         pieceImage = alpha[alphaKey as keyof typeof alpha];
     }
 
+    const handleClick = ()=>{
+        console.log('clicked');
+        
+    }
     return (
-        <div className={`w-[77.5px] h-[77.5px] ${background} flex justify-center items-center`}>
+        <div className={`w-[77.5px] h-[77.5px] ${background} flex justify-center items-center`} onClick={handleClick}>
             {pieceImage ? (
                 <img src={pieceImage} alt="chess piece" className="w-full h-full" />
             ) : (

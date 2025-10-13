@@ -57,6 +57,7 @@ func (c *CLI) Execute(tokens []string)error{
 
 	//move the piece if it is not a cli command
 	board.Move(c.game,cmdName)
+	c.printBoardState(nil)
 	return nil
 }
 

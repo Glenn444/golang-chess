@@ -10,7 +10,7 @@ function ChessSquare({ file, rank, game }: { file: string, rank: number, game: G
 
     // Convert file/rank to board indices
     const col = fileNumber - 1; // 'a'=0, 'b'=1, etc.
-    const row = 8 - rank;        // rank 8=0, rank 1=7 (assuming standard chess board indexing)
+    const row = rank - 1;        // rank 8=0, rank 1=7 (assuming standard chess board indexing)
 
     // Get the square at this position
     const square = game.Board[row]?.[col];
@@ -34,7 +34,7 @@ function ChessSquare({ file, rank, game }: { file: string, rank: number, game: G
         
         console.log("occupied: ",game.Board[row][col].Occupied);
         
-        //console.log('clicked');
+        console.log('file rank',file,rank);
         
     }
     return (

@@ -1,6 +1,7 @@
 import React from 'react'
 import alpha from '../assets/piece/alpha/index'
 import { GameState } from '../App';
+import IndicesToChessNotation from '../utils/IndicesToChessNotation';
 
 function ChessSquare({ file, rank, game }: { file: string, rank: number, game: GameState }) {
     const fileNumber = file.charCodeAt(0) - 'a'.charCodeAt(0) + 1;
@@ -26,9 +27,14 @@ function ChessSquare({ file, rank, game }: { file: string, rank: number, game: G
     }
 
     const handleClick = (game:GameState)=>{
-        console.log(game.Board[row][col].Occupied);
+        console.log("row,col",row,col);
+        console.log(game.Board[row][col]);
+        console.log("Indice to chessNotation: ",IndicesToChessNotation(row,col));
         
-        console.log('clicked');
+        
+        console.log("occupied: ",game.Board[row][col].Occupied);
+        
+        //console.log('clicked');
         
     }
     return (

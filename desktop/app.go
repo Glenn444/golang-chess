@@ -46,3 +46,7 @@ func (a *App) GetCurrentPlayer()string  {
 func (a *App) GetPieceString(row int32,col int32)string{
 	return a.game.Board[row][col].Piece.String()
 }
+
+func (a *App) GetLegalSquares(row int32,col int32)[]string{
+	return a.game.Board[row][col].Piece.GetLegalSquares()
+}

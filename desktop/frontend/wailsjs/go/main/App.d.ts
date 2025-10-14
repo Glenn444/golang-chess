@@ -6,6 +6,8 @@ export function GetBoardState():Promise<board.GameState>;
 
 export function GetCurrentPlayer():Promise<string>;
 
+export function GetLegalSquares(arg1:number,arg2:number):Promise<Array<string>>;
+
 export function GetPieceString(arg1:number,arg2:number):Promise<string>;
 
 export function MakeMove(arg1:string):Promise<board.GameState>;

@@ -10,6 +10,10 @@ export function GetCurrentPlayer() {
   return window['go']['main']['App']['GetCurrentPlayer']();
 }
 
+export function GetLegalSquares(arg1, arg2) {
+  return window['go']['main']['App']['GetLegalSquares'](arg1, arg2);
+}
+
 export function GetPieceString(arg1, arg2) {
   return window['go']['main']['App']['GetPieceString'](arg1, arg2);
 }

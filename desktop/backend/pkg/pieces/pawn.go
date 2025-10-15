@@ -31,14 +31,9 @@ func (p Pawn) GetLegalSquares() []string {
 			pos1 := fmt.Sprintf("%s%d", letter, num-1)
 			pos2 := fmt.Sprintf("%s%d", letter, num-2)
 			positions = append(positions,pos1,pos2)
-		}else if !(p.Position == pos) && p.Color == "w"{
-			pos1 := fmt.Sprintf("%s%d", letter, num+1)
-			positions = append(positions,pos1,pos1)
-		}else if !(p.Position == pos) && p.Color == "b"{
-			pos1 := fmt.Sprintf("%s%d", letter, num-1)
-			positions = append(positions,pos1,pos1)
 		}
 	}
+	fmt.Printf("pos: %v",positions)
 	return positions
 }
 

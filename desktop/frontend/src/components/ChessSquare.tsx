@@ -39,6 +39,9 @@ function ChessSquare({ file, rank, game, activesquares, setActiveSquares,setSele
         if (game.Board[row][col].Occupied && game.Board[row][col].Piece == selectedPiece) {
             setActiveSquares([])
            setSelectedPiece(undefined)
+        }else if (!game.Board[row][col].Occupied && selectedPiece && activesquares.includes(currentSquare)) {
+            console.log("move made");
+            
         }else if (game.Board[row][col].Occupied) {
              
         const legalSquares = await GetLegalSquares(row, col);
@@ -46,6 +49,9 @@ function ChessSquare({ file, rank, game, activesquares, setActiveSquares,setSele
         //console.log("Legal squares returned:", legalSquares);
         setActiveSquares(legalSquares);
             setSelectedPiece(game.Board[row][col].Piece)
+        }else{
+            setActiveSquares([])
+       setSelectedPiece(undefined)
         }
 
        

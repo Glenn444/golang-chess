@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import alpha from '../assets/piece/alpha/index'
-import { GameState } from '../App';
+import { GameState, Piece } from '../App';
 import IndicesToChessNotation from '../utils/IndicesToChessNotation';
 import { GetLegalSquares } from '../../wailsjs/go/main/App';
 
-function ChessSquare({ file, rank, game, activesquares, setActiveSquares }:
-    { file: string, rank: number, game: GameState, activesquares: string[], setActiveSquares: React.Dispatch<React.SetStateAction<string[]>> }) {
-    //const [activesquares,setActiveSquares] = useState<string[]>([])
+function ChessSquare({ file, rank, game, activesquares, setActiveSquares,setSelectedPiece,selectedPiece }:
+    { file: string, rank: number, game: GameState, activesquares: string[], selectedPiece:Piece | undefined,
+        setActiveSquares: React.Dispatch<React.SetStateAction<string[]>>,
+        setSelectedPiece:React.Dispatch<React.SetStateAction<Piece | undefined>>
+     }) {
     
-    
+
     const fileNumber = file.charCodeAt(0) - 'a'.charCodeAt(0) + 1;
     const isLight = (fileNumber + rank) % 2 == 0;
     const background = isLight ? '' : 'bg-amber-800';
@@ -33,20 +35,28 @@ function ChessSquare({ file, rank, game, activesquares, setActiveSquares }:
     }
 
     const handleClick = async (game: GameState) => {
-    console.log("Clicked square:", `${file}${rank}`);
-    console.log("Row (array index):", row, "Col (array index):", col);
-    
-    const legalSquares = await GetLegalSquares(row, col);
-    
-    console.log("Legal squares returned:", legalSquares);
-    setActiveSquares(legalSquares);
-}
+        console.log("clicked piece: ", game.Board[row][col].Piece == selectedPiece);
+        if (game.Board[row][col].Occupied && game.Board[row][col].Piece == selectedPiece) {
+            setActiveSquares([])
+           setSelectedPiece(undefined)
+        }else if (game.Board[row][col].Occupied) {
+             
+        const legalSquares = await GetLegalSquares(row, col);
+
+        //console.log("Legal squares returned:", legalSquares);
+        setActiveSquares(legalSquares);
+            setSelectedPiece(game.Board[row][col].Piece)
+        }
+
+       
+    }
+
 
 
     const currentSquare = `${file}${rank}`;
     const isActiveSquare = activesquares.includes(currentSquare);
     //const isActiveSquare = () => activesquares.includes(`${file}${rank}`)
-    const isActiveBackground = isActiveSquare ? 'bg-gray-100/80' : ''
+    const isActiveBackground = isActiveSquare ? 'bg-gray-50/40' : ''
 
     return (
         <div className={`w-[77.5px] h-[77.5px] ${background} ${isActiveBackground} flex justify-center items-center`} onClick={() => handleClick(game)}>

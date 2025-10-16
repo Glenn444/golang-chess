@@ -17,7 +17,7 @@ export interface GameState{
 
 
 
-interface Piece {
+export interface Piece {
   PieceType: string;
   Color: string;
   Position: string;

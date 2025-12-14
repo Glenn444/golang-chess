@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import alpha from '../assets/piece/alpha/index'
 import { GameState, Piece } from '../App';
 import IndicesToChessNotation from '../utils/IndicesToChessNotation';
-import { GetLegalSquares } from '../../wailsjs/go/main/App';
+import { GetLegalSquares, MakeMove } from '../../wailsjs/go/main/App';
 
 function ChessSquare({ file, rank, game, activesquares, setActiveSquares,setSelectedPiece,selectedPiece }:
     { file: string, rank: number, game: GameState, activesquares: string[], selectedPiece:Piece | undefined,
@@ -41,6 +41,9 @@ function ChessSquare({ file, rank, game, activesquares, setActiveSquares,setSele
            setSelectedPiece(undefined)
         }else if (!game.Board[row][col].Occupied && selectedPiece && activesquares.includes(currentSquare)) {
             console.log("move made");
+            let moveresp = await MakeMove(IndicesToChessNotation(row,col))
+            console.log("moveresp: ",moveresp);
+            
             
         }else if (game.Board[row][col].Occupied) {
              

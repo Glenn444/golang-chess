@@ -1,7 +1,7 @@
 package board
 
 import (
-
+	"fmt"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
@@ -67,23 +67,24 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
 		pieceType := string(pos[0])
 		destpos_sub := pos[1:]
 		for _, square := range g.Board {
-		for _, s := range square {
-			//fmt.Print(s)
-			//fmt.Print(s.Piece.GetPieceType() == pieceType)
-			if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
+			for _, s := range square {
+				//fmt.Print(s)
+				fmt.Print(s.Piece.GetPieceType() == pieceType)
+				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 
-				pieces_squares := s.Piece.GetLegalSquares()
-				legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares,occupied_squares)
-				//fmt.Printf("legal squares: %v\n", legal_squares)
-				for _, c_pos := range legal_squares {
-					//fmt.Printf("c_pos: %s, pos: %s\n",c_pos,pos_sub)
-					if c_pos == destpos_sub {
-						return s.Piece.GetPosition()
+					pieces_squares := s.Piece.GetLegalSquares()
+					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
+					//fmt.Printf("legal squares: %v\n", legal_squares)
+					for _, c_pos := range legal_squares {
+						//fmt.Printf("c_pos: %s, pos: %s\n",c_pos,pos_sub)
+						if c_pos == destpos_sub {
+							return s.Piece.GetPosition()
+						}
 					}
 				}
 			}
 		}
-	}}
+	}
 
 	return ""
-	}
+}

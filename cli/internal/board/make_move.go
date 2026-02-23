@@ -21,7 +21,7 @@ func Move(game *GameState, move string) {
 
 	piece := game.Board[sourcerow][sourcecol].Piece
 	piece.AssignPosition(move_pos)
-	fmt.Printf("Piece pos: %s\n",piece.GetPosition())
+	//fmt.Printf("Piece pos: %s\n",piece.GetPosition())
 
 	//clear the source square
 	game.Board[sourcerow][sourcecol] = Square{

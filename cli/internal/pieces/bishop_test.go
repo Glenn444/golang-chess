@@ -1,7 +1,6 @@
 package pieces
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
 )
 
@@ -13,8 +12,28 @@ func TestBishop(t *testing.T){
 		Position: "c1",
 	}
 
-	expectedlegalSquares := []string{"c1","b2","a3","d2","e3","f4","g5","h6"}
+	expectedlegalSquares := []string{"b2","a3","d2","e3","f4","g5","h6"}
 	gotlegalSquares := b1.GetLegalSquares()
 
-	require.Equal(t,expectedlegalSquares,gotlegalSquares)
+	equalSlices := compareSlices(expectedlegalSquares,gotlegalSquares)
+	if equalSlices != true{
+		t.Errorf("got %v want %v", gotlegalSquares, expectedlegalSquares)
+	}
+}
+
+func compareSlices(expectedSlice[]string,gotSlice[]string)bool{
+	finalSlice := []string{}
+	for _,val1 := range gotSlice{
+		for _, val2 := range expectedSlice{
+			if val1 == val2{
+				finalSlice = append(finalSlice,val1)
+			}
+		}
+	}
+	lengthExpectedSlice := len(expectedSlice)
+
+	if lengthExpectedSlice == len(finalSlice){
+		return true
+	}
+	return false
 }

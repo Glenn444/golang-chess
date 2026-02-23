@@ -20,8 +20,8 @@ func (b Bishop) GetLegalSquares() []string {
 	pos_top_left := get_horizontal_squares_top_left(b.Position)
 	pos_top_right := get_horizontal_squares_top_right(b.Position)
 
-	positions = append(positions, pos_top_left...)
 	positions = append(positions, pos_top_right...)
+	positions = append(positions, pos_top_left...)
 
 	return positions
 }
@@ -43,7 +43,7 @@ func get_horizontal_squares_top_left(pos string) []string {
 			row1, col1 := utils.Chess_notation_to_indices(position)
 			diag := row1 - col1
 
-			if diagnol == diag {
+			if diagnol == diag && pos != position {
 				possible_possitions = append(possible_possitions, position)
 			}
 		}
@@ -67,7 +67,7 @@ func get_horizontal_squares_top_right(pos string) []string {
 			row1, col1 := utils.Chess_notation_to_indices(position)
 			diag := row1 + col1
 
-			if diagnol == diag {
+			if diagnol == diag && pos != position{
 				possible_possitions = append(possible_possitions, position)
 			}
 		}

@@ -28,7 +28,7 @@ func (b Bishop) GetLegalSquares() []string {
 func get_horizontal_squares_top_left(pos string) []string {
 	var diagnol int
 	row, col := utils.Chess_notation_to_indices(pos)
-	fmt.Printf("row: %d, col: %d\n", row, col)
+	//fmt.Printf("row: %d, col: %d\n", row, col)
 
 
 	var possible_possitions []string

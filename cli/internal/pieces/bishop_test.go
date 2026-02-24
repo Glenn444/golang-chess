@@ -2,6 +2,8 @@ package pieces
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestBishop(t *testing.T) {
@@ -38,7 +40,7 @@ func TestBishop(t *testing.T) {
 			legalSquares: []string{"b2", "c3", "d4", "e5", "f6", "g7", "h8"},
 		},
 		{
-			name: "bishop3",
+			name: "bishop4",
 			piece: &Bishop{
 				PieceType: "B",
 				Color:     "b",
@@ -52,10 +54,9 @@ func TestBishop(t *testing.T) {
 	for _, tt := range bishopTests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotlegalSquares := tt.piece.GetLegalSquares()
-			equalSlices := compareSlices(tt.legalSquares,gotlegalSquares)
-			if equalSlices != true{
-				t.Errorf("got %v want %v",gotlegalSquares,tt.legalSquares)
-			}
+
+			require.ElementsMatch(t,gotlegalSquares,tt.legalSquares)
+			
 		})
 	}
 }

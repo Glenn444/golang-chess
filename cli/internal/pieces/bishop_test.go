@@ -60,20 +60,3 @@ func TestBishop(t *testing.T) {
 		})
 	}
 }
-
-func compareSlices(expectedSlice []string, gotSlice []string) bool {
-	finalSlice := []string{}
-	for _, val1 := range gotSlice {
-		for _, val2 := range expectedSlice {
-			if val1 == val2 {
-				finalSlice = append(finalSlice, val1)
-			}
-		}
-	}
-	lengthExpectedSlice := len(expectedSlice)
-
-	if lengthExpectedSlice == len(finalSlice) {
-		return true
-	}
-	return false
-}

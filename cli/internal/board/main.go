@@ -42,6 +42,7 @@ func Create_board() [][]Square {
 
 func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
 	occupied_squares := GetAllOccupiedSquares(g)
+	fmt.Printf("%v occupied squares: %v \n",g.CurrentPlayer,occupied_squares)
 
 	// Check if it's a pawn move (no piece prefix)
 	if len(pos) == 2 && pos[0] >= 'a' && pos[0] <= 'h' {

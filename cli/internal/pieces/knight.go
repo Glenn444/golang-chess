@@ -11,18 +11,6 @@ type Knight struct {
 	Position  string
 }
 
-// var boardIndex = map[string]int{
-// 	"a": 0,
-// 	"b": 1,
-// 	"c": 2,
-// 	"d": 3,
-// 	"e": 4,
-// 	"f": 5,
-// 	"g": 6,
-// 	"h": 7,
-// }
-// var boardLetters = []string{"a", "b", "c", "d", "e", "f", "g", "h"}
-
 // current_position = "a2"
 func (k Knight) GetLegalSquares() []string {
 

@@ -6,9 +6,12 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func Move(game *GameState, move string) {
+func Move(game *GameState, move string) error {
 	var move_pos string
-	sourcepos := CurrentPlayer_Occupied_Piece_position(*game, move)
+	sourcepos,err := CurrentPlayer_Occupied_Piece_position(*game, move)
+	if err != nil{
+		return err
+	}
 
 	move_pos = string(move[1:])
 	//pawn move
@@ -29,18 +32,20 @@ func Move(game *GameState, move string) {
 		Piece:    nil,
 	}
 
-	squareOccupied, val := Occupied_squares(*game, move_pos)
-	if squareOccupied {
-		fmt.Printf("%v %s\n",squareOccupied,val)
-		
-	}
-
+	
 	//destination square
 	game.Board[destrow][destcol] = Square{
 		Occupied: true,
 		Piece:    piece,
 	}
 
+	//squareOccupied, val := Occupied_squares(*game, move_pos)
+	occupiedPositions := GetAllOccupiedSquares(*game)
+	fmt.Printf("%v occupied squares: %v \n",game.CurrentPlayer,occupiedPositions)
+	// if squareOccupied {
+	// 	fmt.Printf("%v %s\n",squareOccupied,val)
+		
+	// }
 	//change current player after making move
 	if game.CurrentPlayer == "w" {
 		game.CurrentPlayer = "b"
@@ -48,4 +53,5 @@ func Move(game *GameState, move string) {
 		game.CurrentPlayer = "w"
 	}
 
+	return nil
 }

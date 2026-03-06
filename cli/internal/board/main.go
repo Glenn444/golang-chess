@@ -1,6 +1,7 @@
 package board
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
@@ -40,9 +41,9 @@ func Create_board() [][]Square {
 	return board
 }
 
-func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
+func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) (string,error) {
 	occupied_squares := GetAllOccupiedSquares(g)
-	fmt.Printf("%v occupied squares: %v \n",g.CurrentPlayer,occupied_squares)
+	//fmt.Printf("%v occupied squares: %v \n",g.CurrentPlayer,occupied_squares)
 
 	// Check if it's a pawn move (no piece prefix)
 	if len(pos) == 2 && pos[0] >= 'a' && pos[0] <= 'h' {
@@ -57,7 +58,7 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
 					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
 					for _, c_pos := range legal_squares {
 						if c_pos == destpos {
-							return s.Piece.GetPosition()
+							return s.Piece.GetPosition(),nil
 						}
 					}
 				}
@@ -70,16 +71,19 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
 		for _, square := range g.Board {
 			for _, s := range square {
 				//fmt.Print(s)
-				fmt.Print(s.Piece.GetPieceType() == pieceType)
+				//fmt.Print(s.Piece.GetPieceType() == pieceType)
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 
 					pieces_squares := s.Piece.GetLegalSquares()
 					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
-					//fmt.Printf("legal squares: %v\n", legal_squares)
-					for _, c_pos := range legal_squares {
-						//fmt.Printf("c_pos: %s, pos: %s\n",c_pos,pos_sub)
+					fmt.Printf("legal squares: %v\n", legal_squares)
+
+					for pos_sub, c_pos := range legal_squares {
+						fmt.Printf("c_pos: %s, pos: %v\n",c_pos,pos_sub)
 						if c_pos == destpos_sub {
-							return s.Piece.GetPosition()
+							return s.Piece.GetPosition(),nil
+						}else{
+							return "", errors.New("invalid move\n")
 						}
 					}
 				}
@@ -87,5 +91,5 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) string {
 		}
 	}
 
-	return ""
+	return "", errors.New("position not found")
 }

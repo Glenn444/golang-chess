@@ -91,5 +91,5 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) (string,erro
 		}
 	}
 
-	return "", errors.New("position not found")
+	return "", errors.New("invalid move\n")
 }

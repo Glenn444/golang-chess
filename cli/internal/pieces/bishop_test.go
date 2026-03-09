@@ -42,7 +42,7 @@ func TestBishop(t *testing.T) {
 
 	for _, squares := range gameState.Board {
 		for _, square := range squares {
-			if square.Piece.GetPieceType() == "B" {
+			if square.Occupied && square.Piece.GetPieceType() == "B" {
 				for _, btest := range bishopTests {
 					if square.Piece.GetPosition() == btest.position {
 						t.Run(btest.name, func(t *testing.T) {

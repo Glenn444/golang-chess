@@ -23,7 +23,7 @@ func main() {
 			if s.Occupied{
 				fmt.Printf("%v",s.Piece)
 			}else{
-				fmt.Printf("[] ")
+				fmt.Printf("[ ]")
 			}
 		}
 		fmt.Printf("\n")

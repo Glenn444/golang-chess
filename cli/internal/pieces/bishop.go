@@ -15,21 +15,21 @@ type Bishop struct {
 	Position  string
 }
 
-func (b Bishop) GetLegalSquares() []string {
+func (b Bishop) GetLegalSquares(g GameState) []string {
 	var positions []string
-	pos_top_left := get_horizontal_squares_top_left(b.Position)
-	pos_top_right := get_horizontal_squares_top_right(b.Position)
+	pos_top_left := get_horizontal_squares_top_left(b.Position, g)
+	pos_top_right := get_horizontal_squares_top_right(b.Position, g)
 
 	positions = append(positions, pos_top_right...)
 	positions = append(positions, pos_top_left...)
 
 	return positions
 }
-func get_horizontal_squares_top_left(pos string) []string {
+
+func get_horizontal_squares_top_left(pos string, g GameState) []string {
 	var diagnol int
 	row, col := utils.Chess_notation_to_indices(pos)
 	//fmt.Printf("row: %d, col: %d\n", row, col)
-
 
 	var possible_possitions []string
 
@@ -41,10 +41,15 @@ func get_horizontal_squares_top_left(pos string) []string {
 		for _, j := range nums {
 			position := fmt.Sprintf("%s%d", v, j)
 			row1, col1 := utils.Chess_notation_to_indices(position)
+			square := g.Board[row1][col1]
 			diag := row1 - col1
 
 			if diagnol == diag && pos != position {
-				possible_possitions = append(possible_possitions, position)
+				if square.Occupied && square.Piece.GetColor() != g.CurrentPlayer {
+					possible_possitions = append(possible_possitions, position)
+				} else{
+					possible_possitions = append(possible_possitions, position)
+				}
 			}
 		}
 	}
@@ -52,7 +57,7 @@ func get_horizontal_squares_top_left(pos string) []string {
 	return possible_possitions
 }
 
-func get_horizontal_squares_top_right(pos string) []string {
+func get_horizontal_squares_top_right(pos string, g GameState) []string {
 	var diagnol int
 	row, col := utils.Chess_notation_to_indices(pos)
 	//dia := row + col
@@ -67,8 +72,14 @@ func get_horizontal_squares_top_right(pos string) []string {
 			row1, col1 := utils.Chess_notation_to_indices(position)
 			diag := row1 + col1
 
-			if diagnol == diag && pos != position{
-				possible_possitions = append(possible_possitions, position)
+			if diagnol == diag && pos != position {
+				square := g.Board[row1][col1]
+				if square.Occupied && square.Piece.GetColor() != g.CurrentPlayer {
+					possible_possitions = append(possible_possitions, position)
+				} else{
+					possible_possitions = append(possible_possitions, position)
+				}
+				//possible_possitions = append(possible_possitions, position)
 			}
 		}
 	}

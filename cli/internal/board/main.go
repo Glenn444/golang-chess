@@ -2,7 +2,6 @@ package board
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
@@ -76,10 +75,10 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) (string,erro
 
 					pieces_squares := s.Piece.GetLegalSquares()
 					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
-					fmt.Printf("legal squares: %v\n", legal_squares)
+					//fmt.Printf("legal squares: %v\n", legal_squares)
 
-					for pos_sub, c_pos := range legal_squares {
-						fmt.Printf("c_pos: %s, pos: %v\n",c_pos,pos_sub)
+					for _, c_pos := range legal_squares {
+						//fmt.Printf("c_pos: %s, pos: %v\n",c_pos,pos_sub)
 						if c_pos == destpos_sub {
 							return s.Piece.GetPosition(),nil
 						}else{

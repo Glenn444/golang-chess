@@ -6,7 +6,7 @@ type Queen struct {
 	Position  string
 }
 
-func (q Queen) GetLegalSquares() []string {
+func (q Queen) GetLegalSquares(g GameState) []string {
 	b := Bishop{
 		Color:     q.Color,
 		PieceType: "B",
@@ -19,8 +19,8 @@ func (q Queen) GetLegalSquares() []string {
 		Position:  q.Position,
 	}
 	var positions []string
-	rook_pos := r.GetLegalSquares()
-	bishop_pos := b.GetLegalSquares()
+	rook_pos := r.GetLegalSquares(g)
+	bishop_pos := b.GetLegalSquares(g)
 
 	positions = append(positions, rook_pos...)
 	positions = append(positions, bishop_pos...)

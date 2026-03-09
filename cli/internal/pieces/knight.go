@@ -12,7 +12,7 @@ type Knight struct {
 }
 
 // current_position = "a2"
-func (k Knight) GetLegalSquares() []string {
+func (k Knight) GetLegalSquares(g GameState) []string {
 
 	var possible_positions []string
 	//letter := string(k.Position[0])

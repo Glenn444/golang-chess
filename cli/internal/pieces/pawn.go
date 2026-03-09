@@ -11,7 +11,7 @@ type Pawn struct {
 	Position  string
 }
 
-func (p Pawn) GetLegalSquares() []string {
+func (p Pawn) GetLegalSquares(g GameState) []string {
 	var positions []string
 	var initialPos = []string{
 		"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2", // white pawns

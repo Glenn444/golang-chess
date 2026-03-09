@@ -11,7 +11,7 @@ type Rook struct{
 	Position string
 }
 
-func (r Rook) GetLegalSquares() []string  {
+func (r Rook) GetLegalSquares(g GameState) []string  {
 	boardIndex := map[string]int{
 		"a": 0,
 		"b": 1,

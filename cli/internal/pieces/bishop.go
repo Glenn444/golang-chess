@@ -48,6 +48,7 @@ func (b Bishop) GetLegalSquares(g GameState) []string {
 		
 
 	}
+	fmt.Printf("legalsquares: %v\n",positions)
 	return positions
 }
 

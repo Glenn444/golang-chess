@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Glenn444/golang-chess/internal/board"
+	"github.com/Glenn444/golang-chess/internal/pieces"
 )
 
 
-func Cli(g *board.GameState) {
+func Cli(g *pieces.GameState) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	cliApp := NewCLI(g)

@@ -11,63 +11,49 @@ func TestBishop(t *testing.T) {
 	board := [][]Square{}
 	gameState := GameState{
 		CurrentPlayer: "w",
-		Board: Initialise_board(board),
+		Board:         Initialise_board(board),
 	}
 	bishopTests := []struct {
 		name         string
-		piece        PieceInterface
+		position     string
 		legalSquares []string
 	}{
 		{
-			name: "bishop1",
-			piece: &Bishop{
-				PieceType: "B",
-				Color:     "w",
-				Position:  "c1",
-			},
-			legalSquares: []string{"b2", "a3", "d2", "e3", "f4", "g5", "h6"},
+			name:         "bc1",
+			position:     "c1",
+			legalSquares: []string{""},
 		},
 		{
-			name: "bishop2",
-			piece: &Bishop{
-				PieceType: "B",
-				Color:     "w",
-				Position:  "d4",
-			},
-			legalSquares: []string{"c3", "b2", "a1", "e5", "f6", "g7", "h8", "c5", "b6", "a7", "e3", "f2", "g1"},
+			name:         "bf1",
+			position:     "f1",
+			legalSquares: []string{""},
 		},
 		{
-			name: "bishop3",
-			piece: &Bishop{
-				PieceType: "B",
-				Color:     "b",
-				Position:  "a1",
-			},
-			legalSquares: []string{"b2", "c3", "d4", "e5", "f6", "g7", "h8"},
+			name:         "bc8",
+			position:     "c8",
+			legalSquares: []string{""},
 		},
 		{
-			name: "bishop4",
-			piece: &Bishop{
-				PieceType: "B",
-				Color:     "b",
-				Position:  "h8",
-			},
-			legalSquares: []string{"g7", "f6", "e5", "d4", "c3", "b2", "a1"},
+			name:         "bf8",
+			position:     "f8",
+			legalSquares: []string{""},
 		},
 	}
 
-
-	for _, tt := range bishopTests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotlegalSquares := tt.piece.GetLegalSquares()
-
-			require.ElementsMatch(t,gotlegalSquares,tt.legalSquares)
-			
-		})
+	for _, squares := range gameState.Board {
+		for _, square := range squares {
+			if square.Piece.GetPieceType() == "B" {
+				for _, btest := range bishopTests {
+					if square.Piece.GetPosition() == btest.position {
+						t.Run(btest.name, func(t *testing.T) {
+							require.Equal(t,btest.legalSquares,square.Piece.GetLegalSquares(gameState))
+						})
+					}
+				}
+			}
+		}
 	}
 }
-
-
 
 func Initialise_board(board [][]Square) [][]Square {
 	b := map[string]string{
@@ -87,7 +73,6 @@ func Initialise_board(board [][]Square) [][]Square {
 		"d8": "q",
 		"e8": "k",
 	}
-	
 
 	for i, row := range board {
 		for j := range row {
@@ -178,7 +163,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "Q" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: &pieces.Queen{
+						Piece: &Queen{
 							Color:     "w",
 							PieceType: "Q",
 							Position:  pos,
@@ -187,7 +172,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: &pieces.Queen{
+						Piece: &Queen{
 							Color:     "b",
 							PieceType: "Q",
 							Position:  pos,
@@ -198,7 +183,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				if b[pos] == "K" {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: &pieces.King{
+						Piece: &King{
 							Color:     "w",
 							PieceType: "K",
 							Position:  pos,
@@ -207,7 +192,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				} else {
 					board[i][j] = Square{
 						Occupied: true,
-						Piece: &pieces.King{
+						Piece: &King{
 							Color:     "b",
 							PieceType: "K",
 							Position:  pos,

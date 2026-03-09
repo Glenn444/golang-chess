@@ -5,10 +5,11 @@ import (
 	"os"
 
 	"github.com/Glenn444/golang-chess/internal/board"
+	"github.com/Glenn444/golang-chess/internal/pieces"
 )
 
 type CLI struct {
-	game     *board.GameState
+	game     *pieces.GameState
 	commands map[string]Command
 }
 
@@ -18,7 +19,7 @@ type Command struct {
 	Execute     func([]string) error
 }
 
-func NewCLI(g *board.GameState) *CLI {
+func NewCLI(g *pieces.GameState) *CLI {
 	cli := &CLI{
 		game:     g,
 		commands: make(map[string]Command),

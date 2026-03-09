@@ -5,7 +5,7 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func Initialise_board(board [][]Square) [][]Square {
+func Initialise_board(board [][]pieces.Square) [][]pieces.Square {
 	b := map[string]string{
 		// White pieces
 		"a2": "P", "b2": "P", "c2": "P", "d2": "P", "e2": "P", "f2": "P", "g2": "P", "h2": "P",
@@ -31,7 +31,7 @@ func Initialise_board(board [][]Square) [][]Square {
 			switch b[pos] {
 			case "P", "p":
 				if b[pos] == "P" {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Pawn{
 							Color:     "w",
@@ -40,7 +40,7 @@ func Initialise_board(board [][]Square) [][]Square {
 						},
 					}
 				} else {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Pawn{
 							Color:     "b",
@@ -51,7 +51,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				}
 			case "R", "r":
 				if b[pos] == "R" {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Rook{
 							Color:     "w",
@@ -60,7 +60,7 @@ func Initialise_board(board [][]Square) [][]Square {
 						},
 					}
 				} else {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Rook{
 							Color:     "b",
@@ -71,7 +71,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				}
 			case "N", "n":
 				if b[pos] == "N" {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Knight{
 							Color:     "w",
@@ -80,7 +80,7 @@ func Initialise_board(board [][]Square) [][]Square {
 						},
 					}
 				} else {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Knight{
 							Color:     "b",
@@ -92,7 +92,7 @@ func Initialise_board(board [][]Square) [][]Square {
 
 			case "B", "b":
 				if b[pos] == "B" {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Bishop{
 							Color:     "w",
@@ -101,7 +101,7 @@ func Initialise_board(board [][]Square) [][]Square {
 						},
 					}
 				} else {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Bishop{
 							Color:     "b",
@@ -112,7 +112,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				}
 			case "Q", "q":
 				if b[pos] == "Q" {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Queen{
 							Color:     "w",
@@ -121,7 +121,7 @@ func Initialise_board(board [][]Square) [][]Square {
 						},
 					}
 				} else {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.Queen{
 							Color:     "b",
@@ -132,7 +132,7 @@ func Initialise_board(board [][]Square) [][]Square {
 				}
 			case "K", "k":
 				if b[pos] == "K" {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.King{
 							Color:     "w",
@@ -141,7 +141,7 @@ func Initialise_board(board [][]Square) [][]Square {
 						},
 					}
 				} else {
-					board[i][j] = Square{
+					board[i][j] = pieces.Square{
 						Occupied: true,
 						Piece: &pieces.King{
 							Color:     "b",

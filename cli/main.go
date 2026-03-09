@@ -5,6 +5,7 @@ import (
 
 	"github.com/Glenn444/golang-chess/internal/board"
 	"github.com/Glenn444/golang-chess/internal/cli"
+	"github.com/Glenn444/golang-chess/internal/pieces"
 )
 
 func main() {
@@ -12,7 +13,7 @@ func main() {
 	initialBoard_position := board.Initialise_board(b)
 	
 	//fmt.Printf("%v",initialBoard_position)
-	var game = board.GameState{
+	var game = pieces.GameState{
 		CurrentPlayer: "w",
 		Board:         initialBoard_position,
 	}

@@ -1,8 +1,11 @@
 package board
 
-import "github.com/Glenn444/golang-chess/utils"
+import (
+	"github.com/Glenn444/golang-chess/internal/pieces"
+	"github.com/Glenn444/golang-chess/utils"
+)
 
-func CapturePiece(g *GameState,move string) error {
+func CapturePiece(g *pieces.GameState,move string) error {
 	destCapturePos := string(move[2:])
 	piceType := string(move[0])
 
@@ -19,6 +22,7 @@ func CapturePiece(g *GameState,move string) error {
 			//this is a pawn capture
 			
 		}
-		pieceSquare.Piece = 
+		// pieceSquare.Piece = "b"
 	}
+	return nil
 }

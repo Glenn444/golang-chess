@@ -1,8 +1,11 @@
 package board
 
-import "github.com/Glenn444/golang-chess/utils"
+import (
+	"github.com/Glenn444/golang-chess/internal/pieces"
+	"github.com/Glenn444/golang-chess/utils"
+)
 
-func GetAllOccupiedSquares(game GameState) []string {
+func GetAllOccupiedSquares(game pieces.GameState) []string {
 	var OccupiedSquares []string
 	for i, b := range game.Board {
 		for j, s := range b {

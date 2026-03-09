@@ -8,7 +8,7 @@ import (
 )
 
 func TestCurrentOccupiedPositions(t *testing.T){
-	gameState := GameState{
+	gameState := pieces.GameState{
 		CurrentPlayer: "b",
 		Board: generateBoardPositions(),
 	}
@@ -18,15 +18,15 @@ func TestCurrentOccupiedPositions(t *testing.T){
 	require.NoError(t,Move(&gameState,"Nc6"))
 }
 
-func generateBoardPositions()[][]Square{
+func generateBoardPositions()[][]pieces.Square{
 	b := Create_board()
 	initialBoard := Initialise_board(b)
 
-	initialBoard[4][1] = Square{
+	initialBoard[4][1] = pieces.Square{
 		Occupied: false,
 		Piece: nil,
 	}
-	initialBoard[4][3] = Square{
+	initialBoard[4][3] = pieces.Square{
 		Occupied: true,
 		Piece: &pieces.Pawn{
 			PieceType: "P",

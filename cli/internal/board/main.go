@@ -12,25 +12,25 @@ type Square struct {
 	Piece    pieces.PieceInterface
 }
 
-type GameState struct {
-	CurrentPlayer string
-	Board         [][]Square
-}
+// type GameState struct {
+// 	CurrentPlayer string
+// 	Board         [][]Square
+// }
 
-func Create_board() [][]Square {
+func Create_board() [][]pieces.Square {
 
 	rows, cols := 8, 8
 
-	board := make([][]Square, rows)
+	board := make([][]pieces.Square, rows)
 
 	for i := range board {
-		board[i] = make([]Square, cols)
+		board[i] = make([]pieces.Square, cols)
 	}
 
 	// First, initialize all squares as empty
 	for i := range board {
 		for j := range board[i] {
-			board[i][j] = Square{
+			board[i][j] = pieces.Square{
 				Occupied: false,
 				Piece:    nil,
 			}
@@ -40,7 +40,7 @@ func Create_board() [][]Square {
 	return board
 }
 
-func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) (string,error) {
+func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (string,error) {
 	occupied_squares := GetAllOccupiedSquares(g)
 	//fmt.Printf("%v occupied squares: %v \n",g.CurrentPlayer,occupied_squares)
 
@@ -53,7 +53,7 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) (string,erro
 		for _, square := range g.Board {
 			for _, s := range square {
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
-					pieces_squares := s.Piece.GetLegalSquares()
+					pieces_squares := s.Piece.GetLegalSquares(g)
 					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
 					for _, c_pos := range legal_squares {
 						if c_pos == destpos {
@@ -73,7 +73,7 @@ func CurrentPlayer_Occupied_Piece_position(g GameState, pos string) (string,erro
 				//fmt.Print(s.Piece.GetPieceType() == pieceType)
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 
-					pieces_squares := s.Piece.GetLegalSquares()
+					pieces_squares := s.Piece.GetLegalSquares(g)
 					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
 					//fmt.Printf("legal squares: %v\n", legal_squares)
 

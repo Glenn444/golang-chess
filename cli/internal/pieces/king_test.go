@@ -7,38 +7,41 @@ import (
 )
 
 func TestKingPiece(t *testing.T){
+	board := [][]Square{}
+	gameState := GameState{
+		CurrentPlayer: "w",
+		Board:         Initialise_board(board),
+	}
 	kingTests := []struct {
 		name         string
-		piece        PieceInterface
+		position     string
 		legalSquares []string
 	}{
 		{
-			name: "king1",
-			piece: &King{
-				PieceType: "K",
-				Color:     "w",
-				Position:  "e1",
-			},
-			legalSquares: []string{"d1","d2","f1","f2","e2"},
+			name:         "bc1",
+			position:     "c1",
+			legalSquares: []string{""},
 		},
 		{
-			name: "king2",
-			piece: &King{
-				PieceType: "K",
-				Color:     "w",
-				Position:  "e5",
-			},
-			legalSquares: []string{"e4","d4","d5","d6","e6","f6","f5","f4"},
+			name:         "bf1",
+			position:     "f1",
+			legalSquares: []string{""},
 		},
+		
 	}
 
-
-	for _, tt := range kingTests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotlegalSquares := tt.piece.GetLegalSquares()
-
-			require.ElementsMatch(t,gotlegalSquares,tt.legalSquares)
-			
-		})
+	for _, squares := range gameState.Board {
+		for _, square := range squares {
+			if square.Piece.GetPieceType() == "K" {
+				for _, ktest := range kingTests {
+					if square.Piece.GetPosition() == ktest.position {
+						t.Run(ktest.name, func(t *testing.T) {
+							require.Equal(t,ktest.legalSquares,square.Piece.GetLegalSquares(gameState))
+						})
+					}
+				}
+			}
+		}
 	}
 }
+

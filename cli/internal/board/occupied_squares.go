@@ -1,11 +1,14 @@
 package board
 
-import "github.com/Glenn444/golang-chess/utils"
+import (
+	"github.com/Glenn444/golang-chess/internal/pieces"
+	"github.com/Glenn444/golang-chess/utils"
+)
 
 /*
 - Returns occupied squares
 */
-func Occupied_squares(g GameState, pos string)(bool,string)  {
+func Occupied_squares(g pieces.GameState, pos string)(bool,string)  {
 	destrow,destcol := utils.Chess_notation_to_indices(pos)
 	square := g.Board[destrow][destcol]
 	if !square.Occupied{

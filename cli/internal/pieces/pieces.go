@@ -1,6 +1,10 @@
 package pieces
 
-import "github.com/Glenn444/golang-chess/utils"
+import (
+	"fmt"
+
+	"github.com/Glenn444/golang-chess/utils"
+)
 
 type Square struct {
 	Occupied bool
@@ -20,6 +24,30 @@ type PieceInterface interface{
 	AssignPosition(pos string)
 	String() string
 }
+func PrintBoard(){
+	b := Create_board()
+	initialBoard_position := Initialise_board(b)
+
+	fmt.Printf("      a  b  c  d  e  f  g  h\n")
+	for i, row := range initialBoard_position {
+		
+		fmt.Printf("%d", i+1)
+		fmt.Printf("    ")
+		for _, s := range row {
+			
+			if s.Occupied{
+			fmt.Printf("%v", s.Piece.String())
+			}else{
+				fmt.Printf("[ ]")
+			}
+			
+		}
+	fmt.Printf("\n")
+
+	}
+	fmt.Printf("      a  b  c  d  e  f  g  h\n")
+}
+
 
 func Create_board() [][]Square {
 
@@ -43,6 +71,7 @@ func Create_board() [][]Square {
 
 	return board
 }
+
 func Initialise_board(board [][]Square) [][]Square {
 	b := map[string]string{
 		// White pieces

@@ -1,7 +1,6 @@
 package pieces
 
 import (
-	"fmt"
 
 	"github.com/Glenn444/golang-chess/utils"
 )
@@ -16,7 +15,7 @@ type Bishop struct {
 func (b Bishop) GetLegalSquares(g GameState) []string {
 	var positions []string
 
-	fmt.Printf("diagnol squares top right d4: %v\n",getDiagnolSquares("d4",1,1))
+	//fmt.Printf("diagnol squares top right d4: %v\n",getDiagnolSquares("d4",1,1))
 	allDiagnols := [][]string{
 		getDiagnolSquares(b.Position,1,1),
 		getDiagnolSquares(b.Position,1,-1),

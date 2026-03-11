@@ -20,28 +20,28 @@ func TestBishop(t *testing.T) {
 		legalSquares []string
 	}{
 		{
-			name:         "bb2",
-			position:     "b2",
-			legalSquares: []string{"c3", "d4", "e5", "a3", "c1"},
+			name:         "Be4",
+			position:     "e4",
+			legalSquares: []string{"f5", "g6", "h7", "d5", "f3", "d3", "c2"},
 		},
 		{
-			name:         "bf1",
+			name:         "Bf1",
 			position:     "f1",
 			legalSquares: []string(nil),
 		},
 		{
-			name:         "bc8",
+			name:         "Bc8",
 			position:     "c8",
 			legalSquares: []string(nil),
 		},
 		{
-			name:         "bf8",
+			name:         "Bf8",
 			position:     "f8",
 			legalSquares: []string{"e7", "d6", "c5", "b4", "a3"},
 		},
 	}
 
-	PrintBoard(boardState)
+	//PrintBoard(boardState)
 	for _, squares := range gameState.Board {
 		for _, square := range squares {
 			if square.Occupied && square.Piece.GetPieceType() == "B" {
@@ -62,10 +62,10 @@ func TestBishop(t *testing.T) {
 func Initialise_board(board [][]Square) [][]Square {
 	b := map[string]string{
 		// White pieces
-		"a2": "P", "b3": "P", "c2": "P", "d2": "P", "e2": "P", "f2": "P", "g2": "P", "h2": "P",
+		"a2": "P", "b3": "P", "c6": "P", "d2": "P", "e2": "P", "f2": "P", "g2": "P", "h2": "P",
 		"a1": "R", "h1": "R",
 		"b1": "N", "g1": "N",
-		"b2": "B", "f1": "B",
+		"e4": "B", "f1": "B",
 		"d1": "Q",
 		"e1": "K",
 

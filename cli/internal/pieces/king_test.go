@@ -6,11 +6,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+
+
 func TestKingPiece(t *testing.T){
-	board := [][]Square{}
+	initialBoard := map[string]string{
+		// White pieces
+		"a2": "P", "b3": "P", "c6": "P", "d2": "P", "e2": "P", "f2": "P", "g2": "P", "h2": "P",
+		"a1": "R", "h1": "R",
+		"b1": "N", "g1": "N",
+		"e4": "B", "f1": "B",
+		"d1": "Q",
+		"e1": "K",
+
+		// Black pieces
+		"a7": "p", "b7": "p", "c7": "p", "d7": "p", "e5": "p", "f7": "p", "g7": "p", "h7": "p",
+		"a8": "r", "h8": "r",
+		"b8": "n", "g8": "n",
+		"c8": "b", "f8": "b",
+		"d8": "q",
+		"e8": "k",
+	}
+
 	gameState := GameState{
 		CurrentPlayer: "w",
-		Board:         Initialise_board(board),
+		Board:         SetUpBoard(initialBoard),
 	}
 	kingTests := []struct {
 		name         string
@@ -18,14 +37,14 @@ func TestKingPiece(t *testing.T){
 		legalSquares []string
 	}{
 		{
-			name:         "bc1",
-			position:     "c1",
-			legalSquares: []string{""},
+			name:         "Ke1",
+			position:     "e1",
+			legalSquares: []string(nil),
 		},
 		{
-			name:         "bf1",
-			position:     "f1",
-			legalSquares: []string{""},
+			name:         "Ke8",
+			position:     "e8",
+			legalSquares: []string(nil),
 		},
 		
 	}

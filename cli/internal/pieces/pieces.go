@@ -2,7 +2,9 @@ package pieces
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/Glenn444/golang-chess/utils"
 )
 
 type Square struct {
@@ -15,36 +17,36 @@ type GameState struct {
 	Board         [][]Square
 }
 
-type PieceInterface interface{
+type PieceInterface interface {
 	GetLegalSquares(g GameState) []string
 	GetColor() string
-    GetPosition() string
-    GetPieceType() string
+	GetPosition() string
+	GetPieceType() string
 	AssignPosition(pos string)
 	String() string
 }
-func PrintBoard(initialBoard_position [][]Square){
+
+func PrintBoard(initialBoard_position [][]Square) {
 
 	fmt.Printf("      a  b  c  d  e  f  g  h\n")
 	for i, row := range initialBoard_position {
-		
+
 		fmt.Printf("%d", i+1)
 		fmt.Printf("    ")
 		for _, s := range row {
-			
-			if s.Occupied{
-			fmt.Printf("%v", s.Piece.String())
-			}else{
+
+			if s.Occupied {
+				fmt.Printf("%v", s.Piece.String())
+			} else {
 				fmt.Printf("[ ]")
 			}
-			
+
 		}
-	fmt.Printf("\n")
+		fmt.Printf("\n")
 
 	}
 	fmt.Printf("      a  b  c  d  e  f  g  h\n")
 }
-
 
 func Create_board() [][]Square {
 
@@ -69,3 +71,77 @@ func Create_board() [][]Square {
 	return board
 }
 
+func SetUpBoard(b map[string]string) [][]Square {
+	chessBoard := Create_board()
+
+	for i, row := range chessBoard {
+		for j := range row {
+			pos := utils.Indices_to_chess_notation(i, j)
+			color := "b"
+			if b[pos] == strings.ToUpper(b[pos]) {
+				color = "w"
+			}
+			switch b[pos] {
+			case "P", "p":
+				chessBoard[i][j] = Square{
+					Occupied: true,
+					Piece: &Pawn{
+						Color:     color,
+						PieceType: "P",
+						Position:  pos,
+					},
+				}
+			case "R", "r":
+				chessBoard[i][j] = Square{
+					Occupied: true,
+					Piece: &Rook{
+						Color:     color,
+						PieceType: "R",
+						Position:  pos,
+					},
+				}
+			case "N", "n":
+				chessBoard[i][j] = Square{
+					Occupied: true,
+					Piece: &Knight{
+						Color:     color,
+						PieceType: "N",
+						Position:  pos,
+					},
+				}
+
+			case "B", "b":
+				chessBoard[i][j] = Square{
+					Occupied: true,
+					Piece: &Bishop{
+						Color:     color,
+						PieceType: "B",
+						Position:  pos,
+					},
+				}
+			case "Q", "q":
+				chessBoard[i][j] = Square{
+					Occupied: true,
+					Piece: &Queen{
+						Color:     color,
+						PieceType: "Q",
+						Position:  pos,
+					},
+				}
+			case "K", "k":
+
+				chessBoard[i][j] = Square{
+					Occupied: true,
+					Piece: &King{
+						Color:     color,
+						PieceType: "K",
+						Position:  pos,
+					},
+				}
+
+			}
+		}
+	}
+	return chessBoard
+
+}

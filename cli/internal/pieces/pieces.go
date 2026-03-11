@@ -87,7 +87,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 					Occupied: true,
 					Piece: &Pawn{
 						Color:     color,
-						PieceType: "P",
+						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
 					},
 				}
@@ -96,7 +96,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 					Occupied: true,
 					Piece: &Rook{
 						Color:     color,
-						PieceType: "R",
+						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
 					},
 				}
@@ -105,7 +105,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 					Occupied: true,
 					Piece: &Knight{
 						Color:     color,
-						PieceType: "N",
+						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
 					},
 				}
@@ -115,7 +115,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 					Occupied: true,
 					Piece: &Bishop{
 						Color:     color,
-						PieceType: "B",
+						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
 					},
 				}
@@ -124,7 +124,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 					Occupied: true,
 					Piece: &Queen{
 						Color:     color,
-						PieceType: "Q",
+						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
 					},
 				}
@@ -134,7 +134,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 					Occupied: true,
 					Piece: &King{
 						Color:     color,
-						PieceType: "K",
+						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
 					},
 				}

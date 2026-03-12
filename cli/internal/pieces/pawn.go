@@ -66,7 +66,7 @@ func (p Pawn) GetLegalSquares(g GameState) []string {
 		pos2 := fmt.Sprintf("%s%d", letter, num-2)
 
 		rowpos2, colpos2 := utils.Chess_notation_to_indices(pos2)
-		if g.Board[rowpos2][colpos2].Occupied && g.Board[rowpos1][colpos1].Piece.GetColor() != p.Color {
+		if g.Board[rowpos2][colpos2].Occupied && g.Board[rowpos2][colpos2].Piece.GetColor() != p.Color {
 			positions = append(positions, pos2)
 		} else if !g.Board[rowpos2][colpos2].Occupied {
 			positions = append(positions, pos2)

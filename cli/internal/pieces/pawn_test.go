@@ -57,6 +57,11 @@ func TestPawn(t *testing.T){
 			position: "b3",
 			legalSquares: []string{"b4",},
 		},
+		{
+			name:"Ph7",
+			position: "h7",
+			legalSquares: []string{"h6","h5"},
+		},
 		
 	}
 

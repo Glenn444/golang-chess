@@ -3,6 +3,8 @@ package pieces
 import (
 	"fmt"
 	"strconv"
+
+	"github.com/Glenn444/golang-chess/utils"
 )
 
 type Pawn struct {
@@ -13,10 +15,6 @@ type Pawn struct {
 
 func (p Pawn) GetLegalSquares(g GameState) []string {
 	var positions []string
-	// var initialPos = []string{
-	// 	"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2", // white pawns
-	// 	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7", // black pawns
-	// }
 
 	letter := string(p.Position[0])
 	num, _ := strconv.Atoi(p.Position[1:])
@@ -28,33 +26,82 @@ func (p Pawn) GetLegalSquares(g GameState) []string {
 		pos1 := fmt.Sprintf("%s%d", letter, num+1)
 		pos2 := fmt.Sprintf("%s%d", letter, num+2)
 		positions = append(positions, pos1, pos2)
+
+		row, col := utils.Chess_notation_to_indices(p.Position)
+		diagRowR := row + 1
+		diagColR := col + 1
+		if g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
+			diagRight := utils.Indices_to_chess_notation(diagRowR, diagColR)
+			positions = append(positions, diagRight)
+		}
+
+		diagRowL := row + 1
+		diagColL := col - 1
+		if g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
+			diagRight := utils.Indices_to_chess_notation(diagRowL, diagColL)
+			positions = append(positions, diagRight)
+		}
+
 	case 7:
 		added = true
 		pos1 := fmt.Sprintf("%s%d", letter, num-1)
 		pos2 := fmt.Sprintf("%s%d", letter, num-2)
 		positions = append(positions, pos1, pos2)
+
+		row, col := utils.Chess_notation_to_indices(p.Position)
+		diagRowR := row - 1
+		diagColR := col - 1
+		if g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
+			diagRight := utils.Indices_to_chess_notation(diagRowR, diagColR)
+			positions = append(positions, diagRight)
+		}
+
+		diagRowL := row - 1
+		diagColL := col + 1
+		if g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
+			diagRight := utils.Indices_to_chess_notation(diagRowL, diagColL)
+			positions = append(positions, diagRight)
+		}
 	}
-	// for _, pos := range initialPos {
-	// 	if p.Position == pos && p.Color == "w" {
-	// 		added = true
-	// 		pos1 := fmt.Sprintf("%s%d", letter, num+1)
-	// 		pos2 := fmt.Sprintf("%s%d", letter, num+2)
-	// 		positions = append(positions, pos1, pos2)
-	// 	} else if p.Position == pos && p.Color == "b" {
-	// 		added = true
-	// 		pos1 := fmt.Sprintf("%s%d", letter, num-1)
-	// 		pos2 := fmt.Sprintf("%s%d", letter, num-2)
-	// 		positions = append(positions, pos1, pos2)
-	// 	}
-	// }
+
 	if !added {
 		switch p.Color {
 		case "w":
 			pos1 := fmt.Sprintf("%s%d", letter, num+1)
 			positions = append(positions, pos1)
+
+			row, col := utils.Chess_notation_to_indices(p.Position)
+			diagRowR := row + 1
+			diagColR := col + 1
+			if g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
+				diagRight := utils.Indices_to_chess_notation(diagRowR, diagColR)
+				positions = append(positions, diagRight)
+			}
+
+			diagRowL := row + 1
+			diagColL := col - 1
+			if g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
+				diagRight := utils.Indices_to_chess_notation(diagRowL, diagColL)
+				positions = append(positions, diagRight)
+			}
 		case "b":
 			pos1 := fmt.Sprintf("%s%d", letter, num-1)
 			positions = append(positions, pos1)
+
+			row, col := utils.Chess_notation_to_indices(p.Position)
+			diagRowR := row - 1
+			diagColR := col - 1
+			if g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
+				diagRight := utils.Indices_to_chess_notation(diagRowR, diagColR)
+				positions = append(positions, diagRight)
+			}
+
+			diagRowL := row - 1
+			diagColL := col + 1
+			if g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
+				diagRight := utils.Indices_to_chess_notation(diagRowL, diagColL)
+				positions = append(positions, diagRight)
+			}
 		}
 	}
 	return positions

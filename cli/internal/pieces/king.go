@@ -2,6 +2,8 @@ package pieces
 
 import (
 	"fmt"
+
+	"github.com/Glenn444/golang-chess/utils"
 )
 
 type King struct {
@@ -31,7 +33,12 @@ func (k King) GetLegalSquares(g GameState) []string {
 		// check bounds: file 0–7, rank 1–8
 		if newFile >= 0 && newFile < 8 && newRank >= 1 && newRank <= 8 {
 			move := string(files[newFile]) + fmt.Sprint(newRank)
+			row,col := utils.Chess_notation_to_indices(move)
+			if g.Board[row][col].Occupied && g.Board[row][col].Piece.GetColor() != k.Color{
 			moves = append(moves, move)
+			}else if !g.Board[row][col].Occupied{
+				moves = append(moves, move)
+			}
 		}
 	}
 

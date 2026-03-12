@@ -10,7 +10,7 @@ import (
 func TestPawn(t *testing.T){
 	initialBoard := map[string]string{
 		// White pieces
-		"a2": "P", "b3": "P", "c3": "P", "d2": "P", "e2": "P", "f2": "P", "g2": "P", "h2": "P",
+		"a2": "P", "b3": "P", "c3": "P", "d4": "P", "e2": "P", "f2": "P", "g2": "P", "h2": "P",
 		"a1": "R", "h1": "R",
 		"b1": "N", "c4": "N",
 		"e4": "B", "f1": "B",
@@ -38,24 +38,24 @@ func TestPawn(t *testing.T){
 		legalSquares []string
 	}{
 		{
-			name:         "Nb1",
-			position:     "b1",
-			legalSquares: []string{"a3"},
+			name:         "Pc3",
+			position:     "c3",
+			legalSquares: []string(nil),
 		},
 		{
-			name:         "Ng1",
-			position:     "g1",
-			legalSquares: []string{"f6","h6"},
+			name:         "Pd4",
+			position:     "d4",
+			legalSquares: []string{"d5","e5"},
 		},
 		{
-			name: "Nb8",
-			position: "b8",
-			legalSquares: []string{"a6","c6"},
+			name: "Pc7",
+			position: "c7",
+			legalSquares: []string{"c6","c5"},
 		},
 		{
-			name: "Nc4",
-			position: "c4",
-			legalSquares: []string{"e3","e5","b6","d6","a3","a5","b2"},
+			name: "Pb3",
+			position: "b3",
+			legalSquares: []string{"b4",},
 		},
 		
 	}
@@ -63,11 +63,11 @@ func TestPawn(t *testing.T){
 	PrintBoard(chessBoard)
 	for _, squares := range gameState.Board {
 		for _, square := range squares {
-			if square.Occupied && square.Piece.GetPieceType() == "N" {
+			if square.Occupied && square.Piece.GetPieceType() == "P" {
 				for _, piecetest := range pieceTests {
 					if square.Piece.GetPosition() == piecetest.position {
 						t.Run(piecetest.name, func(t *testing.T) {
-							require.ElementsMatch(t,piecetest.legalSquares,square.Piece.GetLegalSquares(gameState))
+							require.Equal(t,piecetest.legalSquares,square.Piece.GetLegalSquares(gameState))
 						})
 					}
 				}

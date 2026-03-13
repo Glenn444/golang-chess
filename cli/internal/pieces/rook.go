@@ -1,70 +1,88 @@
 package pieces
 
 import (
-	"fmt"
-	"strconv"
+
+	"github.com/Glenn444/golang-chess/utils"
 )
 
-type Rook struct{
+type Rook struct {
 	PieceType string
-	Color string
-	Position string
+	Color     string
+	Position  string
 }
 
-func (r Rook) GetLegalSquares(g GameState) []string  {
-	boardIndex := map[string]int{
-		"a": 0,
-		"b": 1,
-		"c": 2,
-		"d": 3,
-		"e": 4,
-		"f": 5,
-		"g": 6,
-		"h": 7,
+func (r Rook) GetLegalSquares(g GameState) []string {
+	var positions []string
+
+	allDiagnols := [][]string{
+		getHorizontalVertical(r,-1,0),
+		getHorizontalVertical(r,0,-1),
+		getHorizontalVertical(r,0,1),
+		getHorizontalVertical(r,1,0),
 	}
-	var possible_possitions []string
+	//return positions
+	for _,diagnol := range allDiagnols{
+		for _, pos := range diagnol{
+			i, j := utils.Chess_notation_to_indices(pos)
+			square := g.Board[i][j]
 
-	letter := string(r.Position[0])
-	num,_ := strconv.Atoi(r.Position[1:])
+			if square.Occupied{
+				if square.Piece.GetColor() != r.Color{
+					positions = append(positions, pos)
+				}
+				break
+			}
+			
+			positions = append(positions, pos)
+		}
+		
 
-	var column_pos []string
-	var row_pos []string
-
-	for k,v := range boardIndex{
-		pos_c := fmt.Sprintf("%s%d",letter,v+1)
-		column_pos = append(column_pos, pos_c)
-
-		pos_r := fmt.Sprintf("%s%d",k,num)
-		row_pos = append(row_pos, pos_r)
 	}
+	//fmt.Printf("legalsquares: %v\n",positions)
+	return positions
 
-	possible_possitions = append(possible_possitions, column_pos...)
-	possible_possitions = append(possible_possitions, row_pos...)
-
-	return possible_possitions
 }
 
+func getHorizontalVertical(r Rook,rowDelta int, colDelta int) []string {
+	
+	var possible_positions []string
 
+	row,col := utils.Chess_notation_to_indices(r.Position)
+	
+	for true{
+		r := row+rowDelta
+		c := col+colDelta
+
+		if r >= 8 || r < 0 || c >= 8 || c < 0{
+			break
+		}
+		pos := utils.Indices_to_chess_notation(r,c)
+		possible_positions = append(possible_positions, pos)
+		row = r
+		col = c
+	}
+	return possible_positions
+}
 
 func (r Rook) GetColor() string {
-    return r.Color
+	return r.Color
 }
 
 func (r Rook) GetPosition() string {
-    return r.Position
+	return r.Position
 }
 
 func (r Rook) GetPieceType() string {
-    return r.PieceType
+	return r.PieceType
 }
 
-func (r *Rook) AssignPosition(pos string){
+func (r *Rook) AssignPosition(pos string) {
 	r.Position = pos
 }
 
 func (r Rook) String() string {
-    if r.Color == "w" {
-        return "[♖]" // or "wR"
-    }
-    return "[♜]" // or "bR"
+	if r.Color == "w" {
+		return "[♖]" // or "wR"
+	}
+	return "[♜]" // or "bR"
 }

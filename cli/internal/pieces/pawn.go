@@ -25,18 +25,17 @@ func (p Pawn) GetLegalSquares(g GameState) []string {
 		added = true
 		pos1 := fmt.Sprintf("%s%d", letter, num+1)
 		rowpos1, colpos1 := utils.Chess_notation_to_indices(pos1)
-		if g.Board[rowpos1][colpos1].Occupied && g.Board[rowpos1][colpos1].Piece.GetColor() != p.Color {
+		if !g.Board[rowpos1][colpos1].Occupied {
 			positions = append(positions, pos1)
-		} else if !g.Board[rowpos1][colpos1].Occupied {
-			positions = append(positions, pos1)
+
+			pos2 := fmt.Sprintf("%s%d", letter, num+2)
+			rowpos2, colpos2 := utils.Chess_notation_to_indices(pos2)
+			
+			if !g.Board[rowpos2][colpos2].Occupied {
+				positions = append(positions, pos2)
+			}
 		}
-		pos2 := fmt.Sprintf("%s%d", letter, num+2)
-		rowpos2, colpos2 := utils.Chess_notation_to_indices(pos2)
-		if g.Board[rowpos2][colpos2].Occupied && g.Board[rowpos1][colpos1].Piece.GetColor() != p.Color {
-			positions = append(positions, pos2)
-		} else if !g.Board[rowpos2][colpos2].Occupied {
-			positions = append(positions, pos2)
-		}
+
 		//positions = append(positions, pos1, pos2)
 
 		row, col := utils.Chess_notation_to_indices(p.Position)
@@ -58,32 +57,32 @@ func (p Pawn) GetLegalSquares(g GameState) []string {
 		added = true
 		pos1 := fmt.Sprintf("%s%d", letter, num-1)
 		rowpos1, colpos1 := utils.Chess_notation_to_indices(pos1)
-		if g.Board[rowpos1][colpos1].Occupied && g.Board[rowpos1][colpos1].Piece.GetColor() != p.Color {
+		if !g.Board[rowpos1][colpos1].Occupied {
 			positions = append(positions, pos1)
-		} else if !g.Board[rowpos1][colpos1].Occupied {
-			positions = append(positions, pos1)
-		}
-		pos2 := fmt.Sprintf("%s%d", letter, num-2)
 
-		rowpos2, colpos2 := utils.Chess_notation_to_indices(pos2)
-		if g.Board[rowpos2][colpos2].Occupied && g.Board[rowpos2][colpos2].Piece.GetColor() != p.Color {
-			positions = append(positions, pos2)
-		} else if !g.Board[rowpos2][colpos2].Occupied {
-			positions = append(positions, pos2)
+			pos2 := fmt.Sprintf("%s%d", letter, num-2)
+			rowpos2, colpos2 := utils.Chess_notation_to_indices(pos2)
+			
+			if !g.Board[rowpos2][colpos2].Occupied {
+				positions = append(positions, pos2)
+			}
 		}
 		//positions = append(positions, pos1, pos2)
 
 		row, col := utils.Chess_notation_to_indices(p.Position)
+
 		diagRowR := row - 1
 		diagColR := col - 1
-		if g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
+		//fmt.Printf("diagRowR: %d, diagColR: %d \n",diagRowR,diagColR)
+		if diagColR < 8 && diagRowR >= 0 && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
 			diagRight := utils.Indices_to_chess_notation(diagRowR, diagColR)
 			positions = append(positions, diagRight)
 		}
 
 		diagRowL := row - 1
 		diagColL := col + 1
-		if g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
+		//fmt.Printf("diagRowL: %d, diagColL: %d \n",diagRowL,diagColL)
+		if diagColL < 8 && diagRowR >= 0 && g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
 			diagRight := utils.Indices_to_chess_notation(diagRowL, diagColL)
 			positions = append(positions, diagRight)
 		}
@@ -96,9 +95,9 @@ func (p Pawn) GetLegalSquares(g GameState) []string {
 			rowpos1, colpos1 := utils.Chess_notation_to_indices(pos1)
 			if g.Board[rowpos1][colpos1].Occupied && g.Board[rowpos1][colpos1].Piece.GetColor() != p.Color {
 				positions = append(positions, pos1)
-			}else if !g.Board[rowpos1][colpos1].Occupied{
-			positions = append(positions, pos1)
-		}
+			} else if !g.Board[rowpos1][colpos1].Occupied {
+				positions = append(positions, pos1)
+			}
 			//positions = append(positions, pos1)
 
 			row, col := utils.Chess_notation_to_indices(p.Position)
@@ -120,9 +119,9 @@ func (p Pawn) GetLegalSquares(g GameState) []string {
 			rowpos1, colpos1 := utils.Chess_notation_to_indices(pos1)
 			if g.Board[rowpos1][colpos1].Occupied && g.Board[rowpos1][colpos1].Piece.GetColor() != p.Color {
 				positions = append(positions, pos1)
-			}else if !g.Board[rowpos1][colpos1].Occupied{
-			positions = append(positions, pos1)
-		}
+			} else if !g.Board[rowpos1][colpos1].Occupied {
+				positions = append(positions, pos1)
+			}
 			//positions = append(positions, pos1)
 
 			row, col := utils.Chess_notation_to_indices(p.Position)

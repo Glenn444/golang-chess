@@ -1,6 +1,7 @@
 package board
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
@@ -83,5 +84,5 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 		}
 	}
 
-	return "", nil
+	return "", errors.New("invalid move\n")
 }

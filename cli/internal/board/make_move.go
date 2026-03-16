@@ -18,6 +18,7 @@ func Move(game *pieces.GameState, move string) error {
 		if err != nil{
 			return err
 		}
+		return nil
 
 	}
 

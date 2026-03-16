@@ -13,7 +13,7 @@ func Move(game *pieces.GameState, move string) error {
 	if err != nil{
 		return err
 	}
-
+	fmt.Printf("sourcepos: %v",sourcepos)
 	move_pos = string(move[1:])
 	//pawn move
 	if len(move) == 2{

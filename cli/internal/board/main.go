@@ -2,6 +2,7 @@ package board
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
@@ -41,8 +42,8 @@ func Create_board() [][]pieces.Square {
 }
 
 func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (string,error) {
+	
 	occupied_squares := GetAllOccupiedSquares(g)
-	//fmt.Printf("%v occupied squares: %v \n",g.CurrentPlayer,occupied_squares)
 
 	// Check if it's a pawn move (no piece prefix)
 	if len(pos) == 2 && pos[0] >= 'a' && pos[0] <= 'h' {
@@ -50,16 +51,14 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 		pieceType := "P" // or whatever you use for pawns
 		destpos := pos
 
-		for _, square := range g.Board {
-			for _, s := range square {
+		for _, squares := range g.Board {
+			for _, s := range squares {
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 					pieces_squares := s.Piece.GetLegalSquares(g)
 					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
-					for _, c_pos := range legal_squares {
-						if c_pos == destpos {
+					if slices.Contains(legal_squares, destpos) {
 							return s.Piece.GetPosition(),nil
 						}
-					}
 				}
 			}
 		}

@@ -76,18 +76,13 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
 					//fmt.Printf("legal squares: %v\n", legal_squares)
 
-					for _, c_pos := range legal_squares {
-						//fmt.Printf("c_pos: %s, pos: %v\n",c_pos,pos_sub)
-						if c_pos == destpos_sub {
+					if slices.Contains(legal_squares, destpos_sub) {
 							return s.Piece.GetPosition(),nil
-						}else{
-							return "", errors.New("invalid move\n")
 						}
-					}
 				}
 			}
 		}
 	}
 
-	return "", errors.New("invalid move\n")
+	return "",nil
 }

@@ -10,7 +10,7 @@ import (
 func GetInitialPositionByPiece(destinationPos string, pieceType string, gm pieces.GameState)(piece pieces.PieceInterface,err error){
 	for _,squares := range gm.Board{
 		for _, square := range squares{
-			if square.Piece.GetPieceType() == pieceType && square.Piece.GetColor() == gm.CurrentPlayer{
+			if square.Occupied && square.Piece.GetPieceType() == pieceType && square.Piece.GetColor() == gm.CurrentPlayer{
 				if slices.Contains(square.Piece.GetLegalSquares(gm), destinationPos) {
 						return square.Piece, nil
 					}

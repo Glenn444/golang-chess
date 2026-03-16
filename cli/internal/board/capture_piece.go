@@ -61,7 +61,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 		}else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R"{
 			initialPiece,err := GetInitialPositionByPiece(destCapturePos,pieceType,*game)
 			if err != nil{
-				return errors.New("invalid move")
+				return errors.New("invalid move capture")
 			}
 
 			initialPos := initialPiece.GetPosition()
@@ -85,8 +85,8 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			}
 
 			//squareOccupied, val := Occupied_squares(*game, move_pos)
-			occupiedPositions := GetAllOccupiedSquares(*game)
-			fmt.Printf("%v occupied squares: %v \n", game.CurrentPlayer, occupiedPositions)
+			//occupiedPositions := GetAllOccupiedSquares(*game)
+			//fmt.Printf("%v occupied squares: %v \n", game.CurrentPlayer, occupiedPositions)
 			// if squareOccupied {
 			// 	fmt.Printf("%v %s\n",squareOccupied,val)
 
@@ -100,5 +100,5 @@ func CapturePiece(game *pieces.GameState, move string) error {
 
 		}
 	}
-	return errors.New("error happened and i don't know")
+	return nil
 }

@@ -13,7 +13,7 @@ func Move(game *pieces.GameState, move string) error {
 	moveType := string(move[1])
 
 	if moveType == "x" || moveType == "X"{
-		fmt.Printf("this is a capture move")
+		fmt.Printf("this is a capture move\n")
 		err := CapturePiece(game,move)
 		if err != nil{
 			return err

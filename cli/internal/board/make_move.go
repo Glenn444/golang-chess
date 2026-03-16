@@ -9,25 +9,29 @@ import (
 
 func Move(game *pieces.GameState, move string) error {
 	var move_pos string
-	boardFile := map[string]bool{
-			"a":true,"b":true,"c":true,"d":true,"e":true,"f":true,"g":true,"h":true,
+	move_pos = string(move[1:])
+	moveType := string(move[1])
+
+	if moveType == "x" || moveType == "X"{
+		fmt.Printf("this is a capture move")
+		err := CapturePiece(game,move)
+		if err != nil{
+			return err
+		}
+
 	}
 
-
+	
 	sourcepos,err := CurrentPlayer_Occupied_Piece_position(*game, move)
 	if err != nil{
 		return err
 	}
 	//fmt.Printf("sourcepos: %v",sourcepos)
-	move_pos = string(move[1:])
-	pieceType := string(move[0])
+	
 
-	//pawn move or pawn capture
-	if len(move) == 2 {
+	//pawn move
+	if len(move) == 2{
 		move_pos = move
-	}else if boardFile[pieceType]{
-		destCapturePos := string(move[2:])
-		move_pos = destCapturePos
 	}
 	
 	destrow, destcol := utils.Chess_notation_to_indices(move_pos)

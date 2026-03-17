@@ -29,7 +29,6 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			numPos,_ := strconv.Atoi(string(move[3]))
 			initialCapturePosNum = numPos - 1
 		} else {
-			//fmt.Printf("Black pawn capture\n")
 			numPos,_ := strconv.Atoi(string(move[3]))
 			initialCapturePosNum = numPos + 1
 		}
@@ -42,7 +41,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)
-			//fmt.Printf("Piece pos: %s\n",piece.GetPosition())
+			
 
 			//clear the source square
 			game.Board[sourcerow][sourcecol] = pieces.Square{
@@ -50,6 +49,11 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Piece:    nil,
 			}
 
+
+			//add captured pieces to current player
+			destPiece := game.Board[destrow][destcol].Piece
+			
+			game.CapturedPieces[game.CurrentPlayer] = append(game.CapturedPieces[game.CurrentPlayer], destPiece) 
 			//destination square
 			game.Board[destrow][destcol] = pieces.Square{
 				Occupied: true,

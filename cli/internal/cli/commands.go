@@ -87,6 +87,21 @@ func (c *CLI) printBoardState([] string) error{
 
 	}
 	fmt.Printf("      a  b  c  d  e  f  g  h\n")
+
+	fmt.Printf("Game Points w vs b\n")
+	for player,capturedPieces := range c.game.CapturedPieces{
+		var sumB int64
+		var sumW int64
+		if player == "w"{
+			for _,piece := range capturedPieces{
+				sumW = sumW + piece.GetPiecePoints()
+			}
+		}else{
+			for _,piece := range capturedPieces{
+				sumB = sumB + piece.GetPiecePoints()
+			}
+		}
+	}
 	return nil
 }
 

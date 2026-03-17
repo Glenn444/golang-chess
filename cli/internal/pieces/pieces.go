@@ -15,6 +15,7 @@ type Square struct {
 type GameState struct {
 	CurrentPlayer string
 	Board         [][]Square
+
 }
 
 type PieceInterface interface {
@@ -24,6 +25,7 @@ type PieceInterface interface {
 	GetPieceType() string
 	AssignPosition(pos string)
 	String() string
+	GetPiecePoints() int64
 }
 
 func PrintBoard(initialBoard_position [][]Square) {
@@ -89,6 +91,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 1,
 					},
 				}
 			case "R", "r":
@@ -98,6 +101,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 5,
 					},
 				}
 			case "N", "n":
@@ -107,6 +111,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 3,
 					},
 				}
 
@@ -117,6 +122,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 3,
 					},
 				}
 			case "Q", "q":
@@ -126,6 +132,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 9,
 					},
 				}
 			case "K", "k":

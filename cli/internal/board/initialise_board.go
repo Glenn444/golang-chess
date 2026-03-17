@@ -42,6 +42,7 @@ func Initialise_board(board [][]pieces.Square) [][]pieces.Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 1,
 					},
 				}
 			case "R", "r":
@@ -51,6 +52,7 @@ func Initialise_board(board [][]pieces.Square) [][]pieces.Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 5,
 					},
 				}
 			case "N", "n":
@@ -60,6 +62,7 @@ func Initialise_board(board [][]pieces.Square) [][]pieces.Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 3,
 					},
 				}
 
@@ -70,6 +73,7 @@ func Initialise_board(board [][]pieces.Square) [][]pieces.Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 3,
 					},
 				}
 			case "Q", "q":
@@ -79,6 +83,7 @@ func Initialise_board(board [][]pieces.Square) [][]pieces.Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
+						Points: 9,
 					},
 				}
 			case "K", "k":

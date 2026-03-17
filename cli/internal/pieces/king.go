@@ -10,6 +10,7 @@ type King struct {
 	PieceType string
 	Color     string
 	Position string
+	Points 	int64
 }
 
 func (k King) GetLegalSquares(g GameState) []string {
@@ -61,7 +62,9 @@ func (k King) GetPieceType() string {
 func (k *King) AssignPosition(pos string){
 	k.Position = pos
 }
-
+func (k *King) GetPiecePoints()int64{
+	return k.Points
+}
 func (k *King) String() string {
     if k.Color == "w" {
         return "[♔]" // or "wK"

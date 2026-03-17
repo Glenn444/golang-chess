@@ -9,6 +9,7 @@ type Rook struct {
 	PieceType string
 	Color     string
 	Position  string
+	Points	int64
 }
 
 func (r Rook) GetLegalSquares(g GameState) []string {
@@ -79,7 +80,9 @@ func (r Rook) GetPieceType() string {
 func (r *Rook) AssignPosition(pos string) {
 	r.Position = pos
 }
-
+func (r Rook) GetPiecePoints()int64{
+	return r.Points
+}
 func (r Rook) String() string {
 	if r.Color == "w" {
 		return "[♖]" // or "wR"

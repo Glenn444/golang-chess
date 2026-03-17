@@ -8,6 +8,7 @@ type Knight struct {
 	PieceType string
 	Color     string
 	Position  string
+	Points int64
 }
 
 // current_position = "a2"
@@ -53,6 +54,9 @@ func (k Knight) GetPieceType() string {
 
 func (k *Knight) AssignPosition(pos string) {
 	k.Position = pos
+}
+func (k *Knight) GetPiecePoints()int64{
+	return k.Points
 }
 
 func (k Knight) String() string {

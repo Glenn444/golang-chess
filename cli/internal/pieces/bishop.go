@@ -10,6 +10,7 @@ type Bishop struct {
 	PieceType string
 	Color     string
 	Position  string
+	Points	int64
 }
 
 func (b Bishop) GetLegalSquares(g GameState) []string {
@@ -86,4 +87,8 @@ func (b Bishop) String() string {
 		return "[♗]" // or "wB" if you prefer text
 	}
 	return "[♝]" // or "bB" if you prefer text
+}
+
+func (b Bishop) GetPiecePoints()int64{
+	return b.Points
 }

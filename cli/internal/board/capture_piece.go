@@ -3,6 +3,7 @@ package board
 import (
 	"errors"
 	"fmt"
+
 	"strconv"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
@@ -31,7 +32,6 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			//fmt.Printf("Black pawn capture\n")
 			numPos,_ := strconv.Atoi(string(move[3]))
 			initialCapturePosNum = numPos + 1
-			fmt.Printf("Black pawn capture %s %d\n",move,initialCapturePosNum)
 		}
 		if boardFile[pieceType] {
 			//this is a pawn capture
@@ -56,9 +56,6 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Piece:    piece,
 			}
 
-			//squareOccupied, val := Occupied_squares(*game, move_pos)
-			occupiedPositions := GetAllOccupiedSquares(*game)
-			fmt.Printf("%v occupied squares: %v \n", game.CurrentPlayer, occupiedPositions)
 			
 			//change current player after making move
 			if game.CurrentPlayer == "w" {

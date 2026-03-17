@@ -25,10 +25,8 @@ func CapturePiece(game *pieces.GameState, move string) error {
 		//black capture and white capture.
 		var initialCapturePosNum int
 		if game.CurrentPlayer == "w" {
-			fmt.Printf("white pawn capture\n")
 			numPos,_ := strconv.Atoi(string(move[3]))
 			initialCapturePosNum = numPos - 1
-			fmt.Printf("white pawn capture: %d\n",initialCapturePosNum)
 		} else {
 			//fmt.Printf("Black pawn capture\n")
 			numPos,_ := strconv.Atoi(string(move[3]))
@@ -37,12 +35,11 @@ func CapturePiece(game *pieces.GameState, move string) error {
 		}
 		if boardFile[pieceType] {
 			//this is a pawn capture
-			///initialCapturePosNum := int(move[3]) - 1
+	
 			initialPos := fmt.Sprintf("%s%d", pieceType, initialCapturePosNum)
 			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
 			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
-			//fmt.Printf("initialCapturePosNum: %d,initialPos: %s, sourcerow: %d,sourceCol: %d\n", initialCapturePosNum, initialPos, sourcerow, sourcecol)
-
+			
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)
 			//fmt.Printf("Piece pos: %s\n",piece.GetPosition())
@@ -62,10 +59,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			//squareOccupied, val := Occupied_squares(*game, move_pos)
 			occupiedPositions := GetAllOccupiedSquares(*game)
 			fmt.Printf("%v occupied squares: %v \n", game.CurrentPlayer, occupiedPositions)
-			// if squareOccupied {
-			// 	fmt.Printf("%v %s\n",squareOccupied,val)
-
-			// }
+			
 			//change current player after making move
 			if game.CurrentPlayer == "w" {
 				game.CurrentPlayer = "b"
@@ -99,13 +93,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Piece:    piece,
 			}
 
-			//squareOccupied, val := Occupied_squares(*game, move_pos)
-			//occupiedPositions := GetAllOccupiedSquares(*game)
-			//fmt.Printf("%v occupied squares: %v \n", game.CurrentPlayer, occupiedPositions)
-			// if squareOccupied {
-			// 	fmt.Printf("%v %s\n",squareOccupied,val)
 
-			// }
 			//change current player after making move
 			if game.CurrentPlayer == "w" {
 				game.CurrentPlayer = "b"

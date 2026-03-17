@@ -1,8 +1,6 @@
 package board
 
 import (
-	"fmt"
-
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
 )
@@ -13,7 +11,6 @@ func Move(game *pieces.GameState, move string) error {
 	moveType := string(move[1])
 
 	if moveType == "x" || moveType == "X"{
-		fmt.Printf("this is a capture move\n")
 		err := CapturePiece(game,move)
 		if err != nil{
 			return err
@@ -28,7 +25,7 @@ func Move(game *pieces.GameState, move string) error {
 	if err != nil{
 		return err
 	}
-	fmt.Printf("sourcepos: %v",sourcepos)
+	//fmt.Printf("sourcepos: %v",sourcepos)
 	
 
 	//pawn move
@@ -56,13 +53,6 @@ func Move(game *pieces.GameState, move string) error {
 		Piece:    piece,
 	}
 
-	//squareOccupied, val := Occupied_squares(*game, move_pos)
-	occupiedPositions := GetAllOccupiedSquares(*game)
-	fmt.Printf("%v occupied squares: %v \n",game.CurrentPlayer,occupiedPositions)
-	// if squareOccupied {
-	// 	fmt.Printf("%v %s\n",squareOccupied,val)
-		
-	// }
 	//change current player after making move
 	if game.CurrentPlayer == "w" {
 		game.CurrentPlayer = "b"

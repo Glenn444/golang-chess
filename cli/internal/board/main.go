@@ -13,11 +13,6 @@ type Square struct {
 	Piece    pieces.PieceInterface
 }
 
-// type GameState struct {
-// 	CurrentPlayer string
-// 	Board         [][]Square
-// }
-
 func Create_board() [][]pieces.Square {
 
 	rows, cols := 8, 8
@@ -69,8 +64,7 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 		destCol := string(pos[1])
 		for _, square := range g.Board {
 			for _, s := range square {
-				//fmt.Print(s)
-				//fmt.Print(s.Piece.GetPieceType() == pieceType)
+				
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 
 					pieces_squares := s.Piece.GetLegalSquares(g)

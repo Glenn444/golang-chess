@@ -83,7 +83,7 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 				}
 			}
 		}
-		return "",errors.New("something went wrong")
+		return "",errors.New("invalid move\n")
 
 	}else {
 		// This is a piece move like "Nc3", "Qd4", etc.

@@ -62,7 +62,30 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 				}
 			}
 		}
-	} else {
+	} else if len(pos) == 4 {
+		// This is a piece move like "Nac3", "Rbc3", etc.
+		pieceType := string(pos[0])
+		destpos_sub := pos[2:]
+		destCol := string(pos[1])
+		for _, square := range g.Board {
+			for _, s := range square {
+				//fmt.Print(s)
+				//fmt.Print(s.Piece.GetPieceType() == pieceType)
+				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
+
+					pieces_squares := s.Piece.GetLegalSquares(g)
+					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
+
+					piecePos := s.Piece.GetPosition() //a2,a3,b5
+					if slices.Contains(legal_squares, destpos_sub) && string(piecePos[0]) == destCol {
+							return s.Piece.GetPosition(),nil
+						}
+				}
+			}
+		}
+		return "",errors.New("something went wrong")
+
+	}else {
 		// This is a piece move like "Nc3", "Qd4", etc.
 		pieceType := string(pos[0])
 		destpos_sub := pos[1:]

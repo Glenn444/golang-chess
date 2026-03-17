@@ -20,14 +20,15 @@ func Move(game *pieces.GameState, move string) error {
 		}
 		return nil
 
+	}else if len(move) == 4{
+		move_pos = string(move[2:])
 	}
 
-	
 	sourcepos,err := CurrentPlayer_Occupied_Piece_position(*game, move)
 	if err != nil{
 		return err
 	}
-	//fmt.Printf("sourcepos: %v",sourcepos)
+	fmt.Printf("sourcepos: %v",sourcepos)
 	
 
 	//pawn move

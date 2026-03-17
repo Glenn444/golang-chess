@@ -3,6 +3,7 @@ package board
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
@@ -21,12 +22,26 @@ func CapturePiece(game *pieces.GameState, move string) error {
 
 	if pieceSquare.Occupied && game.CurrentPlayer != pieceSquare.Piece.GetColor() {
 		//valid capture
+		//black capture and white capture.
+		var initialCapturePosNum int
+		if game.CurrentPlayer == "w" {
+			fmt.Printf("white pawn capture\n")
+			numPos,_ := strconv.Atoi(string(move[3]))
+			initialCapturePosNum = numPos - 1
+			fmt.Printf("white pawn capture: %d\n",initialCapturePosNum)
+		} else {
+			//fmt.Printf("Black pawn capture\n")
+			numPos,_ := strconv.Atoi(string(move[3]))
+			initialCapturePosNum = numPos + 1
+			fmt.Printf("Black pawn capture %s %d\n",move,initialCapturePosNum)
+		}
 		if boardFile[pieceType] {
 			//this is a pawn capture
-			initialCapturePosNum := int(move[3]) - 1
+			///initialCapturePosNum := int(move[3]) - 1
 			initialPos := fmt.Sprintf("%s%d", pieceType, initialCapturePosNum)
 			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
 			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
+			//fmt.Printf("initialCapturePosNum: %d,initialPos: %s, sourcerow: %d,sourceCol: %d\n", initialCapturePosNum, initialPos, sourcerow, sourcecol)
 
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)
@@ -58,9 +73,9 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				game.CurrentPlayer = "w"
 			}
 
-		}else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R"{
-			initialPiece,err := GetInitialPositionByPiece(destCapturePos,pieceType,*game)
-			if err != nil{
+		} else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R" {
+			initialPiece, err := GetInitialPositionByPiece(destCapturePos, pieceType, *game)
+			if err != nil {
 				return errors.New("invalid move capture")
 			}
 

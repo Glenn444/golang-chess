@@ -29,11 +29,10 @@ func NewCLI(g *pieces.GameState) *CLI {
 	return cli
 }
 
-
 /*
-	Support two commands
-	1. exit - close the game loop
-	2. pboard - prints current board state
+Support two commands
+1. exit - close the game loop
+2. pboard - prints current board state
 */
 func (c *CLI) registerCommands() {
 	c.commands["exit"] = Command{
@@ -43,67 +42,66 @@ func (c *CLI) registerCommands() {
 	}
 
 	c.commands["pboard"] = Command{
-		Name: "pboard",
+		Name:        "pboard",
 		Description: "Prints the board current state",
-		Execute: c.printBoardState,
+		Execute:     c.printBoardState,
 	}
 }
 
-func (c *CLI) Execute(tokens []string)error{
+func (c *CLI) Execute(tokens []string) error {
 	cmdName := tokens[0]
 
-	if cmd,exists := c.commands[cmdName];exists{
+	if cmd, exists := c.commands[cmdName]; exists {
 		return cmd.Execute(tokens)
 	}
 
 	//move the piece if it is not a cli command
-	err := board.Move(c.game,cmdName)
+	err := board.Move(c.game, cmdName)
 	c.printBoardState(nil)
 	return err
 }
 
-func (c *CLI) exitCommand([] string) error {
+func (c *CLI) exitCommand([]string) error {
 	fmt.Printf("Closing the Chess Game... Goodbye!\n")
 	os.Exit(0)
 	return nil
 }
 
-func (c *CLI) printBoardState([] string) error{
+func (c *CLI) printBoardState([]string) error {
+	var sumB int64
+	var sumW int64
 	fmt.Printf("      a  b  c  d  e  f  g  h\n")
 	for i, row := range c.game.Board {
-		
+
 		fmt.Printf("%d", i+1)
 		fmt.Printf("    ")
 		for _, s := range row {
-			
-			if s.Occupied{
-			fmt.Printf("%v", s.Piece.String())
-			}else{
+
+			if s.Occupied {
+				fmt.Printf("%v", s.Piece.String())
+			} else {
 				fmt.Printf("[ ]")
 			}
-			
+
 		}
-	fmt.Printf("\n")
+		fmt.Printf("\n")
 
 	}
 	fmt.Printf("      a  b  c  d  e  f  g  h\n")
 
 	fmt.Printf("Game Points w vs b\n")
-	for player,capturedPieces := range c.game.CapturedPieces{
-		var sumB int64
-		var sumW int64
-		if player == "w"{
-			for _,piece := range capturedPieces{
+	for player, capturedPieces := range c.game.CapturedPieces {
+
+		if player == "w" {
+			for _, piece := range capturedPieces {
 				sumW = sumW + piece.GetPiecePoints()
 			}
-		}else{
-			for _,piece := range capturedPieces{
+		} else {
+			for _, piece := range capturedPieces {
 				sumB = sumB + piece.GetPiecePoints()
 			}
 		}
 	}
+	fmt.Printf("White Points: %d, \t Black Points: %d\n",sumW,sumB)
 	return nil
 }
-
-
-

@@ -87,7 +87,9 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Occupied: false,
 				Piece:    nil,
 			}
-
+			destPiece := game.Board[destrow][destcol].Piece
+			
+			game.CapturedPieces[game.CurrentPlayer] = append(game.CapturedPieces[game.CurrentPlayer], destPiece)
 			//destination square
 			game.Board[destrow][destcol] = pieces.Square{
 				Occupied: true,

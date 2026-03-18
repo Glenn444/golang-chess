@@ -16,6 +16,7 @@ func main() {
 	var game = pieces.GameState{
 		CurrentPlayer: "w",
 		Board:         initialBoard_position,
+		CapturedPieces: make(map[string][]pieces.PieceInterface),
 	}
 	fmt.Printf("Welcome to the chess game cli\n")
 

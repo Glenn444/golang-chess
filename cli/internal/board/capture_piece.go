@@ -26,22 +26,21 @@ func CapturePiece(game *pieces.GameState, move string) error {
 		//black capture and white capture.
 		var initialCapturePosNum int
 		if game.CurrentPlayer == "w" {
-			numPos,_ := strconv.Atoi(string(move[3]))
+			numPos, _ := strconv.Atoi(string(move[3]))
 			initialCapturePosNum = numPos - 1
 		} else {
-			numPos,_ := strconv.Atoi(string(move[3]))
+			numPos, _ := strconv.Atoi(string(move[3]))
 			initialCapturePosNum = numPos + 1
 		}
 		if boardFile[pieceType] {
 			//this is a pawn capture
-	
+
 			initialPos := fmt.Sprintf("%s%d", pieceType, initialCapturePosNum)
 			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
 			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
-			
+
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)
-			
 
 			//clear the source square
 			game.Board[sourcerow][sourcecol] = pieces.Square{
@@ -49,18 +48,16 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Piece:    nil,
 			}
 
-
 			//add captured pieces to current player
 			destPiece := game.Board[destrow][destcol].Piece
-			
-			game.CapturedPieces[game.CurrentPlayer] = append(game.CapturedPieces[game.CurrentPlayer], destPiece) 
+
+			game.CapturedPieces[game.CurrentPlayer] = append(game.CapturedPieces[game.CurrentPlayer], destPiece)
 			//destination square
 			game.Board[destrow][destcol] = pieces.Square{
 				Occupied: true,
 				Piece:    piece,
 			}
 
-			
 			//change current player after making move
 			if game.CurrentPlayer == "w" {
 				game.CurrentPlayer = "b"
@@ -88,14 +85,25 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Piece:    nil,
 			}
 			destPiece := game.Board[destrow][destcol].Piece
-			
+
 			game.CapturedPieces[game.CurrentPlayer] = append(game.CapturedPieces[game.CurrentPlayer], destPiece)
 			//destination square
 			game.Board[destrow][destcol] = pieces.Square{
 				Occupied: true,
 				Piece:    piece,
 			}
-
+			pieceLegalSquares := piece.GetLegalSquares(*game)
+			for _, squares := range game.Board {
+				for _, square := range squares {
+					if square.Occupied && square.Piece.GetPieceType() == "K" && square.Piece.GetColor() != game.CurrentPlayer {
+						for _, legalPos := range pieceLegalSquares {
+							if square.Piece.GetPosition() == legalPos {
+								game.Check = true
+							}
+						}
+					}
+				}
+			}
 
 			//change current player after making move
 			if game.CurrentPlayer == "w" {

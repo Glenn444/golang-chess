@@ -5,7 +5,13 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func Move(game *pieces.GameState, move string) error {
+func Move(game1 *pieces.GameState, move string) error {
+	boardA := Create_board()
+	CopyBoard(boardA,game1.Board)
+	game := pieces.GameState{
+		CurrentPlayer: game1.CurrentPlayer,
+		Board: boardA,
+	}
 	var move_pos string
 	move_pos = string(move[1:])
 	moveType := string(move[1])
@@ -16,7 +22,7 @@ func Move(game *pieces.GameState, move string) error {
 
 	}
 	if moveType == "x" || moveType == "X"{
-		err := CapturePiece(game,move)
+		err := CapturePiece(&game,move)
 		if err != nil{
 			return err
 		}
@@ -26,7 +32,7 @@ func Move(game *pieces.GameState, move string) error {
 		move_pos = string(move[2:])
 	}
 
-	sourcepos,err := CurrentPlayer_Occupied_Piece_position(*game, move)
+	sourcepos,err := CurrentPlayer_Occupied_Piece_position(game, move)
 	if err != nil{
 		return err
 	}
@@ -59,7 +65,7 @@ func Move(game *pieces.GameState, move string) error {
 	}
 
 	//checking check
-	pieceLegalSquares := piece.GetLegalSquares(*game)
+	pieceLegalSquares := piece.GetLegalSquares(game)
 	for _,squares := range game.Board{
 		for _,square := range squares{
 			if square.Occupied && square.Piece.GetPieceType() == "K" && square.Piece.GetColor() != game.CurrentPlayer{

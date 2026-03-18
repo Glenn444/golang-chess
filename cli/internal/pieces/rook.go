@@ -12,14 +12,14 @@ type Rook struct {
 	Points	int64
 }
 
-func (r Rook) GetLegalSquares(g GameState) []string {
+func (r *Rook) GetLegalSquares(g GameState) []string {
 	var positions []string
 
 	allDiagnols := [][]string{
-		getHorizontalVertical(r,-1,0),
-		getHorizontalVertical(r,0,-1),
-		getHorizontalVertical(r,0,1),
-		getHorizontalVertical(r,1,0),
+		getHorizontalVertical(*r,-1,0),
+		getHorizontalVertical(*r,0,-1),
+		getHorizontalVertical(*r,0,1),
+		getHorizontalVertical(*r,1,0),
 	}
 	//return positions
 	for _,diagnol := range allDiagnols{
@@ -65,11 +65,11 @@ func getHorizontalVertical(r Rook,rowDelta int, colDelta int) []string {
 	return possible_positions
 }
 
-func (r Rook) GetColor() string {
+func (r *Rook) GetColor() string {
 	return r.Color
 }
 
-func (r Rook) GetPosition() string {
+func (r *Rook) GetPosition() string {
 	return r.Position
 }
 
@@ -80,10 +80,19 @@ func (r Rook) GetPieceType() string {
 func (r *Rook) AssignPosition(pos string) {
 	r.Position = pos
 }
-func (r Rook) GetPiecePoints()int64{
+func (r *Rook) GetPiecePoints()int64{
 	return r.Points
 }
-func (r Rook) String() string {
+
+func (r *Rook)Clone()PieceInterface{
+	 
+	return &Rook{
+		Color: r.Color,
+		PieceType: r.PieceType,
+		Position: r.Position,
+	}
+}
+func (r *Rook) String() string {
 	if r.Color == "w" {
 		return "[♖]" // or "wR"
 	}

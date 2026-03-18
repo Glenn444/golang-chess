@@ -12,7 +12,7 @@ type Knight struct {
 }
 
 // current_position = "a2"
-func (k Knight) GetLegalSquares(g GameState) []string {
+func (k *Knight) GetLegalSquares(g GameState) []string {
 
 	var possible_positions []string
 	//letter := string(k.Position[0])
@@ -40,15 +40,15 @@ func (k Knight) GetLegalSquares(g GameState) []string {
 	return possible_positions
 }
 
-func (k Knight) GetColor() string {
+func (k *Knight) GetColor() string {
 	return k.Color
 }
 
-func (k Knight) GetPosition() string {
+func (k *Knight) GetPosition() string {
 	return k.Position
 }
 
-func (k Knight) GetPieceType() string {
+func (k *Knight) GetPieceType() string {
 	return k.PieceType
 }
 
@@ -59,7 +59,15 @@ func (k *Knight) GetPiecePoints()int64{
 	return k.Points
 }
 
-func (k Knight) String() string {
+func (k *Knight)Clone()PieceInterface{
+	 
+	return &King{
+		Color: k.Color,
+		PieceType: k.PieceType,
+		Position: k.Position,
+	}
+}
+func (k *Knight) String() string {
 	if k.Color == "w" {
 		return "[♘]" // or "wN"
 	}

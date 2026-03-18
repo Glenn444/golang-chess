@@ -13,7 +13,7 @@ type King struct {
 	Points 	int64
 }
 
-func (k King) GetLegalSquares(g GameState) []string {
+func (k *King) GetLegalSquares(g GameState) []string {
 	// board files (columns) and ranks (rows)
 	files := "abcdefgh"
 	rank := int(k.Position[1] - '0')
@@ -47,15 +47,15 @@ func (k King) GetLegalSquares(g GameState) []string {
 
 }
 
-func (k King) GetColor() string {
+func (k *King) GetColor() string {
     return k.Color
 }
 
-func (k King) GetPosition() string {
+func (k *King) GetPosition() string {
     return k.Position
 }
 
-func (k King) GetPieceType() string {
+func (k *King) GetPieceType() string {
     return k.PieceType
 }
 
@@ -64,6 +64,15 @@ func (k *King) AssignPosition(pos string){
 }
 func (k *King) GetPiecePoints()int64{
 	return k.Points
+}
+
+func (k *King)Clone()PieceInterface{
+	 
+	return &King{
+		Color: k.Color,
+		PieceType: k.PieceType,
+		Position: k.Position,
+	}
 }
 func (k *King) String() string {
     if k.Color == "w" {

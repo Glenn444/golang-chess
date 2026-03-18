@@ -7,7 +7,7 @@ type Queen struct {
 	Points    int64
 }
 
-func (q Queen) GetLegalSquares(g GameState) []string {
+func (q *Queen) GetLegalSquares(g GameState) []string {
 	b := Bishop{
 		Color:     q.Color,
 		PieceType: "B",
@@ -29,25 +29,34 @@ func (q Queen) GetLegalSquares(g GameState) []string {
 	return positions
 }
 
-func (q Queen) GetColor() string {
+func (q *Queen) GetColor() string {
 	return q.Color
 }
 
-func (q Queen) GetPosition() string {
+func (q *Queen) GetPosition() string {
 	return q.Position
 }
 
-func (q Queen) GetPieceType() string {
+func (q *Queen) GetPieceType() string {
 	return q.PieceType
 }
 
 func (q *Queen) AssignPosition(pos string) {
 	q.Position = pos
 }
-func (q Queen) GetPiecePoints()int64{
+func (q *Queen) GetPiecePoints()int64{
 	return q.Points
 }
-func (q Queen) String() string {
+
+func (q *Queen)Clone()PieceInterface{
+	 
+	return &Queen{
+		Color: q.Color,
+		PieceType: q.PieceType,
+		Position: q.Position,
+	}
+}
+func (q *Queen) String() string {
 	if q.Color == "white" {
 		return "[♕]" // or "wQ"
 	}

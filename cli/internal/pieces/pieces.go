@@ -16,6 +16,7 @@ type GameState struct {
 	CurrentPlayer string
 	Board         [][]Square
 	CapturedPieces map[string][]PieceInterface
+	Check	bool
 }
 
 type PieceInterface interface {

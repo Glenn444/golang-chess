@@ -14,7 +14,7 @@ type Pawn struct {
 	Points    int64
 }
 
-func (p Pawn) GetLegalSquares(g GameState) []string {
+func (p *Pawn) GetLegalSquares(g GameState) []string {
 	var positions []string
 
 	letter := string(p.Position[0])
@@ -148,15 +148,15 @@ func isInBounds(row, col int) bool {
 	return row >= 0 && row < 8 && col >= 0 && col < 8
 }
 
-func (p Pawn) GetColor() string {
+func (p *Pawn) GetColor() string {
 	return p.Color
 }
 
-func (p Pawn) GetPosition() string {
+func (p *Pawn) GetPosition() string {
 	return p.Position
 }
 
-func (p Pawn) GetPieceType() string {
+func (p *Pawn) GetPieceType() string {
 	return p.PieceType
 }
 
@@ -164,12 +164,20 @@ func (p *Pawn) AssignPosition(pos string) {
 	p.Position = pos
 }
 
-func (p Pawn) String() string {
+func (p *Pawn)Clone()PieceInterface{
+	 
+	return &Pawn{
+		Color: p.Color,
+		PieceType: p.PieceType,
+		Position: p.Position,
+	}
+}
+func (p *Pawn) String() string {
 	if p.Color == "w" {
 		return "[♙]" // or "wP"
 	}
 	return "[♟]" // or "bP"
 }
-func (p Pawn) GetPiecePoints() int64 {
+func (p *Pawn) GetPiecePoints() int64 {
 	return p.Points
 }

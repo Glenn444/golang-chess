@@ -9,4 +9,5 @@ type PieceInterface interface{
     GetPieceType() string
 	AssignPosition(pos string)
 	String() string
+	Clone() PieceInterface
 }

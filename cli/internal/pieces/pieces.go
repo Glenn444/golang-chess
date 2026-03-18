@@ -27,6 +27,7 @@ type PieceInterface interface {
 	AssignPosition(pos string)
 	String() string
 	GetPiecePoints() int64
+	Clone() PieceInterface
 }
 
 func PrintBoard(initialBoard_position [][]Square) {

@@ -13,7 +13,7 @@ type Bishop struct {
 	Points	int64
 }
 
-func (b Bishop) GetLegalSquares(g GameState) []string {
+func (b *Bishop) GetLegalSquares(g GameState) []string {
 	var positions []string
 
 	//fmt.Printf("diagnol squares top right d4: %v\n",getDiagnolSquares("d4",1,1))
@@ -66,15 +66,15 @@ func getDiagnolSquares(pos string,rowDelta int, colDelta int)[]string{
 	return positions
 }
 
-func (b Bishop) GetColor() string {
+func (b *Bishop) GetColor() string {
 	return b.Color
 }
 
-func (b Bishop) GetPosition() string {
+func (b *Bishop) GetPosition() string {
 	return b.Position
 }
 
-func (b Bishop) GetPieceType() string {
+func (b *Bishop) GetPieceType() string {
 	return b.PieceType
 }
 
@@ -82,13 +82,22 @@ func (b *Bishop) AssignPosition(pos string) {
 	b.Position = pos
 }
 
-func (b Bishop) String() string {
+func (b *Bishop)Clone()PieceInterface{
+	 
+	return &Bishop{
+		Color: b.Color,
+		PieceType: b.PieceType,
+		Position: b.Position,
+	}
+}
+
+func (b *Bishop) String() string {
 	if b.Color == "w" {
 		return "[♗]" // or "wB" if you prefer text
 	}
 	return "[♝]" // or "bB" if you prefer text
 }
 
-func (b Bishop) GetPiecePoints()int64{
+func (b *Bishop) GetPiecePoints()int64{
 	return b.Points
 }

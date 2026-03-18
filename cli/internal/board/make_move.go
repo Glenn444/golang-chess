@@ -10,6 +10,11 @@ func Move(game *pieces.GameState, move string) error {
 	move_pos = string(move[1:])
 	moveType := string(move[1])
 
+
+	//the game is in check
+	if game.Check{
+
+	}
 	if moveType == "x" || moveType == "X"{
 		err := CapturePiece(game,move)
 		if err != nil{
@@ -52,6 +57,8 @@ func Move(game *pieces.GameState, move string) error {
 		Occupied: true,
 		Piece:    piece,
 	}
+
+	//checking check
 	pieceLegalSquares := piece.GetLegalSquares(*game)
 	for _,squares := range game.Board{
 		for _,square := range squares{

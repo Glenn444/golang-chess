@@ -11,7 +11,7 @@ type Pawn struct {
 	Position  string
 }
 
-func (p Pawn) GetLegalSquares() []string {
+func (p *Pawn) GetLegalSquares() []string {
 	var positions []string
 	var initialPos = []string{
 		"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2", // white pawns
@@ -37,15 +37,15 @@ func (p Pawn) GetLegalSquares() []string {
 	return positions
 }
 
-func (p Pawn) GetColor() string {
+func (p *Pawn) GetColor() string {
     return p.Color
 }
 
-func (p Pawn) GetPosition() string {
+func (p *Pawn) GetPosition() string {
     return p.Position
 }
 
-func (p Pawn) GetPieceType() string {
+func (p *Pawn) GetPieceType() string {
     return p.PieceType
 }
 
@@ -53,7 +53,16 @@ func (p *Pawn) AssignPosition(pos string){
 	p.Position = pos
 }
 
-func (p Pawn) String() string {
+func (p *Pawn)Clone()PieceInterface{
+	 
+	return &Pawn{
+		Color: p.Color,
+		PieceType: p.PieceType,
+		Position: p.Position,
+	}
+}
+
+func (p *Pawn) String() string {
     if p.Color == "w" {
         return "wP" // or "wP"
     }

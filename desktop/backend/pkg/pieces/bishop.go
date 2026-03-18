@@ -15,7 +15,7 @@ type Bishop struct{
 	Position string
 }
 
-func (b Bishop) GetLegalSquares() []string {
+func (b *Bishop) GetLegalSquares() []string {
 	var positions []string
 	pos_top_left := get_horizontal_squares_top_left(b.Position)
 	pos_top_right := get_horizontal_squares_top_right(b.Position)
@@ -76,15 +76,15 @@ func get_horizontal_squares_top_right(pos string) []string {
 }
 
 
-func (b Bishop) GetColor() string {
+func (b *Bishop) GetColor() string {
     return b.Color
 }
 
-func (b Bishop) GetPosition() string {
+func (b *Bishop) GetPosition() string {
     return b.Position
 }
 
-func (b Bishop) GetPieceType() string {
+func (b *Bishop) GetPieceType() string {
     return b.PieceType
 }
 
@@ -92,7 +92,16 @@ func (b *Bishop) AssignPosition(pos string){
 	b.Position = pos
 }
 
-func (b Bishop) String() string {
+func (b *Bishop)Clone()PieceInterface{
+	 
+	return &Bishop{
+		Color: b.Color,
+		PieceType: b.PieceType,
+		Position: b.Position,
+	}
+}
+
+func (b *Bishop) String() string {
     if b.Color == "w" {
         return "wB" // or "wB" if you prefer text
     }

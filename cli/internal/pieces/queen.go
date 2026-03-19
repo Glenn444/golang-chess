@@ -54,6 +54,7 @@ func (q *Queen)Clone()PieceInterface{
 		Color: q.Color,
 		PieceType: q.PieceType,
 		Position: q.Position,
+		Points: q.Points,
 	}
 }
 func (q *Queen) String() string {

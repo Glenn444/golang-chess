@@ -65,6 +65,7 @@ func (k *Knight)Clone()PieceInterface{
 		Color: k.Color,
 		PieceType: k.PieceType,
 		Position: k.Position,
+		Points: k.Points,
 	}
 }
 func (k *Knight) String() string {

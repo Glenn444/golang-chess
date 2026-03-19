@@ -88,6 +88,7 @@ func (b *Bishop)Clone()PieceInterface{
 		Color: b.Color,
 		PieceType: b.PieceType,
 		Position: b.Position,
+		Points: b.Points,
 	}
 }
 

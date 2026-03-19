@@ -170,6 +170,7 @@ func (p *Pawn)Clone()PieceInterface{
 		Color: p.Color,
 		PieceType: p.PieceType,
 		Position: p.Position,
+		Points: p.Points,
 	}
 }
 func (p *Pawn) String() string {

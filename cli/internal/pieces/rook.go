@@ -90,6 +90,7 @@ func (r *Rook)Clone()PieceInterface{
 		Color: r.Color,
 		PieceType: r.PieceType,
 		Position: r.Position,
+		Points: r.Points,
 	}
 }
 func (r *Rook) String() string {

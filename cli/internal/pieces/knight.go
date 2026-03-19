@@ -61,7 +61,7 @@ func (k *Knight) GetPiecePoints()int64{
 
 func (k *Knight)Clone()PieceInterface{
 	 
-	return &King{
+	return &Knight{
 		Color: k.Color,
 		PieceType: k.PieceType,
 		Position: k.Position,

@@ -103,7 +103,7 @@ func (c *CLI) printBoardState([]string) error {
 		}
 	}
 	fmt.Printf("White Points: %d, \t Black Points: %d\n",sumW,sumB)
-	if c.game.Check{
+	if board.IsKinginCheck(*c.game){
 		fmt.Printf("Check!!!!!!!!!!!\n")
 	}
 	return nil

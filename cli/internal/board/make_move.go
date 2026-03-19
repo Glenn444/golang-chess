@@ -1,49 +1,60 @@
 package board
 
 import (
+	"errors"
+
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
 )
 
 func Move(game1 *pieces.GameState, move string) error {
 	boardA := Create_board()
-	CopyBoard(boardA,game1.Board)
-	game := pieces.GameState{
+	CopyBoard(boardA, game1.Board)
+	game := &pieces.GameState{
 		CurrentPlayer: game1.CurrentPlayer,
-		Board: boardA,
+		Board:         boardA,
+		CapturedPieces: make(map[string][]pieces.PieceInterface),
 	}
 	var move_pos string
 	move_pos = string(move[1:])
 	moveType := string(move[1])
 
-
-	//the game is in check
-	if game.Check{
-
-	}
-	if moveType == "x" || moveType == "X"{
-		err := CapturePiece(&game,move)
-		if err != nil{
+	if moveType == "x" || moveType == "X" {
+		err := CapturePiece(game, move)
+		if err != nil {
 			return err
+		}
+		if IsKinginCheck(*game) {
+			return errors.New("King is still in check!!!\n")
+		} else {
+			
+			CopyBoard(game1.Board, game.Board)
+			game1.CapturedPieces = game.CapturedPieces
+		}
+
+		//change current player after making move
+		if game1.CurrentPlayer == "w" {
+			game1.CurrentPlayer = "b"
+		} else {
+			game1.CurrentPlayer = "w"
 		}
 		return nil
 
-	}else if len(move) == 4{
+	} else if len(move) == 4 {
 		move_pos = string(move[2:])
 	}
 
-	sourcepos,err := CurrentPlayer_Occupied_Piece_position(game, move)
-	if err != nil{
+	sourcepos, err := CurrentPlayer_Occupied_Piece_position(*game, move)
+	if err != nil {
 		return err
 	}
 	//fmt.Printf("sourcepos: %v",sourcepos)
-	
 
 	//pawn move
-	if len(move) == 2{
+	if len(move) == 2 {
 		move_pos = move
 	}
-	
+
 	destrow, destcol := utils.Chess_notation_to_indices(move_pos)
 	sourcerow, sourcecol := utils.Chess_notation_to_indices(sourcepos)
 
@@ -57,7 +68,6 @@ func Move(game1 *pieces.GameState, move string) error {
 		Piece:    nil,
 	}
 
-	
 	//destination square
 	game.Board[destrow][destcol] = pieces.Square{
 		Occupied: true,
@@ -65,24 +75,18 @@ func Move(game1 *pieces.GameState, move string) error {
 	}
 
 	//checking check
-	pieceLegalSquares := piece.GetLegalSquares(game)
-	for _,squares := range game.Board{
-		for _,square := range squares{
-			if square.Occupied && square.Piece.GetPieceType() == "K" && square.Piece.GetColor() != game.CurrentPlayer{
-				for _,legalPos := range pieceLegalSquares{
-					if square.Piece.GetPosition() == legalPos{
-						game.Check = true
-					}
-				}
-			}
-		}
-	}
 
-	//change current player after making move
-	if game.CurrentPlayer == "w" {
-		game.CurrentPlayer = "b"
+	if IsKinginCheck(*game) {
+		return errors.New("king is still in check!!!")
 	} else {
-		game.CurrentPlayer = "w"
+		CopyBoard(game1.Board, game.Board)
+		game1.CapturedPieces = game.CapturedPieces
+	}
+	//change current player after making move
+	if game1.CurrentPlayer == "w" {
+		game1.CurrentPlayer = "b"
+	} else {
+		game1.CurrentPlayer = "w"
 	}
 
 	return nil

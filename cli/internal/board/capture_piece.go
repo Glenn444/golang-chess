@@ -58,12 +58,6 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Piece:    piece,
 			}
 
-			//change current player after making move
-			if game.CurrentPlayer == "w" {
-				game.CurrentPlayer = "b"
-			} else {
-				game.CurrentPlayer = "w"
-			}
 
 		} else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R" {
 			initialPiece, err := GetInitialPositionByPiece(destCapturePos, pieceType, *game)
@@ -92,25 +86,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Occupied: true,
 				Piece:    piece,
 			}
-			pieceLegalSquares := piece.GetLegalSquares(*game)
-			for _, squares := range game.Board {
-				for _, square := range squares {
-					if square.Occupied && square.Piece.GetPieceType() == "K" && square.Piece.GetColor() != game.CurrentPlayer {
-						for _, legalPos := range pieceLegalSquares {
-							if square.Piece.GetPosition() == legalPos {
-								game.Check = true
-							}
-						}
-					}
-				}
-			}
 
-			//change current player after making move
-			if game.CurrentPlayer == "w" {
-				game.CurrentPlayer = "b"
-			} else {
-				game.CurrentPlayer = "w"
-			}
 
 		}
 	}

@@ -29,7 +29,7 @@ func ExecuteStockfish() {
 	fmt.Printf("%s\n", out)
 }
 func ExecuteStockfishCmd(arg string) {
-    cmd := exec.Command("cat")
+    cmd := exec.Command("sudo","/Users/mac/Desktop/Learngo/chess_game/stockfish")
 
     // pipe to write to the program
     stdin, err := cmd.StdinPipe()

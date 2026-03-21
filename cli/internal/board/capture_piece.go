@@ -13,6 +13,7 @@ import (
 func CapturePiece(game *pieces.GameState, move string) error {
 	destCapturePos := string(move[2:])
 	pieceType := string(move[0])
+	var stockfishMove string
 
 	boardFile := map[string]bool{
 		"a": true, "b": true, "c": true, "d": true, "e": true, "f": true, "g": true, "h": true,
@@ -57,7 +58,8 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Occupied: true,
 				Piece:    piece,
 			}
-
+			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
+			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
 		} else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R" {
 			initialPiece, err := GetInitialPositionByPiece(destCapturePos, pieceType, *game)
@@ -86,7 +88,8 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Occupied: true,
 				Piece:    piece,
 			}
-
+			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
+			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
 		}
 	}

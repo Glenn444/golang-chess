@@ -2,12 +2,15 @@ package board
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/utils"
 )
 
 func Move(game1 *pieces.GameState, move string) error {
+	var stockfishMove string
 	boardA := Create_board()
 	CopyBoard(boardA, game1.Board)
 	game := &pieces.GameState{
@@ -32,7 +35,7 @@ func Move(game1 *pieces.GameState, move string) error {
 			capturedSlice := game.CapturedPieces[game.CurrentPlayer]
 
 			game1.CapturedPieces[game.CurrentPlayer] = append(game1.CapturedPieces[game.CurrentPlayer], capturedSlice...)
-	
+
 		}
 
 		//change current player after making move
@@ -43,7 +46,9 @@ func Move(game1 *pieces.GameState, move string) error {
 		}
 		return nil
 
-	} else if len(move) == 4 {
+	} else if len(move) == 4 && slices.Contains([]string{"B","N","Q","R"},string(move[0])){
+		// piece types are: R,B,N,Q
+		//when move is Rhe1 or R1e4
 		move_pos = string(move[2:])
 	}
 
@@ -52,6 +57,7 @@ func Move(game1 *pieces.GameState, move string) error {
 		return err
 	}
 
+	
 	//pawn move
 	if len(move) == 2 {
 		move_pos = move
@@ -76,7 +82,6 @@ func Move(game1 *pieces.GameState, move string) error {
 	}
 
 	//checking check
-
 	if IsKinginCheck(*game) {
 		return errors.New("king is still in check!!!\n")
 	} else {
@@ -85,6 +90,9 @@ func Move(game1 *pieces.GameState, move string) error {
 
 		game1.CapturedPieces[game.CurrentPlayer] = append(game1.CapturedPieces[game.CurrentPlayer], capturedSlice...)
 	}
+
+	stockfishMove = fmt.Sprintf("%s%s",sourcepos,move)
+	game.StockfishGame = append(game.StockfishGame, stockfishMove)
 	//change current player after making move
 	if game1.CurrentPlayer == "w" {
 		game1.CurrentPlayer = "b"

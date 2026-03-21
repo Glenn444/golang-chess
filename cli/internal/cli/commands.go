@@ -70,24 +70,7 @@ func (c *CLI) exitCommand([]string) error {
 func (c *CLI) printBoardState([]string) error {
 	var sumB int64
 	var sumW int64
-	fmt.Printf("      a  b  c  d  e  f  g  h\n")
-	for i, row := range c.game.Board {
-
-		fmt.Printf("%d", i+1)
-		fmt.Printf("    ")
-		for _, s := range row {
-
-			if s.Occupied {
-				fmt.Printf("%v", s.Piece.String())
-			} else {
-				fmt.Printf("[ ]")
-			}
-
-		}
-		fmt.Printf("\n")
-
-	}
-	fmt.Printf("      a  b  c  d  e  f  g  h\n")
+	
 
 	fmt.Printf("Game Points w vs b\n")
 	for player, capturedPieces := range c.game.CapturedPieces {

@@ -31,7 +31,7 @@ func Cli(g *pieces.GameState) {
 
 		
 		if err := cliApp.Execute(tokens); err != nil{
-			fmt.Printf("Error: %v",err)
+			fmt.Printf("Error: %v\n",err)
 		}
 
 	}

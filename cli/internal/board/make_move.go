@@ -11,6 +11,16 @@ import (
 
 func Move(game1 *pieces.GameState, move string) error {
 	var stockfishMove string
+	var move_pos string
+
+
+	if len(move) == 4{
+		move = CoordinateToAlgebraic(*game1,move)
+	}
+	move_pos = string(move[1:])
+	moveType := string(move[1])
+
+
 	boardA := Create_board()
 	CopyBoard(boardA, game1.Board)
 	game := &pieces.GameState{
@@ -18,9 +28,7 @@ func Move(game1 *pieces.GameState, move string) error {
 		Board:          boardA,
 		CapturedPieces: make(map[string][]pieces.PieceInterface),
 	}
-	var move_pos string
-	move_pos = string(move[1:])
-	moveType := string(move[1])
+	
 
 	if moveType == "x" || moveType == "X" {
 		err := CapturePiece(game, move)

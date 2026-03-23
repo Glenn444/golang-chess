@@ -3,11 +3,15 @@ package board
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
 
 func ChooseColor()(string,error){
+
+	fmt.Printf("Please select the color you'll be playing w for white,b for black:\n")
+	fmt.Printf("Color to play: ")
 	scanner := bufio.NewScanner(os.Stdin)
 	for{
 		if !scanner.Scan(){

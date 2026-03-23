@@ -15,7 +15,7 @@ type Stockfish struct{
 }
 
 func NewStockfish()*Stockfish{
-    cmd := exec.Command("/Users/mac/Desktop/Learngo/chess_game/cli/internal/stockfish")
+    cmd := exec.Command("/Users/mac/Desktop/Learngo/chess_game/cli/internal/stockfish/stockfish-engine")
 
     stdin,err := cmd.StdinPipe()
     if err != nil{

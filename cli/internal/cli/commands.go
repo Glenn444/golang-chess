@@ -89,5 +89,6 @@ func (c *CLI) printBoardState([]string) error {
 	if board.IsKinginCheck(*c.game){
 		fmt.Printf("Check!!!!!!!!!!!\n")
 	}
+	board.PrintBoard(*c.game)
 	return nil
 }

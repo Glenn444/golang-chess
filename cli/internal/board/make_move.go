@@ -15,7 +15,11 @@ func Move(game1 *pieces.GameState, move string) error {
 
 
 	if utils.IsAlgebraic(move){
-		move = CoordinateToAlgebraic(*game1,move)
+		move1,err := CoordinateToAlgebraic(*game1,move)
+		if err !=nil{
+			return err
+		}
+		move = move1
 	}
 	move_pos = string(move[1:])
 	moveType := string(move[1])

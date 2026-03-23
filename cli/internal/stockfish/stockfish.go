@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -15,7 +16,8 @@ type Stockfish struct{
 }
 
 func NewStockfish()*Stockfish{
-    cmd := exec.Command("/Users/mac/Desktop/Learngo/chess_game/cli/internal/stockfish/stockfish-engine")
+    stockfishPath := os.Getenv("STOCKFISH_ENGINE_PATH")
+    cmd := exec.Command(stockfishPath)
 
     stdin,err := cmd.StdinPipe()
     if err != nil{

@@ -1,4 +1,4 @@
-package cli
+package stockfish
 
 import (
 	"bufio"
@@ -69,10 +69,12 @@ func (sf *Stockfish) waitFor(expected string) string {
 
 // GetBestMove sends the full move history and waits for stockfish's move
 func (sf *Stockfish) GetBestMove(moves []string) string {
-    // send full game history every time
+   
     if len(moves) == 0 {
+        //stockfish starts as white
         sf.send("position startpos")
     } else {
+        //stockfish plays black
         sf.send("position startpos moves " + strings.Join(moves, " "))
     }
 

@@ -58,6 +58,7 @@ func (c *CLI) Execute(tokens []string) error {
 
 	//valid chess move
 	move := cmdName
+
 	//move the piece if it is not a cli command
 	switch c.game.PlayAgainst {
 	case "person":
@@ -65,17 +66,7 @@ func (c *CLI) Execute(tokens []string) error {
 		c.printBoardState(nil)
 		return err
 	case "stockfish":
-		//instance 1. stockfish is playing white
-		if c.game.CurrentPlayer == "w" && len(c.game.StockfishGame) == 0 {
-			sf := stockfish.NewStockfish()
-			stockfishMove := sf.GetBestMove(c.game.StockfishGame)
-			_, err := board.Move(c.game, stockfishMove)
-			if err != nil {
-				return err
-			}
-			c.game.StockfishGame = append(c.game.StockfishGame, stockfishMove)
-
-		} else {
+		
 			//instance 2: stockfish is playing black
 
 			//player move
@@ -95,7 +86,7 @@ func (c *CLI) Execute(tokens []string) error {
 			c.game.StockfishGame = append(c.game.StockfishGame, stockfishMove)
 
 			return nil
-		}
+		
 	}
 	return nil
 }

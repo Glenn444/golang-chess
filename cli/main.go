@@ -39,6 +39,7 @@ func main() {
 		Board:         initialBoard_position,
 		CapturedPieces: make(map[string][]pieces.PieceInterface),
 		PlayAgainst: opponent,
+		UserColor: color,
 	}
 
 	board.PrintBoard(game)

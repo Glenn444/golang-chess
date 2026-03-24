@@ -67,7 +67,7 @@ func CapturePiece(game *pieces.GameState, move string) (string, error) {
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
 			//stockfish coordinate move
-			coordinateMove := fmt.Sprint("%s%s",initialPos,destPiece.GetPosition())
+			coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
 			return coordinateMove,nil
 
 		} else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R" {
@@ -103,7 +103,7 @@ func CapturePiece(game *pieces.GameState, move string) (string, error) {
 			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
-			coordinateMove := fmt.Sprint("%s%s",initialPos,destPiece.GetPosition())
+			coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
 			return coordinateMove,nil
 		}
 	}

@@ -3,10 +3,13 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
+	"github.com/Glenn444/golang-chess/internal/board"
 	"github.com/Glenn444/golang-chess/internal/pieces"
+	"github.com/Glenn444/golang-chess/internal/stockfish"
 )
 
 
@@ -15,7 +18,16 @@ func Cli(g *pieces.GameState) {
 
 	cliApp := NewCLI(g)
 	for {
-		if g.CurrentPlayer == "w" {
+		if g.CurrentPlayer == "b" && len(g.StockfishGame) == 0 {
+			fmt.Printf("stockfish to play\n")
+			sf := stockfish.NewStockfish()
+			stockfishMove := sf.GetBestMove(g.StockfishGame)
+			_, err := board.Move(g, stockfishMove)
+			if err != nil {
+				log.Fatalf("%s",err)
+			}
+			g.StockfishGame = append(g.StockfishGame, stockfishMove)
+		}else if g.CurrentPlayer == "w" {
 			fmt.Printf("White Move > ")
 		} else {
 			fmt.Printf("Black Move > ")

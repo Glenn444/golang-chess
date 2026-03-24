@@ -18,6 +18,7 @@ type GameState struct {
 	CapturedPieces map[string][]PieceInterface
 	StockfishGame  []string
 	PlayAgainst    string //person or stockfish
+	UserColor      string
 }
 
 type PieceInterface interface {

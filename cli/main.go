@@ -35,7 +35,7 @@ func main() {
 	}
 
 	var game = pieces.GameState{
-		CurrentPlayer: color,
+		CurrentPlayer: "w",
 		Board:         initialBoard_position,
 		CapturedPieces: make(map[string][]pieces.PieceInterface),
 		PlayAgainst: opponent,

@@ -9,17 +9,16 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func Move(game1 *pieces.GameState, move string) (string,error) {
-	//var initialPiecePosition string
-	//var coordinateMove string
-	var stockfishMove string
+func Move(game1 *pieces.GameState, move string) (error) {
+	
+	//var stockfishMove string
 	var move_pos string
 
 
 	if utils.IsAlgebraic(move){
 		move1,err := CoordinateToAlgebraic(*game1,move)
 		if err !=nil{
-			return "",err
+			return err
 		}
 		move = move1
 	}
@@ -37,12 +36,12 @@ func Move(game1 *pieces.GameState, move string) (string,error) {
 	
 
 	if moveType == "x" || moveType == "X" {
-		coordinatePos, err := CapturePiece(game, move)
+		err := CapturePiece(game, move)
 		if err != nil {
-			return "",err
+			return err
 		}
 		if IsKinginCheck(*game) {
-			return "",errors.New("King is still in check!!!\n")
+			return errors.New("King is still in check!!!\n")
 		} else {
 
 			CopyBoard(game1.Board, game.Board)
@@ -59,7 +58,7 @@ func Move(game1 *pieces.GameState, move string) (string,error) {
 			game1.CurrentPlayer = "w"
 		}
 	
-		return coordinatePos,nil
+		return nil
 
 	} else if len(move) == 4 && slices.Contains([]string{"B","N","Q","R"},string(move[0])){
 		// piece types are: R,B,N,Q
@@ -69,7 +68,7 @@ func Move(game1 *pieces.GameState, move string) (string,error) {
 
 	sourcepos, err := CurrentPlayer_Occupied_Piece_position(*game, move)
 	if err != nil {
-		return "",err
+		return err
 	}
 
 	//initialPiecePosition = sourcepos
@@ -98,7 +97,7 @@ func Move(game1 *pieces.GameState, move string) (string,error) {
 
 	//checking check
 	if IsKinginCheck(*game) {
-		return "",errors.New("king is still in check!!!\n")
+		return errors.New("king is still in check!!!\n")
 	} else {
 		CopyBoard(game1.Board, game.Board)
 		capturedSlice := game.CapturedPieces[game.CurrentPlayer]
@@ -106,7 +105,7 @@ func Move(game1 *pieces.GameState, move string) (string,error) {
 		game1.CapturedPieces[game.CurrentPlayer] = append(game1.CapturedPieces[game.CurrentPlayer], capturedSlice...)
 	}
 
-	stockfishMove = fmt.Sprintf("%s%s",sourcepos,move)
+	stockfishMove := fmt.Sprintf("%s%s",sourcepos,move)
 	game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
 	fmt.Printf("move stockfish: %s\n",stockfishMove)
@@ -118,5 +117,5 @@ func Move(game1 *pieces.GameState, move string) (string,error) {
 	}
 	//coordinatePos := fmt.Sprintf("%s%s",sourcepos,)
 
-	return stockfishMove,nil
+	return nil
 }

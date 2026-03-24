@@ -12,22 +12,23 @@ import (
 	"github.com/Glenn444/golang-chess/internal/stockfish"
 )
 
-
 func Cli(g *pieces.GameState) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	cliApp := NewCLI(g)
 	for {
-		if g.CurrentPlayer == "b" && len(g.StockfishGame) == 0 {
+		if g.UserColor != g.CurrentPlayer && g.PlayAgainst == "stockfish" {
 			fmt.Printf("stockfish to play\n")
 			sf := stockfish.NewStockfish()
 			stockfishMove := sf.GetBestMove(g.StockfishGame)
-			_, err := board.Move(g, stockfishMove)
+			err := board.Move(g, stockfishMove)
 			if err != nil {
-				log.Fatalf("%s",err)
+				log.Fatalf("%s", err)
 			}
 			g.StockfishGame = append(g.StockfishGame, stockfishMove)
-		}else if g.CurrentPlayer == "w" {
+			board.PrintBoard(*g)
+			continue
+		} else if g.CurrentPlayer == "w" {
 			fmt.Printf("White Move > ")
 		} else {
 			fmt.Printf("Black Move > ")
@@ -41,9 +42,8 @@ func Cli(g *pieces.GameState) {
 			continue
 		}
 
-		
-		if err := cliApp.Execute(tokens); err != nil{
-			fmt.Printf("Error: %v\n",err)
+		if err := cliApp.Execute(tokens); err != nil {
+			fmt.Printf("Error: %v\n", err)
 		}
 
 	}
@@ -60,4 +60,3 @@ func cleanInput(text string) []string {
 
 	return strings.Fields(text) //fields splits on any whitespace
 }
-

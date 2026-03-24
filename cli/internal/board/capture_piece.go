@@ -10,7 +10,7 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func CapturePiece(game *pieces.GameState, move string) (string, error) {
+func CapturePiece(game *pieces.GameState, move string) ( error) {
 	//var initialPiecePosition string
 	//var coordinateMove string
 	destCapturePos := string(move[2:])
@@ -67,13 +67,13 @@ func CapturePiece(game *pieces.GameState, move string) (string, error) {
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
 			//stockfish coordinate move
-			coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
-			return coordinateMove,nil
+			//coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
+			return nil
 
 		} else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R" {
 			initialPiece, err := GetInitialPositionByPiece(destCapturePos, pieceType, *game)
 			if err != nil {
-				return "", errors.New("invalid move capture")
+				return errors.New("invalid move capture")
 			}
 
 			initialPos := initialPiece.GetPosition()
@@ -103,9 +103,9 @@ func CapturePiece(game *pieces.GameState, move string) (string, error) {
 			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
-			coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
-			return coordinateMove,nil
+			//coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
+			return nil
 		}
 	}
-	return "", errors.New("capture piece error occurred")
+	return errors.New("capture piece error occurred")
 }

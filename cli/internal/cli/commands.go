@@ -6,7 +6,6 @@ import (
 
 	"github.com/Glenn444/golang-chess/internal/board"
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	"github.com/Glenn444/golang-chess/internal/stockfish"
 )
 
 type CLI struct {
@@ -60,35 +59,10 @@ func (c *CLI) Execute(tokens []string) error {
 	move := cmdName
 
 	//move the piece if it is not a cli command
-	switch c.game.PlayAgainst {
-	case "person":
-		_, err := board.Move(c.game, move)
-		c.printBoardState(nil)
-		return err
-	case "stockfish":
-		
-			//instance 2: stockfish is playing black
 
-			//player move
-			coordinateMove, err := board.Move(c.game, move)
-			if err != nil {
-				return err
-			}
-			c.game.StockfishGame = append(c.game.StockfishGame, coordinateMove)
-
-			//stockfish move
-			sf := stockfish.NewStockfish()
-			stockfishMove := sf.GetBestMove(c.game.StockfishGame)
-			_, err = board.Move(c.game, stockfishMove)
-			if err != nil {
-				return err
-			}
-			c.game.StockfishGame = append(c.game.StockfishGame, stockfishMove)
-
-			return nil
-		
-	}
-	return nil
+	err := board.Move(c.game, move)
+	c.printBoardState(nil)
+	return err
 }
 
 func (c *CLI) exitCommand([]string) error {

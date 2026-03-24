@@ -10,7 +10,9 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func CapturePiece(game *pieces.GameState, move string) error {
+func CapturePiece(game *pieces.GameState, move string) (string, error) {
+	//var initialPiecePosition string
+	//var coordinateMove string
 	destCapturePos := string(move[2:])
 	pieceType := string(move[0])
 	var stockfishMove string
@@ -37,6 +39,9 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			//this is a pawn capture
 
 			initialPos := fmt.Sprintf("%s%d", pieceType, initialCapturePosNum)
+
+			//initialPiecePosition = initialPos
+
 			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
 			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
 
@@ -61,13 +66,20 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
+			//stockfish coordinate move
+			coordinateMove := fmt.Sprint("%s%s",initialPos,destPiece.GetPosition())
+			return coordinateMove,nil
+
 		} else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R" {
 			initialPiece, err := GetInitialPositionByPiece(destCapturePos, pieceType, *game)
 			if err != nil {
-				return errors.New("invalid move capture")
+				return "", errors.New("invalid move capture")
 			}
 
 			initialPos := initialPiece.GetPosition()
+
+			//initialPiecePosition = initialPos
+
 			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
 			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
 
@@ -91,7 +103,9 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 
+			coordinateMove := fmt.Sprint("%s%s",initialPos,destPiece.GetPosition())
+			return coordinateMove,nil
 		}
 	}
-	return nil
+	return "", errors.New("capture piece error occurred")
 }

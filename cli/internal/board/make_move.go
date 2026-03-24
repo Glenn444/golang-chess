@@ -9,7 +9,9 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func Move(game1 *pieces.GameState, move string) error {
+func Move(game1 *pieces.GameState, move string) (string,error) {
+	//var initialPiecePosition string
+	//var coordinateMove string
 	var stockfishMove string
 	var move_pos string
 
@@ -17,7 +19,7 @@ func Move(game1 *pieces.GameState, move string) error {
 	if utils.IsAlgebraic(move){
 		move1,err := CoordinateToAlgebraic(*game1,move)
 		if err !=nil{
-			return err
+			return "",err
 		}
 		move = move1
 	}
@@ -35,12 +37,12 @@ func Move(game1 *pieces.GameState, move string) error {
 	
 
 	if moveType == "x" || moveType == "X" {
-		err := CapturePiece(game, move)
+		coordinatePos, err := CapturePiece(game, move)
 		if err != nil {
-			return err
+			return "",err
 		}
 		if IsKinginCheck(*game) {
-			return errors.New("King is still in check!!!\n")
+			return "",errors.New("King is still in check!!!\n")
 		} else {
 
 			CopyBoard(game1.Board, game.Board)
@@ -56,7 +58,8 @@ func Move(game1 *pieces.GameState, move string) error {
 		} else {
 			game1.CurrentPlayer = "w"
 		}
-		return nil
+	
+		return coordinatePos,nil
 
 	} else if len(move) == 4 && slices.Contains([]string{"B","N","Q","R"},string(move[0])){
 		// piece types are: R,B,N,Q
@@ -66,10 +69,10 @@ func Move(game1 *pieces.GameState, move string) error {
 
 	sourcepos, err := CurrentPlayer_Occupied_Piece_position(*game, move)
 	if err != nil {
-		return err
+		return "",err
 	}
 
-	
+	//initialPiecePosition = sourcepos
 	//pawn move
 	if len(move) == 2 {
 		move_pos = move
@@ -95,7 +98,7 @@ func Move(game1 *pieces.GameState, move string) error {
 
 	//checking check
 	if IsKinginCheck(*game) {
-		return errors.New("king is still in check!!!\n")
+		return "",errors.New("king is still in check!!!\n")
 	} else {
 		CopyBoard(game1.Board, game.Board)
 		capturedSlice := game.CapturedPieces[game.CurrentPlayer]
@@ -105,12 +108,15 @@ func Move(game1 *pieces.GameState, move string) error {
 
 	stockfishMove = fmt.Sprintf("%s%s",sourcepos,move)
 	game.StockfishGame = append(game.StockfishGame, stockfishMove)
+
+	fmt.Printf("move stockfish: %s\n",stockfishMove)
 	//change current player after making move
 	if game1.CurrentPlayer == "w" {
 		game1.CurrentPlayer = "b"
 	} else {
 		game1.CurrentPlayer = "w"
 	}
+	//coordinatePos := fmt.Sprintf("%s%s",sourcepos,)
 
-	return nil
+	return stockfishMove,nil
 }

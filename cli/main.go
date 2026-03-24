@@ -29,11 +29,16 @@ func main() {
 	if err != nil{
 		log.Fatalf("%s", err.Error())
 	}
+	opponent, err2 := board.ChooseGameType()
+	if err2 != nil{
+		log.Fatalf("%s",err2.Error())
+	}
 
 	var game = pieces.GameState{
 		CurrentPlayer: color,
 		Board:         initialBoard_position,
 		CapturedPieces: make(map[string][]pieces.PieceInterface),
+		PlayAgainst: opponent,
 	}
 
 	board.PrintBoard(game)

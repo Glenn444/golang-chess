@@ -13,10 +13,11 @@ type Square struct {
 }
 
 type GameState struct {
-	CurrentPlayer string
-	Board         [][]Square
+	CurrentPlayer  string
+	Board          [][]Square
 	CapturedPieces map[string][]PieceInterface
-	StockfishGame []string
+	StockfishGame  []string
+	PlayAgainst    string //person or stockfish
 }
 
 type PieceInterface interface {
@@ -93,7 +94,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
-						Points: 1,
+						Points:    1,
 					},
 				}
 			case "R", "r":
@@ -103,7 +104,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
-						Points: 5,
+						Points:    5,
 					},
 				}
 			case "N", "n":
@@ -113,7 +114,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
-						Points: 3,
+						Points:    3,
 					},
 				}
 
@@ -124,7 +125,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
-						Points: 3,
+						Points:    3,
 					},
 				}
 			case "Q", "q":
@@ -134,7 +135,7 @@ func SetUpBoard(b map[string]string) [][]Square {
 						Color:     color,
 						PieceType: strings.ToUpper(b[pos]),
 						Position:  pos,
-						Points: 9,
+						Points:    9,
 					},
 				}
 			case "K", "k":

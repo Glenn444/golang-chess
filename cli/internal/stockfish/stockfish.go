@@ -74,7 +74,7 @@ func (sf *Stockfish) GetBestMove(moves []string) string {
         //stockfish starts as white
         sf.send("position startpos")
     } else {
-        //stockfish plays black
+       
         sf.send("position startpos moves " + strings.Join(moves, " "))
     }
 
@@ -86,8 +86,9 @@ func (sf *Stockfish) GetBestMove(moves []string) string {
 
     // line looks like "bestmove d7d5 ponder e2e4"
     parts := strings.Fields(line)
+    fmt.Printf("stockfish parts: %s\n",parts)
     if len(parts) >= 2 {
-        return parts[1] // return just "d7d5"
+        return parts[1] // return just "e2e4"
     }
     return ""
 }

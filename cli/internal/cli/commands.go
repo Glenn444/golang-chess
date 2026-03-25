@@ -59,10 +59,20 @@ func (c *CLI) Execute(tokens []string) error {
 	move := cmdName
 
 	//move the piece if it is not a cli command
-
-	err := board.Move(c.game, move)
-	c.printBoardState(nil)
-	return err
+	switch c.game.PlayAgainst {
+	case "person":
+		err := board.Move(c.game, move)
+		c.printBoardState(nil)
+		return err
+	case "stockfish":
+		//user playing
+		if  c.game.UserColor == c.game.CurrentPlayer {
+			fmt.Printf("move: %s\n",move)
+			err := board.Move(c.game, move)
+			return err
+		} 
+	}
+	return nil
 }
 
 func (c *CLI) exitCommand([]string) error {

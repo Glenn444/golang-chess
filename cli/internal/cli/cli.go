@@ -20,12 +20,13 @@ func Cli(g *pieces.GameState) {
 		if g.UserColor != g.CurrentPlayer && g.PlayAgainst == "stockfish" {
 			fmt.Printf("stockfish to play\n")
 			sf := stockfish.NewStockfish()
+			fmt.Printf("stockfishgame: %s\n",g.StockfishGame)
 			stockfishMove := sf.GetBestMove(g.StockfishGame)
 			err := board.Move(g, stockfishMove)
 			if err != nil {
 				log.Fatalf("%s", err)
 			}
-			g.StockfishGame = append(g.StockfishGame, stockfishMove)
+			//g.StockfishGame = append(g.StockfishGame, stockfishMove)
 			board.PrintBoard(*g)
 			continue
 		} else if g.CurrentPlayer == "w" {

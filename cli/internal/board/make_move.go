@@ -9,22 +9,27 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func Move(game1 *pieces.GameState, move string) (error) {
-	
+func Move(game1 *pieces.GameState, move string) error {
+	var appended bool
 	//var stockfishMove string
 	var move_pos string
 
+	if utils.IsAlgebraic(move) {
+		fmt.Printf("stockfishmove: %s\n", move)
 
-	if utils.IsAlgebraic(move){
-		move1,err := CoordinateToAlgebraic(*game1,move)
-		if err !=nil{
+		algebraicMove, err := CoordinateToAlgebraic(*game1, move)
+		if err != nil {
 			return err
 		}
-		move = move1
+		//append the move directly if it's coordinate
+		game1.StockfishGame = append(game1.StockfishGame, move)
+		appended = true
+
+		move = algebraicMove
+
 	}
 	move_pos = string(move[1:])
 	moveType := string(move[1])
-
 
 	boardA := Create_board()
 	CopyBoard(boardA, game1.Board)
@@ -33,7 +38,6 @@ func Move(game1 *pieces.GameState, move string) (error) {
 		Board:          boardA,
 		CapturedPieces: make(map[string][]pieces.PieceInterface),
 	}
-	
 
 	if moveType == "x" || moveType == "X" {
 		err := CapturePiece(game, move)
@@ -57,10 +61,10 @@ func Move(game1 *pieces.GameState, move string) (error) {
 		} else {
 			game1.CurrentPlayer = "w"
 		}
-	
+
 		return nil
 
-	} else if len(move) == 4 && slices.Contains([]string{"B","N","Q","R"},string(move[0])){
+	} else if len(move) == 4 && slices.Contains([]string{"B", "N", "Q", "R"}, string(move[0])) {
 		// piece types are: R,B,N,Q
 		//when move is Rhe1 or R1e4
 		move_pos = string(move[2:])
@@ -105,10 +109,13 @@ func Move(game1 *pieces.GameState, move string) (error) {
 		game1.CapturedPieces[game.CurrentPlayer] = append(game1.CapturedPieces[game.CurrentPlayer], capturedSlice...)
 	}
 
-	stockfishMove := fmt.Sprintf("%s%s",sourcepos,move)
-	game.StockfishGame = append(game.StockfishGame, stockfishMove)
+	coordinatePos := fmt.Sprintf("%s%s", sourcepos, move_pos)
+	if !appended {
+		game1.StockfishGame = append(game1.StockfishGame, coordinatePos)
+		fmt.Printf("coordinate Pos: %s\n", coordinatePos)
+		fmt.Printf("after playing stockfishGame: %s\n", game1.StockfishGame)
+	}
 
-	fmt.Printf("move stockfish: %s\n",stockfishMove)
 	//change current player after making move
 	if game1.CurrentPlayer == "w" {
 		game1.CurrentPlayer = "b"

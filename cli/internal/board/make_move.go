@@ -122,7 +122,6 @@ func Move(game1 *pieces.GameState, move string) error {
 	} else {
 		game1.CurrentPlayer = "w"
 	}
-	//coordinatePos := fmt.Sprintf("%s%s",sourcepos,)
 
 	return nil
 }

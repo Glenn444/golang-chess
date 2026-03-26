@@ -14,12 +14,14 @@ func Move(game1 *pieces.GameState, move string) error {
 	var move_pos string
 
 	if utils.IsaCastlingMove(move) {
-		fmt.Printf("its a castling move\n")
+
 		castlingErr := CastlingMove(game1, move)
 		if castlingErr != nil {
 			return castlingErr
 		}
 		return nil
+	} else if len(move) < 2 {
+		return errors.New("invalid move")
 	}
 	if utils.IsAlgebraic(move) {
 		algebraicMove, err := CoordinateToAlgebraic(*game1, move)
@@ -121,8 +123,8 @@ func Move(game1 *pieces.GameState, move string) error {
 	coordinatePos := fmt.Sprintf("%s%s", sourcepos, move_pos)
 	if !appended {
 		game1.StockfishGame = append(game1.StockfishGame, coordinatePos)
-		fmt.Printf("coordinate Pos: %s\n", coordinatePos)
-		fmt.Printf("after playing stockfishGame: %s\n", game1.StockfishGame)
+		// fmt.Printf("coordinate Pos: %s\n", coordinatePos)
+		// fmt.Printf("after playing stockfishGame: %s\n", game1.StockfishGame)
 	}
 
 	//change current player after making move

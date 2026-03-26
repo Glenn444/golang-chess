@@ -167,7 +167,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 				!gameState.Castle.BlackRookQueensideMoved {
 				kingPos := utils.Indices_to_chess_notation(7, 2)
 				rookPos := utils.Indices_to_chess_notation(7, 1)
-				gameState.Board[7][2] = pieces.Square{
+				gameState.Board[7][1] = pieces.Square{
 					Occupied: true,
 					Piece: &pieces.King{
 						PieceType: "K",
@@ -176,7 +176,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 					},
 				}
 
-				gameState.Board[7][1] = pieces.Square{
+				gameState.Board[7][2] = pieces.Square{
 					Occupied: true,
 					Piece: &pieces.Rook{
 						PieceType: "R",

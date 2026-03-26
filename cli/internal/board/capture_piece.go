@@ -15,7 +15,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 	//var coordinateMove string
 	destCapturePos := string(move[2:])
 	pieceType := string(move[0])
-	var stockfishMove string
+
 
 	boardFile := map[string]bool{
 		"a": true, "b": true, "c": true, "d": true, "e": true, "f": true, "g": true, "h": true,
@@ -63,8 +63,9 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Occupied: true,
 				Piece:    piece,
 			}
-			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
+			stockfishMove := fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
+			fmt.Printf("move added to stockfish game: %s %s",game.StockfishGame, stockfishMove)
 
 			//stockfish coordinate move
 			//coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
@@ -83,6 +84,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			movedPieceType := fmt.Sprintf("%s%s", initialPiece.GetPieceType(), initialPos)
 			pieces.CastlePieceMoved(game, movedPieceType)
 
+			
 			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
 			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
 
@@ -103,8 +105,10 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Occupied: true,
 				Piece:    piece,
 			}
-			stockfishMove = fmt.Sprintf("%s%s", initialPos, destCapturePos)
+			
+			stockfishMove := fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
+			fmt.Printf("move added to stockfish game: %s %s",game.StockfishGame, stockfishMove)
 
 			//coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
 			return nil

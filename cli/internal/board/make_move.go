@@ -28,9 +28,7 @@ func Move(game1 *pieces.GameState, move string) error {
 		if err != nil {
 			return err
 		}
-		//append the move directly if it's coordinate
-		game1.StockfishGame = append(game1.StockfishGame, move)
-		appended = true
+		
 
 		move = algebraicMove
 
@@ -59,6 +57,9 @@ func Move(game1 *pieces.GameState, move string) error {
 			capturedSlice := game.CapturedPieces[game.CurrentPlayer]
 
 			game1.CapturedPieces[game.CurrentPlayer] = append(game1.CapturedPieces[game.CurrentPlayer], capturedSlice...)
+			game1.StockfishGame = append(game1.StockfishGame, game.StockfishGame...)
+			appended = true
+			fmt.Printf("after capture: %s\n",game1.StockfishGame)
 
 		}
 

@@ -67,7 +67,6 @@ func (c *CLI) Execute(tokens []string) error {
 	case "stockfish":
 		//user playing
 		if  c.game.UserColor == c.game.CurrentPlayer {
-			fmt.Printf("move: %s\n",move)
 			err := board.Move(c.game, move)
 			return err
 		} 

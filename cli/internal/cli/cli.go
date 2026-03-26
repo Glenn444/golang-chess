@@ -26,7 +26,7 @@ func Cli(g *pieces.GameState) {
 			if err != nil {
 				log.Fatalf("%s", err)
 			}
-			//g.StockfishGame = append(g.StockfishGame, stockfishMove)
+		
 			board.PrintBoard(*g)
 			continue
 		} else if g.CurrentPlayer == "w" {

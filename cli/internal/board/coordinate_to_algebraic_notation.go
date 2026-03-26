@@ -23,6 +23,9 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 		occupied := game.Board[rowto][colto].Occupied
 		if occupied {
 			rowfrom, colfrom := utils.Chess_notation_to_indices(from)
+			if !game.Board[rowfrom][colfrom].Occupied{
+				return "",errors.New("coordinateToAlgebra error,not occupied")
+			}
 			pieceType := game.Board[rowfrom][colfrom].Piece.GetPieceType()
 
 			if pieceType != "P" {
@@ -34,12 +37,15 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 		} else {
 
 			rowfrom, colfrom := utils.Chess_notation_to_indices(from)
+			if !game.Board[rowfrom][colfrom].Occupied{
+				return "",errors.New("coordinateToAlgebra error,not occupied")
+			}
 			pieceType := game.Board[rowfrom][colfrom].Piece.GetPieceType()
 
 			if pieceType != "P" {
 				return fmt.Sprintf("%s%s", pieceType, to),nil
 			}
-			fmt.Printf("to: %s\n", to)
+			
 			return to,nil
 		}
 	}

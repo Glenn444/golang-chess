@@ -10,7 +10,7 @@ import (
 	"github.com/Glenn444/golang-chess/utils"
 )
 
-func CapturePiece(game *pieces.GameState, move string) ( error) {
+func CapturePiece(game *pieces.GameState, move string) error {
 	//var initialPiecePosition string
 	//var coordinateMove string
 	destCapturePos := string(move[2:])
@@ -79,6 +79,9 @@ func CapturePiece(game *pieces.GameState, move string) ( error) {
 			initialPos := initialPiece.GetPosition()
 
 			//initialPiecePosition = initialPos
+			//type of move Ra1,Rh8 or Ke1 or Ke8 to check for castling rules
+			movedPieceType := fmt.Sprintf("%s%s", initialPiece.GetPieceType(), initialPos)
+			pieces.CastlePieceMoved(game, movedPieceType)
 
 			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
 			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)

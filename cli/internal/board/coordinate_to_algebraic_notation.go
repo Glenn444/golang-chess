@@ -12,10 +12,9 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 	//move - e2e4 should be e4 if pawn and Qe4 if queen e.t.c
 	//ensure move is not a capture,pwan move
 	//check if to position is occupied
-	castle,_ := isCastlingMove(move)
+	castle,algebraicCastlingMove := isCastlingMove(move)
 	if castle {
-		fmt.Printf("it's a castling move")
-		return "",errors.New("algebraic castling move")
+		return algebraicCastlingMove,nil
 	} else if !castle{
 
 		from := move[0:2]

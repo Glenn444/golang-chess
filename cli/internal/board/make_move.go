@@ -11,12 +11,17 @@ import (
 
 func Move(game1 *pieces.GameState, move string) error {
 	var appended bool
-	//var stockfishMove string
 	var move_pos string
 
+	if utils.IsaCastlingMove(move) {
+		fmt.Printf("its a castling move\n")
+		castlingErr := CastlingMove(game1, move)
+		if castlingErr != nil {
+			return castlingErr
+		}
+		return nil
+	}
 	if utils.IsAlgebraic(move) {
-		fmt.Printf("stockfishmove: %s\n", move)
-
 		algebraicMove, err := CoordinateToAlgebraic(*game1, move)
 		if err != nil {
 			return err
@@ -64,8 +69,8 @@ func Move(game1 *pieces.GameState, move string) error {
 
 		return nil
 
-	} else if len(move) == 4 && slices.Contains([]string{"B", "N", "Q", "R"}, string(move[0])) {
-		// piece types are: R,B,N,Q
+	} else if len(move) == 4 && slices.Contains([]string{"B", "N", "Q", "R", "K"}, string(move[0])) {
+		// piece types are: R,B,N,Q,K
 		//when move is Rhe1 or R1e4
 		move_pos = string(move[2:])
 	}
@@ -86,6 +91,10 @@ func Move(game1 *pieces.GameState, move string) error {
 
 	piece := game.Board[sourcerow][sourcecol].Piece
 	piece.AssignPosition(move_pos)
+
+	//type of move Ra1,Rh8 or Ke1 or Ke8 to check for castling rules
+	movedPieceType := fmt.Sprintf("%s%s", piece.GetPieceType(), sourcepos)
+	pieces.CastlePieceMoved(game1, movedPieceType)
 
 	//clear the source square
 	game.Board[sourcerow][sourcecol] = pieces.Square{

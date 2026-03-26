@@ -12,6 +12,15 @@ type Square struct {
 	Piece    PieceInterface
 }
 
+type Castling struct {
+	WhiteKingMoved          bool
+	WhiteRookKingsideMoved  bool
+	WhiteRookQueensideMoved bool
+	BlackKingMoved          bool
+	BlackRookKingsideMoved  bool
+	BlackRookQueensideMoved bool
+}
+
 type GameState struct {
 	CurrentPlayer  string
 	Board          [][]Square
@@ -19,6 +28,7 @@ type GameState struct {
 	StockfishGame  []string
 	PlayAgainst    string //person or stockfish
 	UserColor      string
+	Castle	Castling
 }
 
 type PieceInterface interface {

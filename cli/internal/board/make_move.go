@@ -59,7 +59,7 @@ func Move(game1 *pieces.GameState, move string) error {
 			game1.CapturedPieces[game.CurrentPlayer] = append(game1.CapturedPieces[game.CurrentPlayer], capturedSlice...)
 			game1.StockfishGame = append(game1.StockfishGame, game.StockfishGame...)
 			appended = true
-			fmt.Printf("after capture: %s\n",game1.StockfishGame)
+			//09fmt.Printf("after capture: %s\n",game1.StockfishGame)
 
 		}
 

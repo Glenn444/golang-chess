@@ -2,7 +2,6 @@ package stockfish
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -59,7 +58,6 @@ func (sf *Stockfish) send(cmd string) {
 func (sf *Stockfish) waitFor(expected string) string {
     for sf.stdout.Scan() {
         line := sf.stdout.Text()
-        fmt.Println("stockfish:", line)
         if strings.Contains(line, expected) {
             return line
         }
@@ -86,7 +84,6 @@ func (sf *Stockfish) GetBestMove(moves []string) string {
 
     // line looks like "bestmove d7d5 ponder e2e4"
     parts := strings.Fields(line)
-    fmt.Printf("stockfish parts: %s\n",parts)
     if len(parts) >= 2 {
         return parts[1] // return just "e2e4"
     }

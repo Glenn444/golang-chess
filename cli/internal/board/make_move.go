@@ -124,8 +124,6 @@ func Move(game1 *pieces.GameState, move string) error {
 	coordinatePos := fmt.Sprintf("%s%s", sourcepos, move_pos)
 	if !appended {
 		game1.StockfishGame = append(game1.StockfishGame, coordinatePos)
-		// fmt.Printf("coordinate Pos: %s\n", coordinatePos)
-		// fmt.Printf("after playing stockfishGame: %s\n", game1.StockfishGame)
 	}
 
 	//change current player after making move

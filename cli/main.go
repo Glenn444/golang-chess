@@ -20,8 +20,6 @@ func main() {
 	initialBoard_position := board.Initialise_board(b)
 
 	
-	//fmt.Printf("%v",initialBoard_position)
-	
 	fmt.Printf("Welcome to the chess game cli\n")
 	
 

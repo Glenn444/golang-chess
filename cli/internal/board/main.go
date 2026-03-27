@@ -85,8 +85,7 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 		destpos_sub := pos[1:]
 		for _, square := range g.Board {
 			for _, s := range square {
-				//fmt.Print(s)
-				//fmt.Print(s.Piece.GetPieceType() == pieceType)
+				
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 
 					pieces_squares := s.Piece.GetLegalSquares(g)

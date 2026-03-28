@@ -26,7 +26,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 		case "O-O", "e1g1":
 			//ensure rules of castling hold
 			//1. King is not in check ✅
-			//2. The King does not pass through a square in check
+			//2. The King does not pass through a square in check ✅
 			//3. Has the king or rook already moved previously? ✅
 
 			f1 := !gameState.Board[0][5].Occupied

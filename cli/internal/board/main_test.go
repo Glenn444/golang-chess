@@ -4,18 +4,18 @@ import (
 	"testing"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	//"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCurrentOccupiedPositions(t *testing.T){
-	// gameState := pieces.GameState{
-	// 	CurrentPlayer: "b",
-	// 	Board: generateBoardPositions(),
-	// }
+	gameState := pieces.GameState{
+		CurrentPlayer: "b",
+		Board: generateBoardPositions(),
+	}
 
-	//err := Move(&gameState,"Nc4")
-	//require.Error(t,Move(&gameState,"Nc4"))
-	//require.NoError(t,Move(&gameState,"Nc6"))
+	
+	require.Error(t,Move(&gameState,"Nc4"))
+	require.NoError(t,Move(&gameState,"Nc6"))
 }
 
 func generateBoardPositions()[][]pieces.Square{

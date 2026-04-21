@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	"github.com/Glenn444/golang-chess/utils"
+	"github.com/Glenn444/golang-chess/internal/utils"
 )
 
 func Initialise_board(board [][]pieces.Square) [][]pieces.Square {

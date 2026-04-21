@@ -2,7 +2,7 @@ package board
 
 import (
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	"github.com/Glenn444/golang-chess/utils"
+	"github.com/Glenn444/golang-chess/internal/utils"
 )
 
 func GetAllOccupiedSquares(game pieces.GameState) []string {

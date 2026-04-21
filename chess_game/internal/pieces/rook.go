@@ -2,7 +2,7 @@ package pieces
 
 import (
 
-	"github.com/Glenn444/golang-chess/utils"
+	"github.com/Glenn444/golang-chess/internal/utils"
 )
 
 type Rook struct {

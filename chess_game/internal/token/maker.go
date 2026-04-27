@@ -1,4 +1,4 @@
-package jwttoken
+package token
 
 import "time"
 

@@ -15,6 +15,16 @@ WHERE email = $1;
 SELECT * FROM users
 WHERE username = $1;
 
+-- name: ConfirmEmail :one
+UPDATE users
+SET
+    email_confirmed = TRUE,
+    confirmed_at    = NOW(),
+    updated_at      = NOW()
+WHERE id = $1
+  AND email_confirmed = FALSE
+RETURNING *;
+
 -- name: UpdateUser :one
 UPDATE users
 SET
@@ -24,6 +34,21 @@ SET
     updated_at    = NOW()
 WHERE id = $1
 RETURNING *;
+
+-- name: SetLastLogin :exec
+UPDATE users
+SET last_login_at = NOW()
+WHERE id = $1;
+
+-- name: DeactivateUser :exec
+UPDATE users
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = $1;
+
+-- name: ActivateUser :exec
+UPDATE users
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = $1;
 
 -- name: DeleteUser :exec
 DELETE FROM users

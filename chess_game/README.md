@@ -22,15 +22,16 @@ users ──< games (as black_player)
 games ──< game_moves
 games ──< chat_messages
 games ──< voice_sessions
-users ──< game_moves   (via player_id)
+users ──< game_moves    (via player_id)
 users ──< chat_messages (via sender_id)
 users ──< voice_sessions (via initiator_id)
+users ──< email_otps    (via user_id)
 ```
 
 ### Tables
 
 #### `users`
-Stores registered player accounts.
+Stores registered player accounts. New accounts have `email_confirmed = FALSE` until the OTP flow (see `email_otps`) completes.
 
 | Column | Type | Notes |
 |---|---|---|
@@ -38,8 +39,37 @@ Stores registered player accounts.
 | `username` | TEXT | Unique display name |
 | `email` | TEXT | Unique, used for login |
 | `password_hash` | TEXT | bcrypt hash |
+| `email_confirmed` | BOOLEAN | `FALSE` until OTP verified |
+| `confirmed_at` | TIMESTAMPTZ | Set once on confirmation, never cleared |
+| `is_active` | BOOLEAN | `FALSE` = suspended/banned |
+| `last_login_at` | TIMESTAMPTZ | Updated on every successful login |
 | `created_at` | TIMESTAMPTZ | |
 | `updated_at` | TIMESTAMPTZ | |
+
+A `CHECK` constraint enforces that `email_confirmed` and `confirmed_at` are always in sync.
+
+---
+
+#### `email_otps`
+6-digit numeric OTPs for email confirmation. OTP codes never touch this table in plain form — the application stores `HMAC-SHA256(server_secret, "847291")` and re-hashes the user-supplied code before comparing.
+
+**OTP flow:**
+1. On registration: call `InvalidateUserOTPs` then `CreateEmailOTP` (expire in 15–30 min).
+2. Rate-gate generation with `CountRecentOTPsForUser` (≤ 5 codes per hour).
+3. On each guess: call `GetValidOTP` to fetch the current code, compare hashes.
+4. Wrong guess → `IncrementOTPAttempts`; lock out after 5 attempts.
+5. Correct guess → `MarkOTPUsed` (prevents replay) then `ConfirmEmail` on the user row.
+6. Periodic cleanup via `DeleteExpiredOTPs`.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID | Primary key |
+| `user_id` | UUID | FK → users |
+| `code_hash` | TEXT | `HMAC-SHA256(server_secret, otp_digits)` |
+| `expires_at` | TIMESTAMPTZ | Typically `NOW() + 15 min` |
+| `attempts` | SMALLINT | Incremented on each wrong guess; max 5 |
+| `used_at` | TIMESTAMPTZ | `NULL` = not yet consumed |
+| `created_at` | TIMESTAMPTZ | |
 
 ---
 

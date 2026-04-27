@@ -11,14 +11,23 @@ import (
 )
 
 type Querier interface {
+	ActivateUser(ctx context.Context, id pgtype.UUID) error
 	ActivateVoiceSession(ctx context.Context, id pgtype.UUID) (VoiceSession, error)
+	ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error)
 	CountMovesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error)
+	// Rate-limit OTP generation: reject if a code was issued in the last 5 minutes.
+	CountRecentOTPsForUser(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error)
+	// Call InvalidateUserOTPs first so only one live code exists per user.
+	CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) (EmailOtp, error)
 	CreateGame(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error)
 	CreateMove(ctx context.Context, arg CreateMoveParams) (GameMove, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateVoiceSession(ctx context.Context, arg CreateVoiceSessionParams) (VoiceSession, error)
+	DeactivateUser(ctx context.Context, id pgtype.UUID) error
 	DeleteChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) error
+	// Run periodically (e.g. a cron job) to keep the table small.
+	DeleteExpiredOTPs(ctx context.Context) error
 	DeleteGame(ctx context.Context, id pgtype.UUID) error
 	DeleteMovesByGameID(ctx context.Context, gameID pgtype.UUID) error
 	DeleteUser(ctx context.Context, id pgtype.UUID) error
@@ -33,10 +42,20 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	// Returns the most-recent, unexpired, unused code that still has attempts left.
+	// The app layer must hash the user-supplied digit string before comparing code_hash.
+	GetValidOTP(ctx context.Context, userID pgtype.UUID) (EmailOtp, error)
 	GetVoiceSessionByID(ctx context.Context, id pgtype.UUID) (VoiceSession, error)
 	GetVoiceSessionsByGameID(ctx context.Context, gameID pgtype.UUID) ([]VoiceSession, error)
+	// Call this on every failed verification attempt.
+	IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) (EmailOtp, error)
+	// Burn all live codes for a user before issuing a new one.
+	InvalidateUserOTPs(ctx context.Context, userID pgtype.UUID) error
 	JoinGame(ctx context.Context, arg JoinGameParams) (Game, error)
 	ListWaitingGames(ctx context.Context) ([]Game, error)
+	// Call this immediately after a successful match to prevent replay.
+	MarkOTPUsed(ctx context.Context, id pgtype.UUID) (EmailOtp, error)
+	SetLastLogin(ctx context.Context, id pgtype.UUID) error
 	UpdateGameState(ctx context.Context, arg UpdateGameStateParams) (Game, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }

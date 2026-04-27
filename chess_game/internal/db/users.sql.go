@@ -11,10 +11,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const activateUser = `-- name: ActivateUser :exec
+UPDATE users
+SET is_active = TRUE, updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) ActivateUser(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, activateUser, id)
+	return err
+}
+
+const confirmEmail = `-- name: ConfirmEmail :one
+UPDATE users
+SET
+    email_confirmed = TRUE,
+    confirmed_at    = NOW(),
+    updated_at      = NOW()
+WHERE id = $1
+  AND email_confirmed = FALSE
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at
+`
+
+func (q *Queries) ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, confirmEmail, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.EmailConfirmed,
+		&i.ConfirmedAt,
+		&i.IsActive,
+		&i.LastLoginAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash)
 VALUES ($1, $2, $3)
-RETURNING id, username, email, password_hash, created_at, updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -31,10 +71,25 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
+		&i.EmailConfirmed,
+		&i.ConfirmedAt,
+		&i.IsActive,
+		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const deactivateUser = `-- name: DeactivateUser :exec
+UPDATE users
+SET is_active = FALSE, updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) DeactivateUser(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deactivateUser, id)
+	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
@@ -48,7 +103,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at FROM users
 WHERE email = $1
 `
 
@@ -60,6 +115,10 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
+		&i.EmailConfirmed,
+		&i.ConfirmedAt,
+		&i.IsActive,
+		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -67,7 +126,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at FROM users
 WHERE id = $1
 `
 
@@ -79,6 +138,10 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
+		&i.EmailConfirmed,
+		&i.ConfirmedAt,
+		&i.IsActive,
+		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -86,7 +149,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at FROM users
 WHERE username = $1
 `
 
@@ -98,10 +161,25 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
+		&i.EmailConfirmed,
+		&i.ConfirmedAt,
+		&i.IsActive,
+		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const setLastLogin = `-- name: SetLastLogin :exec
+UPDATE users
+SET last_login_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) SetLastLogin(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, setLastLogin, id)
+	return err
 }
 
 const updateUser = `-- name: UpdateUser :one
@@ -112,7 +190,7 @@ SET
     password_hash = COALESCE($4, password_hash),
     updated_at    = NOW()
 WHERE id = $1
-RETURNING id, username, email, password_hash, created_at, updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at
 `
 
 type UpdateUserParams struct {
@@ -135,6 +213,10 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Username,
 		&i.Email,
 		&i.PasswordHash,
+		&i.EmailConfirmed,
+		&i.ConfirmedAt,
+		&i.IsActive,
+		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

@@ -151,6 +151,16 @@ type ChatMessage struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+type EmailOtp struct {
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	CodeHash  string             `json:"code_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	Attempts  int16              `json:"attempts"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type Game struct {
 	ID            pgtype.UUID        `json:"id"`
 	WhitePlayerID pgtype.UUID        `json:"white_player_id"`
@@ -172,12 +182,16 @@ type GameMove struct {
 }
 
 type User struct {
-	ID           pgtype.UUID        `json:"id"`
-	Username     string             `json:"username"`
-	Email        string             `json:"email"`
-	PasswordHash string             `json:"password_hash"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	ID             pgtype.UUID        `json:"id"`
+	Username       string             `json:"username"`
+	Email          string             `json:"email"`
+	PasswordHash   string             `json:"password_hash"`
+	EmailConfirmed bool               `json:"email_confirmed"`
+	ConfirmedAt    pgtype.Timestamptz `json:"confirmed_at"`
+	IsActive       bool               `json:"is_active"`
+	LastLoginAt    pgtype.Timestamptz `json:"last_login_at"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
 type VoiceSession struct {

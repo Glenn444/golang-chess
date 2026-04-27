@@ -27,19 +27,18 @@ func (q *Queries) CountRecentOTPsForUser(ctx context.Context, userID pgtype.UUID
 
 const createEmailOTP = `-- name: CreateEmailOTP :one
 INSERT INTO email_otps (user_id, code_hash, expires_at)
-VALUES ($1, $2, NOW() + $3::interval)
+VALUES ($1, $2, $3)
 RETURNING id, user_id, code_hash, expires_at, attempts, used_at, created_at
 `
 
 type CreateEmailOTPParams struct {
-	UserID   pgtype.UUID     `json:"user_id"`
-	CodeHash string          `json:"code_hash"`
-	Column3  pgtype.Interval `json:"column_3"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	CodeHash  string             `json:"code_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
 }
 
-// Call InvalidateUserOTPs first so only one live code exists per user.
 func (q *Queries) CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) (EmailOtp, error) {
-	row := q.db.QueryRow(ctx, createEmailOTP, arg.UserID, arg.CodeHash, arg.Column3)
+	row := q.db.QueryRow(ctx, createEmailOTP, arg.UserID, arg.CodeHash, arg.ExpiresAt)
 	var i EmailOtp
 	err := row.Scan(
 		&i.ID,

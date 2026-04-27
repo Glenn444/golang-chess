@@ -15,6 +15,11 @@ WHERE email = $1;
 SELECT * FROM users
 WHERE username = $1;
 
+-- name: UsernameExists :one
+SELECT EXISTS (
+    SELECT 1 FROM users WHERE username = $1
+);
+
 -- name: ConfirmEmail :one
 UPDATE users
 SET

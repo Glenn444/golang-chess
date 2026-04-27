@@ -1,7 +1,6 @@
 -- name: CreateEmailOTP :one
--- Call InvalidateUserOTPs first so only one live code exists per user.
 INSERT INTO email_otps (user_id, code_hash, expires_at)
-VALUES ($1, $2, NOW() + $3::interval)
+VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: GetValidOTP :one

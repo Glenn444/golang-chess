@@ -44,8 +44,14 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	//add routes to router
 	router.GET("/", server.welcome)
 	
+	//users routes
+	users := router.Group("/users")
 
+	//auth group routes
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+
+
+	users.POST("/check-username",)
 	
 
 	router.POST("/token/refresh",server.refreshToken)

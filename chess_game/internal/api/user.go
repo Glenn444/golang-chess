@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"database/sql"
 	"net/http"
 	"time"
@@ -9,8 +11,31 @@ import (
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/Glenn444/golang-chess/internal/utils/auth"
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/lib/pq"
 )
+
+
+type CheckUsernameExistsParams struct {
+	Username string `form:"username" binding:"required,max=20"`
+}
+
+func (server *Server) checkUsernameExists(ctx *gin.Context){
+	//check if username exists
+	var req CheckUsernameExistsParams
+
+	if err := ctx.ShouldBindQuery(&req); err != nil{
+		ctx.JSON(http.StatusBadRequest,errorResponse(err))
+		return
+	}
+
+	exists,err := server.store.UsernameExists(ctx,req.Username)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError,errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK,gin.H{"exists":exists})
+}
 
 type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
@@ -28,9 +53,21 @@ type CreateUserResponse struct {
 }
 
 func (server *Server) createUser(ctx *gin.Context) {
+	
 	var req CreateUserRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	//check if username exists
+	userExists,err := server.store.UsernameExists(ctx,req.Username)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError,errorMessage("something wrong happend"))
+		return
+	}
+	if userExists{
+		ctx.JSON(http.StatusConflict,errorMessage("username exists!!"))
 		return
 	}
 
@@ -59,14 +96,77 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
+	otpCode, err := auth.GenerateOTP(6)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError,errorMessage("error generating otp code"))
+		return
+	}
+	otpHash,err := auth.SignOtpCode(otpCode,server.config.TokenSymmetricKey)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError,errorMessage("error signing the otpcode"))
+		return
+	}
+
+	argEmailOtp := db.CreateEmailOTPParams{
+		UserID: user.ID,
+		CodeHash: otpHash,
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(server.config.AcessTokenDuration),Valid: true},
+	}
+	//verify email
+	_,err = server.store.CreateEmailOTP(ctx,argEmailOtp)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError,errorMessage("failed creating OTP in the database"))
+		return
+	}
+
+	//send the otp to the user email
+	err = server.emailClient.SendEmailOTP(user.Email,otpCode)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError,errorMessage("error sending OTP to email"))
+		return
+	}
 	resp := CreateUserResponse{
 		Username:          user.Username,
-		Email:             user.Email,
-		PasswordChangedAt: user.PasswordChangedAt,
-		CreatedAt:         user.CreatedAt,
+		PasswordChangedAt: user.UpdatedAt.Time,
+		CreatedAt:         user.CreatedAt.Time,
 	}
 	ctx.JSON(http.StatusOK, resp)
 
+}
+
+
+type ConfirmEmail struct{
+	Email string `json:"email" binding:"required"`
+	EMAIL_OTP string `json:"email_otp" binding:"required"`
+}
+
+func (server *Server) confirmEmail(ctx *gin.Context){
+	var req ConfirmEmail
+
+	if err := ctx.ShouldBindJSON(&req); err != nil{
+		ctx.JSON(http.StatusBadRequest,errorResponse(err))
+		return
+	}
+
+
+	user,err := server.store.GetUserByEmail(ctx,req.Email)
+	if err != nil{
+		if err == sql.ErrNoRows{
+			ctx.JSON(http.StatusNotFound,errorMessage("user does not exist"))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	//2. Get OTP Code from db
+	emailOTP,err := server.store.GetValidOTP(ctx,user.ID)
+	if err != nil{
+		if err == sql.ErrNoRows{
+			ctx.JSON(http.StatusNotFound,errorMessage("otp not found, create a new one"))
+			return
+		}
+	}
 }
 
 type SearchUserParams struct {
@@ -117,8 +217,6 @@ type loginUserRequest struct {
 
 type loginUserResponse struct {
 	Username          string    `json:"username"`
-	FullName          string    `json:"full_name"`
-	Email             string    `json:"email"`
 	PasswordChangedAt time.Time `json:"password_changed_at"`
 	CreatedAt         time.Time `json:"created_at"`
 	AccessToken       string    `json:"access_token"`
@@ -181,8 +279,6 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	resp := loginUserResponse{
 		Username:          req.Username,
-		FullName:          user.FullName,
-		Email:             user.Email,
 		PasswordChangedAt: user.PasswordChangedAt,
 		CreatedAt:         user.CreatedAt,
 		AccessToken:       access_token,

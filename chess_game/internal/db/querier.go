@@ -18,7 +18,6 @@ type Querier interface {
 	// Rate-limit OTP generation: reject if a code was issued in the last 5 minutes.
 	CountRecentOTPsForUser(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error)
-	// Call InvalidateUserOTPs first so only one live code exists per user.
 	CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) (EmailOtp, error)
 	CreateGame(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error)
 	CreateMove(ctx context.Context, arg CreateMoveParams) (GameMove, error)
@@ -58,6 +57,7 @@ type Querier interface {
 	SetLastLogin(ctx context.Context, id pgtype.UUID) error
 	UpdateGameState(ctx context.Context, arg UpdateGameStateParams) (Game, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UsernameExists(ctx context.Context, username string) (bool, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Glenn444/golang-chess/config"
 	"github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/token"
-	"github.com/Glenn444/golang-chess/config"
+	"github.com/Glenn444/golang-chess/internal/utils/emails"
 	"github.com/gin-gonic/gin"
 )
 
-// Server serves HTTP requests for our banking service
+// Server serves HTTP requests for our chess service
 type Server struct {
 	config     config.Config
+	emailClient emails.EmailClient
 	tokenMaker token.Maker
 	store      db.Store
 	router     *gin.Engine
@@ -28,6 +30,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 		tokenMaker: jwtTokenMaker,
 		store:      store,
 		config:     config,
+		emailClient: *emails.NewEmailClient(config.RESEND_API_KEY),
 	}
 
 	// Force log's color
@@ -40,6 +43,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	router.Use()
 	//add routes to router
 	router.GET("/", server.welcome)
+	
 
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	

@@ -59,8 +59,7 @@ type Player struct{
 }
 type Move struct{
 	PlayerColor Color
-	PieceMove string //Nf3
-
+	PieceMove string //e2e3
 }
 
 type Game struct{

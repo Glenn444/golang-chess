@@ -1,4 +1,4 @@
-package utils
+package chess
 
 func RemoveOwnOccupiedSquares(a, b []string) []string {
     // build a set from b

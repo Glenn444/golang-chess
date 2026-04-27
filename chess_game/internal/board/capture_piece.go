@@ -21,7 +21,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 		"a": true, "b": true, "c": true, "d": true, "e": true, "f": true, "g": true, "h": true,
 	}
 
-	row, col := utils.Chess_notation_to_indices(destCapturePos)
+	row, col := chess.Chess_notation_to_indices(destCapturePos)
 	pieceSquare := game.Board[row][col]
 
 	if pieceSquare.Occupied && game.CurrentPlayer != pieceSquare.Piece.GetColor() {
@@ -42,8 +42,8 @@ func CapturePiece(game *pieces.GameState, move string) error {
 
 			//initialPiecePosition = initialPos
 
-			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
-			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
+			destrow, destcol := chess.Chess_notation_to_indices(destCapturePos)
+			sourcerow, sourcecol := chess.Chess_notation_to_indices(initialPos)
 
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)
@@ -85,8 +85,8 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			pieces.CastlePieceMoved(game, movedPieceType)
 
 			
-			destrow, destcol := utils.Chess_notation_to_indices(destCapturePos)
-			sourcerow, sourcecol := utils.Chess_notation_to_indices(initialPos)
+			destrow, destcol := chess.Chess_notation_to_indices(destCapturePos)
+			sourcerow, sourcecol := chess.Chess_notation_to_indices(initialPos)
 
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)

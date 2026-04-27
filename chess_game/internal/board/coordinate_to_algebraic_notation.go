@@ -19,10 +19,10 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 
 		from := move[0:2]
 		to := move[2:4]
-		rowto, colto := utils.Chess_notation_to_indices(to)
+		rowto, colto := chess.Chess_notation_to_indices(to)
 		occupied := game.Board[rowto][colto].Occupied
 		if occupied {
-			rowfrom, colfrom := utils.Chess_notation_to_indices(from)
+			rowfrom, colfrom := chess.Chess_notation_to_indices(from)
 			if !game.Board[rowfrom][colfrom].Occupied{
 				return "",errors.New("coordinateToAlgebra error,not occupied")
 			}
@@ -36,7 +36,7 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 			return toPos,nil
 		} else {
 
-			rowfrom, colfrom := utils.Chess_notation_to_indices(from)
+			rowfrom, colfrom := chess.Chess_notation_to_indices(from)
 			if !game.Board[rowfrom][colfrom].Occupied{
 				return "",errors.New("coordinateToAlgebra error,not occupied")
 			}

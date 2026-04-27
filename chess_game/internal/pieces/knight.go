@@ -18,7 +18,7 @@ func (k *Knight) GetLegalSquares(g GameState) []string {
 	//letter := string(k.Position[0])
 	//num, _ := strconv.Atoi(k.Position[1:])
 
-	row, col := utils.Chess_notation_to_indices(k.Position)
+	row, col := chess.Chess_notation_to_indices(k.Position)
 
 	knightMoves := [][2]int{{2, 1}, {2, -1}, {-2, 1}, {-2, -1}, {1, 2}, {1, -2}, {-1, 2}, {-1, -2}}
 
@@ -27,7 +27,7 @@ func (k *Knight) GetLegalSquares(g GameState) []string {
 		new_col := col + k_move[1]
 
 		if new_row >= 0 && new_row < 8 && new_col >= 0 && new_col < 8 {
-			pos := utils.Indices_to_chess_notation(new_row, new_col)
+			pos := chess.Indices_to_chess_notation(new_row, new_col)
 			if g.Board[new_row][new_col].Occupied && g.Board[new_row][new_col].Piece.GetColor() != k.Color {
 
 				possible_positions = append(possible_positions, pos)

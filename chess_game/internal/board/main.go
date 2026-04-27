@@ -50,7 +50,7 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 			for _, s := range squares {
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 					pieces_squares := s.Piece.GetLegalSquares(g)
-					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
+					legal_squares := chess.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
 					if slices.Contains(legal_squares, destpos) {
 							return s.Piece.GetPosition(),nil
 						}
@@ -68,7 +68,7 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 
 					pieces_squares := s.Piece.GetLegalSquares(g)
-					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
+					legal_squares := chess.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
 
 					piecePos := s.Piece.GetPosition() //a2,a3,b5
 					if slices.Contains(legal_squares, destpos_sub) && string(piecePos[0]) == destCol {
@@ -89,7 +89,7 @@ func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (stri
 				if s.Occupied && s.Piece.GetColor() == g.CurrentPlayer && s.Piece.GetPieceType() == pieceType {
 
 					pieces_squares := s.Piece.GetLegalSquares(g)
-					legal_squares := utils.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
+					legal_squares := chess.RemoveOwnOccupiedSquares(pieces_squares, occupied_squares)
 					//fmt.Printf("legal squares: %v\n", legal_squares)
 
 					if slices.Contains(legal_squares, destpos_sub) {

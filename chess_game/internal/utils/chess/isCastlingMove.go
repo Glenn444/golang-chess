@@ -1,4 +1,4 @@
-package utils
+package chess
 
 
 func IsaCastlingMove(move string)bool  {

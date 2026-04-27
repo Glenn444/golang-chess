@@ -10,7 +10,7 @@ func GetAllOccupiedSquares(game pieces.GameState) []string {
 	for i, b := range game.Board {
 		for j, s := range b {
 			if s.Occupied && game.CurrentPlayer == s.Piece.GetColor() {
-				pos := utils.Indices_to_chess_notation(i, j)
+				pos := chess.Indices_to_chess_notation(i, j)
 				OccupiedSquares = append(OccupiedSquares, pos)
 			}
 		}

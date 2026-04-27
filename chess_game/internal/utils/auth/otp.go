@@ -1,4 +1,4 @@
-package utils
+package auth
 
 import (
     "crypto/rand"
@@ -6,6 +6,9 @@ import (
     "math/big"
 )
 
+
+//Generates random OTP codes using crypto/rand
+//digits is the number of codes to return
 func generateOTP(digits int) (string, error) {
     max := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(digits)), nil)
     n, err := rand.Int(rand.Reader, max)

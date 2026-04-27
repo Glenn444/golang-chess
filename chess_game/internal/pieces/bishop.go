@@ -26,7 +26,7 @@ func (b *Bishop) GetLegalSquares(g GameState) []string {
 	//return positions
 	for _,diagnol := range allDiagnols{
 		for _, pos := range diagnol{
-			i, j := utils.Chess_notation_to_indices(pos)
+			i, j := chess.Chess_notation_to_indices(pos)
 			square := g.Board[i][j]
 
 			if square.Occupied{
@@ -48,7 +48,7 @@ func (b *Bishop) GetLegalSquares(g GameState) []string {
 
 func getDiagnolSquares(pos string,rowDelta int, colDelta int)[]string{
 	var positions []string
-	row,col := utils.Chess_notation_to_indices(pos)
+	row,col := chess.Chess_notation_to_indices(pos)
 
 	
 	for true{
@@ -58,7 +58,7 @@ func getDiagnolSquares(pos string,rowDelta int, colDelta int)[]string{
 			break
 		}
 		
-		pos := utils.Indices_to_chess_notation(r,c)
+		pos := chess.Indices_to_chess_notation(r,c)
 		positions = append(positions, pos)
 		row = r
 		col = c

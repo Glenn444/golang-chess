@@ -1,4 +1,4 @@
-package utils
+package chess
 
 
 func IsAlgebraic(move string)bool{

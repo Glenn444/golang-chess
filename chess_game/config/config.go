@@ -1,6 +1,5 @@
 package config
 
-
 import (
 	"time"
 
@@ -13,6 +12,7 @@ type Config struct {
 	ServerAddress      string        `mapstructure:"SERVER_ADDRESS"`
 	AcessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	TokenSymmetricKey  string        `mapstructure:"TokenSymmetricKey"`
+	RESEND_API_KEY     string        `mapstructure:"RESEND_API_KEY"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

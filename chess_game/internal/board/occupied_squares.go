@@ -9,7 +9,7 @@ import (
 - Returns occupied squares
 */
 func Occupied_squares(g pieces.GameState, pos string)(bool,string)  {
-	destrow,destcol := utils.Chess_notation_to_indices(pos)
+	destrow,destcol := chess.Chess_notation_to_indices(pos)
 	square := g.Board[destrow][destcol]
 	if !square.Occupied{
 		return  false,"EMPTY"

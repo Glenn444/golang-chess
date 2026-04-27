@@ -29,7 +29,7 @@ func Initialise_board(board [][]pieces.Square) [][]pieces.Square {
 
 	for i, row := range board {
 		for j := range row {
-			pos := utils.Indices_to_chess_notation(i, j)
+			pos := chess.Indices_to_chess_notation(i, j)
 			color := "b"
 			if b[pos] == strings.ToUpper(b[pos]) {
 				color = "w"

@@ -13,7 +13,7 @@ func Move(game1 *pieces.GameState, move string) error {
 	var appended bool
 	var move_pos string
 
-	if utils.IsaCastlingMove(move) {
+	if chess.IsaCastlingMove(move) {
 
 		castlingErr := CastlingMove(game1, move)
 		if castlingErr != nil {
@@ -23,7 +23,7 @@ func Move(game1 *pieces.GameState, move string) error {
 	} else if len(move) < 2 {
 		return errors.New("invalid move")
 	}
-	if utils.IsAlgebraic(move) {
+	if chess.IsAlgebraic(move) {
 		algebraicMove, err := CoordinateToAlgebraic(*game1, move)
 		if err != nil {
 			return err
@@ -88,8 +88,8 @@ func Move(game1 *pieces.GameState, move string) error {
 		move_pos = move
 	}
 
-	destrow, destcol := utils.Chess_notation_to_indices(move_pos)
-	sourcerow, sourcecol := utils.Chess_notation_to_indices(sourcepos)
+	destrow, destcol := chess.Chess_notation_to_indices(move_pos)
+	sourcerow, sourcecol := chess.Chess_notation_to_indices(sourcepos)
 
 	piece := game.Board[sourcerow][sourcecol].Piece
 	piece.AssignPosition(move_pos)

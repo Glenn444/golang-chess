@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	"github.com/Glenn444/golang-chess/internal/utils"
+	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
 func CapturePiece(game *pieces.GameState, move string) error {

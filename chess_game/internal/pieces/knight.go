@@ -1,7 +1,7 @@
 package pieces
 
 import (
-	"github.com/Glenn444/golang-chess/internal/utils"
+	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
 type Knight struct {

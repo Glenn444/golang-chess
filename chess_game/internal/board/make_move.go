@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	"github.com/Glenn444/golang-chess/internal/utils"
+	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
 func Move(game1 *pieces.GameState, move string) error {

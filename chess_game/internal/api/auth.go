@@ -2,15 +2,20 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/Glenn444/golang-chess/internal/utils/auth"
 	db "github.com/Glenn444/golang-chess/internal/db"
+	"github.com/Glenn444/golang-chess/internal/utils/auth"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/lib/pq"
+	"github.com/lib/pq/pqerror"
 )
 
 // createUser (registration IS an auth concern)
@@ -22,6 +27,11 @@ type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,alphanum"`
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
+}
+
+func (r *CreateUserRequest)SanitizeCreateUserReq(){
+	r.Username = strings.ToLower(r.Username)
+	r.Email = strings.ToLower(r.Email)
 }
 
 type CreateUserResponse struct {
@@ -39,16 +49,23 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
+	//sanitize user input
+	req.SanitizeCreateUserReq()
+
 	//check if username exists
 	userExists, err := server.store.UsernameExists(ctx, req.Username)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorMessage("username not found"))
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code != pgerrcode.NoData {
+				slog.Error("failed ", "err", err, "username", req.Username)
+				ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+				return
+			}
 		}
-		slog.Error("failed getting username", "err", err, "user_id", req.Username)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("something wrong happend"))
-		return
+
 	}
+
 	if userExists {
 		ctx.JSON(http.StatusConflict, errorMessage("username exists!!"))
 		return
@@ -123,15 +140,18 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 }
 
-
 type ConfirmEmail struct {
 	Email     string `json:"email" binding:"required"`
 	EMAIL_OTP string `json:"email_otp" binding:"required"`
+}
+func (r *ConfirmEmail)SanitizeConfirmEmailReq(){
+	r.Email = strings.ToLower(r.Email)
 }
 type ConfirmEmailResponse struct {
 	Message string `json:"message"`
 	Email   string `json:"email"`
 }
+
 func (server *Server) confirmEmail(ctx *gin.Context) {
 	var req ConfirmEmail
 
@@ -139,6 +159,9 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+
+	//sanitize user email
+	req.SanitizeConfirmEmailReq()
 
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if err != nil {
@@ -164,7 +187,12 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 	}
 
 	//3. Compare the OTP hash to the given OTP
-	match := auth.ConfirmOTP(req.EMAIL_OTP, emailOTP.CodeHash, server.config.TokenSymmetricKey)
+	match,err := auth.ConfirmOTP(req.EMAIL_OTP, emailOTP.CodeHash, server.config.TokenSymmetricKey)
+	if err != nil{
+		slog.Error("failed to decode OTPHASH Byte ", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError,errorMessage("sorry something wrong happened"))
+		return
+	}
 	if !match {
 		_, err := server.store.IncrementOTPAttempts(ctx, emailOTP.ID)
 		if err != nil {
@@ -174,6 +202,7 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 		}
 
 		//successful increment
+		//slog.Error("failed to confirm OTP Code", "err", err, "user_id", user.ID)
 		ctx.JSON(http.StatusForbidden, errorMessage("invalid OTP code"))
 		return
 	}
@@ -200,7 +229,66 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 
 }
 
+type SendEmailOTP struct {
+	Email     string `json:"email" binding:"required"`
+}
+func (r *SendEmailOTP)SanitizeEmailOTP(){
+	r.Email = strings.ToLower(r.Email)
+}
+func (server *Server)sendEmailOTP(ctx *gin.Context){
+	var req SendEmailOTP
+	if err := ctx.ShouldBindJSON(&req); err != nil{
+		ctx.JSON(http.StatusBadRequest,errorResponse(err))
+		return
+	}
 
+	//sanitize user email
+	req.SanitizeEmailOTP()
+
+	//2. Get the user by email
+	user,err := server.store.GetUserByEmail(ctx,req.Email)
+	var pgErr *pgconn.PgError
+	if err != nil{
+		if errors.As(err,pgErr){
+			switch pgErr.Code {
+			case pgerrcode.NoData:
+				ctx.JSON(http.StatusNotFound,errorMessage("user does not exist"))
+				return
+			}
+		}
+	}
+
+	//3. generate otp
+	otpCode,err := auth.GenerateOTP(6)
+	if err != nil{
+		slog.Error("failed to generate OTP", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError,errorMessage("error generating OTP Code"))
+		return
+	}
+
+	//4. send otp to email
+	server.emailClient.SendEmailOTP(user.Email,otpCode)
+
+	//5. sign,Hash OTP and store otp in database
+	hashedOPT, err := auth.SignOtpCode(otpCode,server.config.TokenSymmetricKey)
+	if err != nil{
+		ctx.JSON(http.StatusInternalServerError,errorMessage("error occourred"))
+		return
+	}
+	emailOTP,err := server.store.CreateEmailOTP(ctx,db.CreateEmailOTPParams{
+		UserID: user.ID,
+		CodeHash: hashedOPT,
+		ExpiresAt: pgtype.Timestamptz{
+			Time: time.Now().Add(server.config.AcessTokenDuration),
+			Valid: true,
+			
+		},
+	})
+	if err != nil{
+		
+	}
+
+}
 // type loginUserRequest struct {
 // 	Username string `json:"username" binding:"required"`
 // 	Password string `json:"password" binding:"required"`

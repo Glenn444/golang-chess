@@ -1,0 +1,11 @@
+name: Signup
+method: POST
+url: '{{url8080}}/users/signup'
+body:
+  type: json
+  content: |-
+    {
+      "username":"glenn",
+      "email":"gmark1586@gmail.com",
+      "password":"1234@2026!"
+    }

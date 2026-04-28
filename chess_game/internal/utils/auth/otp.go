@@ -22,25 +22,28 @@ func GenerateOTP(digits int) (string, error) {
 }
 
 func SignOtpCode(otp string, secret string)(string,error){
-	otpCode,err := GenerateOTP(6)
-	if err != nil{
-        return "",err
-    }
-
+	
 	hm := hmac.New(sha256.New,[]byte(secret))
-	hm.Write([]byte(otpCode))
+	hm.Write([]byte(otp))
 	otpHashBytes := hm.Sum(nil)
 
     otpHashString := hex.EncodeToString(otpHashBytes)
     return otpHashString,nil
-	
 }
 
-func ConfirmOTP(otp,otpHashString,secret string)bool{
+//Use hmac.Equal to compare code bytes
+func ConfirmOTP(otp,otpHashString,secret string)(bool,error){
    
     mac := hmac.New(sha256.New, []byte(secret))
     mac.Write([]byte(otp))
     expectedMAC := mac.Sum(nil)
+    
+
+    decodedOTPHashByte,err := hex.DecodeString(otpHashString)
+    if err != nil{
+        return false,err
+    }
+
     // Always use hmac.Equal for security
-    return hmac.Equal([]byte(otpHashString), expectedMAC)
+    return hmac.Equal(decodedOTPHashByte, expectedMAC),nil
 }

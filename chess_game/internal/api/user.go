@@ -1,12 +1,14 @@
 package api
 
 import (
-	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
-
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // checkUsernameExists
@@ -15,6 +17,10 @@ import (
 
 type CheckUsernameExistsParams struct {
 	Username string `form:"username" binding:"required,max=20"`
+}
+
+func (r *CheckUsernameExistsParams)SanitizeParams(){
+	r.Username = strings.ToLower(r.Username)
 }
 
 func (server *Server) checkUsernameExists(ctx *gin.Context) {
@@ -26,12 +32,20 @@ func (server *Server) checkUsernameExists(ctx *gin.Context) {
 		return
 	}
 
+	//sanitize input
+	req.SanitizeParams()
+
 	exists, err := server.store.UsernameExists(ctx, req.Username)
+	var pgErr *pgconn.PgError
 	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorMessage("username not found"))
-			return
+		if errors.As(err, &pgErr){
+			switch pgErr.Code {
+			case pgerrcode.NoData:
+				ctx.JSON(http.StatusNotFound, errorMessage("username not found"))
+				return
+			}
 		}
+		
 		slog.Error("failed to hash password", "err", err, "username", req.Username)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return

@@ -1,0 +1,10 @@
+name: Confirm Email
+method: POST
+url: '{{url8080}}/users/confirm-email'
+body:
+  type: json
+  content: |-
+    {
+      "email":"gmark1586@gmail.com",
+      "email_otp":"061013"
+    }

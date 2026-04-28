@@ -48,13 +48,15 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	users := router.Group("/users")
 
 	//auth group routes
-	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+	//authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 
 
-	users.POST("/check-username",)
+	users.GET("/check-username",server.checkUsernameExists)
+	users.POST("/confirm-email",server.confirmEmail)
+	users.POST("/signup",server.createUser)
 	
 
-	router.POST("/token/refresh",server.refreshToken)
+	//router.POST("/token/refresh-token",server.refreshToken)
 
 	server.router = router
 	return server, nil

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -29,5 +30,25 @@ func LoadConfig(path string) (config Config, err error) {
 	}
 
 	err = viper.Unmarshal(&config)
+
+    // catch missing required fields
+    if config.DBDriver == "" {
+        err = fmt.Errorf("DB_DRIVER is required but not set")
+        return
+    }
+    if config.DB_URL == "" {
+        err = fmt.Errorf("DB_URL is required but not set")
+        return
+    }
+	
+	if config.AcessTokenDuration == time.Duration(0){
+        err = fmt.Errorf("AcessTokenDuration is required but not set")
+        return
+    }
+	if config.TokenSymmetricKey == ""{
+		err = fmt.Errorf("TokenSymmetricKey is required but not set")
+		return
+	}
+
 	return
 }

@@ -27,8 +27,11 @@ sqlc:
 test:
 	go test -v -cover ./...
 
-server:
-	go run main.go
+run-server:
+	go run ./cmd/server/main.go
+
+build-server:
+	go build ./cmd/server   # builds the server binary
 
 mock:
 	mockgen -destination internal/db/mock/store.go github.com/Glenn444/banking-app/internal/database Store

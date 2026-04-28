@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -14,8 +13,6 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/lib/pq"
-	"github.com/lib/pq/pqerror"
 )
 
 // createUser (registration IS an auth concern)
@@ -29,7 +26,7 @@ type CreateUserRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-func (r *CreateUserRequest)SanitizeCreateUserReq(){
+func (r *CreateUserRequest) SanitizeCreateUserReq() {
 	r.Username = strings.ToLower(r.Username)
 	r.Email = strings.ToLower(r.Email)
 }
@@ -86,16 +83,17 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if err != nil {
-		if pqError, ok := err.(*pq.Error); ok {
-			switch pqError.Code.Name() {
-			case "unique_violation":
-				ctx.JSON(http.StatusConflict, errorResponse(err))
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.UniqueViolation:
+				ctx.JSON(http.StatusNotFound, errorMessage("user info exists"))
 				return
 			}
+			slog.Error("failed to create user in db ", "err", err, "user_email", req.Email)
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			return
 		}
-		slog.Error("failed to create user in db", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
 	}
 
 	otpCode, err := auth.GenerateOTP(6)
@@ -144,9 +142,11 @@ type ConfirmEmail struct {
 	Email     string `json:"email" binding:"required"`
 	EMAIL_OTP string `json:"email_otp" binding:"required"`
 }
-func (r *ConfirmEmail)SanitizeConfirmEmailReq(){
+
+func (r *ConfirmEmail) SanitizeConfirmEmailReq() {
 	r.Email = strings.ToLower(r.Email)
 }
+
 type ConfirmEmailResponse struct {
 	Message string `json:"message"`
 	Email   string `json:"email"`
@@ -165,21 +165,29 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorMessage("user does not exist"))
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.NoData:
+				ctx.JSON(http.StatusNotFound, errorMessage("user does not exist"))
+				return
+			}
+			slog.Error("failed to get user by email ", "err", err, "user_email", req.Email)
+			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 			return
 		}
-		slog.Error("failed to get user by email ", "err", err, "user_email", req.Email)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
 	}
 
 	//2. Get OTP Code from db
 	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.JSON(http.StatusNotFound, errorMessage("otp not found, create a new one"))
-			return
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			switch pgErr.Code {
+			case pgerrcode.NoData:
+				ctx.JSON(http.StatusNotFound, errorMessage("otp does not exist, create a new one"))
+				return
+			}
 		}
 		slog.Error("failed to get valid OTP ", "err", err, "user_email", req.Email)
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -187,10 +195,10 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 	}
 
 	//3. Compare the OTP hash to the given OTP
-	match,err := auth.ConfirmOTP(req.EMAIL_OTP, emailOTP.CodeHash, server.config.TokenSymmetricKey)
-	if err != nil{
+	match, err := auth.ConfirmOTP(req.EMAIL_OTP, emailOTP.CodeHash, server.config.TokenSymmetricKey)
+	if err != nil {
 		slog.Error("failed to decode OTPHASH Byte ", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError,errorMessage("sorry something wrong happened"))
+		ctx.JSON(http.StatusInternalServerError, errorMessage("sorry something wrong happened"))
 		return
 	}
 	if !match {
@@ -230,15 +238,16 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 }
 
 type SendEmailOTP struct {
-	Email     string `json:"email" binding:"required"`
+	Email string `json:"email" binding:"required"`
 }
-func (r *SendEmailOTP)SanitizeEmailOTP(){
+
+func (r *SendEmailOTP) SanitizeEmailOTP() {
 	r.Email = strings.ToLower(r.Email)
 }
-func (server *Server)sendEmailOTP(ctx *gin.Context){
+func (server *Server) sendEmailOTP(ctx *gin.Context) {
 	var req SendEmailOTP
-	if err := ctx.ShouldBindJSON(&req); err != nil{
-		ctx.JSON(http.StatusBadRequest,errorResponse(err))
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
 
@@ -246,49 +255,74 @@ func (server *Server)sendEmailOTP(ctx *gin.Context){
 	req.SanitizeEmailOTP()
 
 	//2. Get the user by email
-	user,err := server.store.GetUserByEmail(ctx,req.Email)
+	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	var pgErr *pgconn.PgError
-	if err != nil{
-		if errors.As(err,pgErr){
+	if err != nil {
+		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case pgerrcode.NoData:
-				ctx.JSON(http.StatusNotFound,errorMessage("user does not exist"))
+				ctx.JSON(http.StatusNotFound, errorMessage("user does not exist"))
 				return
 			}
 		}
 	}
 
+	//get a valid OTP if exists then the user cannot generate new OTP
+	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
+	if err != nil {
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			if pgError.ColumnName != pgerrcode.NoData {
+				slog.Error("failed getting a valid otp on sending email OTP", "err", err)
+				ctx.JSON(http.StatusInternalServerError, errorMessage("an error occurred"))
+				return
+			}
+		}
+	}
+
+	// valid OTP exists — enforce cooldown
+	if err == nil && emailOTP.ExpiresAt.Time.After(time.Now()) {
+		ctx.JSON(http.StatusForbidden, errorMessage("wait before requesting another OTP"))
+		return
+	}
 	//3. generate otp
-	otpCode,err := auth.GenerateOTP(6)
-	if err != nil{
+	otpCode, err := auth.GenerateOTP(6)
+	if err != nil {
 		slog.Error("failed to generate OTP", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError,errorMessage("error generating OTP Code"))
+		ctx.JSON(http.StatusInternalServerError, errorMessage("error generating OTP Code"))
 		return
 	}
 
-	//4. send otp to email
-	server.emailClient.SendEmailOTP(user.Email,otpCode)
-
-	//5. sign,Hash OTP and store otp in database
-	hashedOPT, err := auth.SignOtpCode(otpCode,server.config.TokenSymmetricKey)
-	if err != nil{
-		ctx.JSON(http.StatusInternalServerError,errorMessage("error occourred"))
+	//5. sign,Hash OTP and store in database
+	hashedOTP, err := auth.SignOtpCode(otpCode, server.config.TokenSymmetricKey)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorMessage("an error occourred"))
 		return
 	}
-	emailOTP,err := server.store.CreateEmailOTP(ctx,db.CreateEmailOTPParams{
-		UserID: user.ID,
-		CodeHash: hashedOPT,
+	_, err = server.store.CreateEmailOTP(ctx, db.CreateEmailOTPParams{
+		UserID:   user.ID,
+		CodeHash: hashedOTP,
 		ExpiresAt: pgtype.Timestamptz{
-			Time: time.Now().Add(server.config.AcessTokenDuration),
+			Time:  time.Now().Add(server.config.AcessTokenDuration),
 			Valid: true,
-			
 		},
 	})
-	if err != nil{
-		
+	if err != nil {
+		slog.Error("failed to create Email OTP in DB", "err", err)
+		ctx.JSON(http.StatusInternalServerError, errorMessage("an error occurred"))
+		return
 	}
+	//4. send email otp to user email
+	err = server.emailClient.SendEmailOTP(user.Email, otpCode)
+	if err != nil {
+		slog.Error("failed to send OTP email", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage("failed to send OTP email"))
+		return
+	}
+	ctx.JSON(http.StatusOK, successMessage("OTP sent successfuly to your email"))
 
 }
+
 // type loginUserRequest struct {
 // 	Username string `json:"username" binding:"required"`
 // 	Password string `json:"password" binding:"required"`

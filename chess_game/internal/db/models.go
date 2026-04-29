@@ -181,17 +181,29 @@ type GameMove struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
+type Session struct {
+	ID           pgtype.UUID        `json:"id"`
+	UserID       pgtype.UUID        `json:"user_id"`
+	RefreshToken string             `json:"refresh_token"`
+	UserAgent    pgtype.Text        `json:"user_agent"`
+	ClientIp     pgtype.Text        `json:"client_ip"`
+	IsRevoked    bool               `json:"is_revoked"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
 type User struct {
-	ID             pgtype.UUID        `json:"id"`
-	Username       string             `json:"username"`
-	Email          string             `json:"email"`
-	PasswordHash   string             `json:"password_hash"`
-	EmailConfirmed bool               `json:"email_confirmed"`
-	ConfirmedAt    pgtype.Timestamptz `json:"confirmed_at"`
-	IsActive       bool               `json:"is_active"`
-	LastLoginAt    pgtype.Timestamptz `json:"last_login_at"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	ID                pgtype.UUID        `json:"id"`
+	Username          string             `json:"username"`
+	Email             string             `json:"email"`
+	PasswordHash      string             `json:"password_hash"`
+	EmailConfirmed    bool               `json:"email_confirmed"`
+	ConfirmedAt       pgtype.Timestamptz `json:"confirmed_at"`
+	IsActive          bool               `json:"is_active"`
+	LastLoginAt       pgtype.Timestamptz `json:"last_login_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	PasswordUpdatedAt pgtype.Timestamptz `json:"password_updated_at"`
 }
 
 type VoiceSession struct {

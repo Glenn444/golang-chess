@@ -8,6 +8,7 @@ import (
 	"time"
 
 	db "github.com/Glenn444/golang-chess/internal/db"
+	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/Glenn444/golang-chess/internal/utils/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
@@ -50,7 +51,9 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	//check if username exists, ignore if does not exist
 	userExists, err := server.store.UsernameExists(ctx, req.Username)
-	if handleDBError(ctx, err, WithLogArgs("username", req.Username)) {
+	if handleDBError(ctx, err, 
+		WithLogArgs("createUser: failed to check UserNameExists", "err", err, "username", req.Username),
+		) {
 		return
 	}
 
@@ -120,8 +123,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 }
 
 type ConfirmEmail struct {
-	Email     string `json:"email" binding:"required"`
-	EMAIL_OTP string `json:"email_otp" binding:"required"`
+	Email     string `json:"email" binding:"required,email"`
+	EMAIL_OTP string `json:"email_otp" binding:"required,numeric,len=6"`
 }
 
 func (r *ConfirmEmail) SanitizeConfirmEmailReq() {
@@ -209,7 +212,7 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 }
 
 type SendEmailOTP struct {
-	Email string `json:"email" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
 }
 
 func (r *SendEmailOTP) SanitizeEmailOTP() {
@@ -291,151 +294,145 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 
 }
 
-// type loginUserRequest struct {
-// 	Username string `json:"username" binding:"required"`
-// 	Password string `json:"password" binding:"required"`
-// }
+type loginUserRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
 
-// type loginUserResponse struct {
-// 	Username          string    `json:"username"`
-// 	PasswordChangedAt time.Time `json:"password_changed_at"`
-// 	CreatedAt         time.Time `json:"created_at"`
-// 	AccessToken       string    `json:"access_token"`
-// 	RefreshToken      string    `json:"refresh_token"`
-// }
+type loginUserResponse struct {
+	Username          string    `json:"username"`
+	PasswordChangedAt time.Time `json:"password_changed_at"`
+	LastLoginAt         time.Time `json:"last_login_at"`
+	AccessToken       string    `json:"access_token"`
+	RefreshToken      string    `json:"refresh_token"`
+}
 
-// // login user
-// func (server *Server) loginUser(ctx *gin.Context) {
-// 	var req loginUserRequest
-// 	err := ctx.ShouldBindJSON(&req)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-// 		return
-// 	}
+func (r *loginUserRequest)sanitizeLoginUserReq(){
+	r.Email = strings.ToLower(r.Email)
+}
 
-// 	user, err := server.store.GetUser(ctx, req.Username)
-// 	if err != nil {
-// 		// possible errors,
-// 		//1. user not found
-// 		if err == sql.ErrNoRows {
-// 			ctx.JSON(http.StatusNotFound, errorMessage("user does not exist, sign up"))
-// 			return
-// 		}
-// 		//2. something happened to the database
-// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-// 	}
+// login user
+func (server *Server) loginUser(ctx *gin.Context) {
+	var req loginUserRequest
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-// 	//check user password against saved db password
-// 	err = util.CheckPassword(user.HashedPassword, req.Password)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusUnauthorized, errorMessage("Invalid username or password"))
-// 		return
-// 	}
+	//sanitize input
+	req.sanitizeLoginUserReq()
 
-// 	//create the access token
-// 	access_token, err := server.tokenMaker.CreateToken(req.Username, token.AccessToken, server.config.AcessTokenDuration)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-// 		return
-// 	}
+	user, err := server.store.GetUserByEmail(ctx,req.Email)
+	if handleDBError(ctx,err,WithNotFoundMsg("user does not exist"),
+	WithLogArgs("user_email",req.Email,
+	)){
+		return
+	}
 
-// 	//create the refresh token signed with 1 hour and save to the database
-// 	week := time.Hour * 24 * 7
+	//check user password against saved db password
+	err = auth.CheckPassword(user.PasswordHash,req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorMessage("Invalid email or password"))
+		return
+	}
 
-// 	refresh_token, err := server.tokenMaker.CreateToken(req.Username, token.RefreshToken, week)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-// 		return
-// 	}
+	//create the access token
+	access_token, err := server.tokenMaker.CreateToken(user.Username, token.AccessToken, server.config.AcessTokenDuration)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-// 	err = server.store.UpdateRefreshToken(ctx, database.UpdateRefreshTokenParams{
-// 		Username:     user.Username,
-// 		RefreshToken: refresh_token,
-// 	})
+	//create the refresh token signed with 1 hour and save to the database
+	week := time.Hour * 24 * 7
 
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-// 		return
-// 	}
+	refresh_token, err := server.tokenMaker.CreateToken(user.Username, token.RefreshToken, week)
+	if err != nil {
+		slog.Error("failed creating refresh token","user_id",user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-// 	resp := loginUserResponse{
-// 		Username:          req.Username,
-// 		PasswordChangedAt: user.PasswordChangedAt,
-// 		CreatedAt:         user.CreatedAt,
-// 		AccessToken:       access_token,
-// 		RefreshToken:      refresh_token,
-// 	}
+	//create user session + refreshtoken in db
+	ctx.Request.UserAgent()
+	ctx.ClientIP()
 
-// 	ctx.JSON(http.StatusOK, resp)
+	savedSession, err := server.store.CreateSession(ctx,db.CreateSessionParams{
+		UserID: user.ID,
+		RefreshToken: refresh_token,
+		UserAgent: pgtype.Text{
+			String: ctx.Request.UserAgent(),
+			Valid: true,
+		},
+		ClientIp: pgtype.Text{
+			String: ctx.ClientIP(),
+			Valid: true,
+		},
+		ExpiresAt: pgtype.Timestamptz{
+			Time: time.Now().Add(week),
+			Valid: true,
+		},
+	})
+	if handleDBError(ctx,err,WithLogArgs("user_id",user.ID)){
+		return
+	}
 
-// }
+	last_login := user.LastLoginAt
+	err = server.store.UpdateLastLogin(ctx,user.ID)
+	if handleDBError(ctx,err,WithLogArgs("user_id",user.ID)){
+		return
+	}
 
-// type allUsersResponse struct {
-// 	Username          string    `json:"username"`
-// 	FullName          string    `json:"full_name"`
-// 	Email             string    `json:"email"`
-// 	PasswordChangedAt time.Time `json:"password_changed_at"`
-// 	CreatedAt         time.Time `json:"created_at"`
-// }
+	resp := loginUserResponse{
+		Username: user.Username,
+		PasswordChangedAt: user.PasswordUpdatedAt.Time,
+		LastLoginAt: last_login.Time,
+		AccessToken: access_token,
+		RefreshToken: savedSession.RefreshToken,
+	}
 
-// // get all users in the app
-// func (server *Server) getAllUsers(ctx *gin.Context) {
+	
+	ctx.JSON(http.StatusOK, resp)
 
-// 	users, err := server.store.GetAllUsers(ctx)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-// 		return
-// 	}
+}
 
-// 	var allUsers []allUsersResponse
-// 	for _, user := range users {
-// 		gotUser := allUsersResponse{
-// 			Username:          user.Username,
-// 			FullName:          user.FullName,
-// 			Email:             user.Email,
-// 			PasswordChangedAt: user.PasswordChangedAt,
-// 			CreatedAt:         user.CreatedAt,
-// 		}
-// 		allUsers = append(allUsers, gotUser)
-// 	}
 
-// 	ctx.JSON(http.StatusOK, allUsers)
-// }
 
-// type refreshTokenRequest struct {
-// 	RefreshToken string `json:"refresh_token" binding:"required"`
-// }
+type refreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
 
-// type refreshTokenResponse struct {
-// 	AccessToken string `json:"access_token"`
-// }
+type refreshTokenResponse struct {
+	AccessToken string `json:"access_token"`
+}
 
-// func (server *Server) refreshToken(ctx *gin.Context) {
-// 	var req refreshTokenRequest
+func (server *Server) refreshToken(ctx *gin.Context) {
+	var req refreshTokenRequest
 
-// 	err := ctx.ShouldBindJSON(&req)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-// 		return
-// 	}
+	err := ctx.ShouldBindJSON(&req)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
 
-// 	//verify the refresh token and get the payload
-// 	payload, err := server.tokenMaker.VerifyToken(req.RefreshToken, token.RefreshToken)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
-// 		return
-// 	}
+	//verify the refresh token and get the payload
+	payload, err := server.tokenMaker.VerifyToken(req.RefreshToken, token.RefreshToken)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
 
-// 	//refreshtoken is valid issue new access token
-// 	accessToken, err := server.tokenMaker.CreateToken(payload.Subject, token.AccessToken, server.config.AcessTokenDuration)
-// 	if err != nil {
-// 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-// 		return
-// 	}
+	//refreshtoken is valid issue new access token
+	accessToken, err := server.tokenMaker.CreateToken(payload.Subject, token.AccessToken, server.config.AcessTokenDuration)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 
-// 	resp := refreshTokenResponse{
-// 		AccessToken: accessToken,
-// 	}
+	resp := refreshTokenResponse{
+		AccessToken: accessToken,
+	}
 
-// 	ctx.JSON(http.StatusOK, resp)
-// }
+	ctx.JSON(http.StatusOK, resp)
+}

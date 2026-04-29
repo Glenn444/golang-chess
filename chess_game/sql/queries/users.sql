@@ -40,7 +40,7 @@ SET
 WHERE id = $1
 RETURNING *;
 
--- name: SetLastLogin :exec
+-- name: UpdateLastLogin :exec
 UPDATE users
 SET last_login_at = NOW()
 WHERE id = $1;
@@ -58,3 +58,34 @@ WHERE id = $1;
 -- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = $1;
+
+
+-- name: CreateSession :one
+INSERT INTO sessions (
+    user_id,
+    refresh_token,
+    user_agent,
+    client_ip,
+    expires_at
+) VALUES (
+    $1, $2, $3, $4, $5
+) RETURNING *;
+
+-- name: GetSessionByRefreshToken :one
+SELECT * FROM sessions
+WHERE refresh_token = $1
+LIMIT 1;
+
+-- name: RevokeSession :exec
+UPDATE sessions
+SET is_revoked = TRUE
+WHERE refresh_token = $1;
+
+-- name: RevokeAllUserSessions :exec
+UPDATE sessions
+SET is_revoked = TRUE
+WHERE user_id = $1;
+
+-- name: DeleteExpiredSessions :exec
+DELETE FROM sessions
+WHERE expires_at < NOW();

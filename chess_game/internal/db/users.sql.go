@@ -30,7 +30,7 @@ SET
     updated_at      = NOW()
 WHERE id = $1
   AND email_confirmed = FALSE
-RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at
 `
 
 func (q *Queries) ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -47,6 +47,49 @@ func (q *Queries) ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordUpdatedAt,
+	)
+	return i, err
+}
+
+const createSession = `-- name: CreateSession :one
+INSERT INTO sessions (
+    user_id,
+    refresh_token,
+    user_agent,
+    client_ip,
+    expires_at
+) VALUES (
+    $1, $2, $3, $4, $5
+) RETURNING id, user_id, refresh_token, user_agent, client_ip, is_revoked, expires_at, created_at
+`
+
+type CreateSessionParams struct {
+	UserID       pgtype.UUID        `json:"user_id"`
+	RefreshToken string             `json:"refresh_token"`
+	UserAgent    pgtype.Text        `json:"user_agent"`
+	ClientIp     pgtype.Text        `json:"client_ip"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
+	row := q.db.QueryRow(ctx, createSession,
+		arg.UserID,
+		arg.RefreshToken,
+		arg.UserAgent,
+		arg.ClientIp,
+		arg.ExpiresAt,
+	)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshToken,
+		&i.UserAgent,
+		&i.ClientIp,
+		&i.IsRevoked,
+		&i.ExpiresAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -54,7 +97,7 @@ func (q *Queries) ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash)
 VALUES ($1, $2, $3)
-RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at
 `
 
 type CreateUserParams struct {
@@ -77,6 +120,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordUpdatedAt,
 	)
 	return i, err
 }
@@ -92,6 +136,16 @@ func (q *Queries) DeactivateUser(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const deleteExpiredSessions = `-- name: DeleteExpiredSessions :exec
+DELETE FROM sessions
+WHERE expires_at < NOW()
+`
+
+func (q *Queries) DeleteExpiredSessions(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteExpiredSessions)
+	return err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 DELETE FROM users
 WHERE id = $1
@@ -102,8 +156,30 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
+SELECT id, user_id, refresh_token, user_agent, client_ip, is_revoked, expires_at, created_at FROM sessions
+WHERE refresh_token = $1
+LIMIT 1
+`
+
+func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error) {
+	row := q.db.QueryRow(ctx, getSessionByRefreshToken, refreshToken)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.RefreshToken,
+		&i.UserAgent,
+		&i.ClientIp,
+		&i.IsRevoked,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at FROM users
 WHERE email = $1
 `
 
@@ -121,12 +197,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordUpdatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at FROM users
 WHERE id = $1
 `
 
@@ -144,12 +221,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordUpdatedAt,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at FROM users
 WHERE username = $1
 `
 
@@ -167,18 +245,41 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordUpdatedAt,
 	)
 	return i, err
 }
 
-const setLastLogin = `-- name: SetLastLogin :exec
+const revokeAllUserSessions = `-- name: RevokeAllUserSessions :exec
+UPDATE sessions
+SET is_revoked = TRUE
+WHERE user_id = $1
+`
+
+func (q *Queries) RevokeAllUserSessions(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, revokeAllUserSessions, userID)
+	return err
+}
+
+const revokeSession = `-- name: RevokeSession :exec
+UPDATE sessions
+SET is_revoked = TRUE
+WHERE refresh_token = $1
+`
+
+func (q *Queries) RevokeSession(ctx context.Context, refreshToken string) error {
+	_, err := q.db.Exec(ctx, revokeSession, refreshToken)
+	return err
+}
+
+const updateLastLogin = `-- name: UpdateLastLogin :exec
 UPDATE users
 SET last_login_at = NOW()
 WHERE id = $1
 `
 
-func (q *Queries) SetLastLogin(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, setLastLogin, id)
+func (q *Queries) UpdateLastLogin(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, updateLastLogin, id)
 	return err
 }
 
@@ -190,7 +291,7 @@ SET
     password_hash = COALESCE($4, password_hash),
     updated_at    = NOW()
 WHERE id = $1
-RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at
 `
 
 type UpdateUserParams struct {
@@ -219,6 +320,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.LastLoginAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PasswordUpdatedAt,
 	)
 	return i, err
 }

@@ -21,12 +21,14 @@ type Querier interface {
 	CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) (EmailOtp, error)
 	CreateGame(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error)
 	CreateMove(ctx context.Context, arg CreateMoveParams) (GameMove, error)
+	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateVoiceSession(ctx context.Context, arg CreateVoiceSessionParams) (VoiceSession, error)
 	DeactivateUser(ctx context.Context, id pgtype.UUID) error
 	DeleteChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) error
 	// Run periodically (e.g. a cron job) to keep the table small.
 	DeleteExpiredOTPs(ctx context.Context) error
+	DeleteExpiredSessions(ctx context.Context) error
 	DeleteGame(ctx context.Context, id pgtype.UUID) error
 	DeleteMovesByGameID(ctx context.Context, gameID pgtype.UUID) error
 	DeleteUser(ctx context.Context, id pgtype.UUID) error
@@ -38,6 +40,7 @@ type Querier interface {
 	GetGamesByPlayerID(ctx context.Context, whitePlayerID pgtype.UUID) ([]Game, error)
 	GetLastMoveByGameID(ctx context.Context, gameID pgtype.UUID) (GameMove, error)
 	GetMovesByGameID(ctx context.Context, gameID pgtype.UUID) ([]GameMove, error)
+	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
@@ -54,8 +57,10 @@ type Querier interface {
 	ListWaitingGames(ctx context.Context) ([]Game, error)
 	// Call this immediately after a successful match to prevent replay.
 	MarkOTPUsed(ctx context.Context, id pgtype.UUID) (EmailOtp, error)
-	SetLastLogin(ctx context.Context, id pgtype.UUID) error
+	RevokeAllUserSessions(ctx context.Context, userID pgtype.UUID) error
+	RevokeSession(ctx context.Context, refreshToken string) error
 	UpdateGameState(ctx context.Context, arg UpdateGameStateParams) (Game, error)
+	UpdateLastLogin(ctx context.Context, id pgtype.UUID) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UsernameExists(ctx context.Context, username string) (bool, error)
 }

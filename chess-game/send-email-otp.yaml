@@ -1,0 +1,9 @@
+name: Send Email OTP
+method: POST
+url: '{{url8080}}/users/send-emailotp'
+body:
+  type: json
+  content: |-
+    {
+      "email":"gmark1586@gmail.com"
+    }

@@ -53,7 +53,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 
 	users.GET("/check-username",server.checkUsernameExists)
 	users.POST("/confirm-email",server.confirmEmail)
-	users.POST("/send-otp",server.sendEmailOTP)
+	users.POST("/send-emailotp",server.sendEmailOTP)
 	users.POST("/signup",server.createUser)
 	
 
@@ -68,16 +68,7 @@ func (server *Server) Start(address string) error {
 	return server.router.Run(address)
 }
 
-func errorResponse(err error) gin.H {
-	return gin.H{"error": err.Error()}
-}
 
-func errorMessage(message string) gin.H {
-	return gin.H{"error": message}
-}
-func successMessage(msg string)gin.H{
-	return gin.H{"message":msg}
-}
 func (server *Server) welcome(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "Welcome to the Server")
 

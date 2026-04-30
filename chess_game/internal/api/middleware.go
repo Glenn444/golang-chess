@@ -33,7 +33,7 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 		}
 		authorizationBearerToken := authParts[1]
 		//verify that the token is valid and it's not a refreshToken
-		payload, err := tokenMaker.VerifyToken(authorizationBearerToken, token.AccessToken)
+		payload, err := tokenMaker.VerifyToken(authorizationBearerToken, token.AccessTokenType)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
 			return

@@ -51,21 +51,21 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	//check if username exists, ignore if does not exist
 	userExists, err := server.store.UsernameExists(ctx, req.Username)
-	if handleDBError(ctx, err, 
-		WithLogArgs("createUser: failed to check UserNameExists", "err", err, "username", req.Username),
-		) {
+	if handleDBError(ctx, err,
+		WithLogArgs("createUser: failed to check UserNameExists", "username", req.Username),
+	) {
 		return
 	}
 
 	if userExists {
-		ctx.JSON(http.StatusConflict, errorMessage("username exists!!"))
+		ctx.JSON(http.StatusConflict, errorMessage(ErrUserAlreadyExists))
 		return
 	}
 
 	hashedPassword, err := auth.HashPassword(req.Password)
 	if err != nil {
-		slog.Error("failed to hash Password", "err", err, "user_id", req.Email)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		slog.Error("createUser: failed to hash Password", "err", err, "user_email", req.Email)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
 	}
 
@@ -77,21 +77,21 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	user, err := server.store.CreateUser(ctx, arg)
 	if handleDBError(ctx, err,
-		WithUniqueMsg("username or email already taken"),
-		WithLogArgs("user_email", req.Email)) {
+		WithUniqueMsg(ErrUserAlreadyExists),
+		WithLogArgs("createUser: failed creating user in db ", "user_email", req.Email)) {
 		return
 	}
 
 	otpCode, err := auth.GenerateOTP(6)
 	if err != nil {
-		slog.Error("failed to generate OTP Code", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("error generating otp code"))
+		slog.Error("createrUser: failed to generate OTP Code", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrGeneratingOTP))
 		return
 	}
 	otpHash, err := auth.SignOtpCode(otpCode, server.config.TokenSymmetricKey)
 	if err != nil {
-		slog.Error("failed HMAC OTP Signing", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("error"))
+		slog.Error("createUser: failed SignOtpCode", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
 	}
 
@@ -102,15 +102,17 @@ func (server *Server) createUser(ctx *gin.Context) {
 	}
 	//verify email
 	_, err = server.store.CreateEmailOTP(ctx, argEmailOtp)
-	if handleDBError(ctx, err, WithLogArgs("user_id", user.ID)) {
+	if handleDBError(ctx, err,
+		WithLogArgs("createUser: failed CreateEmailOTP", "user_id", user.ID),
+	) {
 		return
 	}
 
 	//send the otp to the user email
 	err = server.emailClient.SendEmailOTP(user.Email, otpCode)
 	if err != nil {
-		slog.Error("failed to send email otp", "err", err, "user_email", user.Email)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("error sending OTP to email"))
+		slog.Error("createUser: failed SendEmailOTP", "err", err, "user_email", user.Email)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrSendingOTP))
 		return
 	}
 	resp := CreateUserResponse{
@@ -149,23 +151,23 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if handleDBError(ctx, err,
-		WithNotFoundMsg("user does not exist"),
-		WithLogArgs("user_email", req.Email),
+		WithNotFoundMsg(ErrUserNotFound),
+		WithLogArgs("confirmEmail: failed GetUserByEmail", "user_email", req.Email),
 	) {
 		return
 	}
 
 	//if user is already verified fail the request
 	if user.EmailConfirmed {
-		ctx.JSON(http.StatusConflict, errorMessage("email already verified, proceed to login"))
+		ctx.JSON(http.StatusConflict, errorMessage(ErrEmailAlreadyVerified))
 		return
 	}
 
 	//2. Get valid OTP Code from db
 	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
 	if handleDBError(ctx, err,
-		WithNotFoundMsg("valid OTP not found"),
-		WithLogArgs("user_id", user.ID),
+		WithNotFoundMsg(ErrOTPNotFound),
+		WithLogArgs("confirmEmail: failed GetValidOTP", "user_id", user.ID),
 	) {
 		return
 	}
@@ -173,34 +175,34 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 	//3. Compare the OTP hash to the given OTP
 	match, err := auth.ConfirmOTP(req.EMAIL_OTP, emailOTP.CodeHash, server.config.TokenSymmetricKey)
 	if err != nil {
-		slog.Error("failed to decode OTPHASH Byte ", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("sorry, something wrong happened"))
+		slog.Error("confirmEmail: failed confirmOTP", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
 	}
 	if !match {
 		_, err := server.store.IncrementOTPAttempts(ctx, emailOTP.ID)
 		if err != nil {
-			slog.Error("failed to incrementOTP Attempts otp", "err", err, "user_id", user.ID)
-			ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+			slog.Error("confirmEmail: failed IncrementOTPAttempts", "err", err, "user_id", user.ID)
+			ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 			return
 		}
 
 		//successful increment
 		//slog.Error("failed to confirm OTP Code", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusForbidden, errorMessage("invalid OTP code"))
+		ctx.JSON(http.StatusForbidden, errorMessage(ErrOTPInvalid))
 		return
 	}
 	//4. successful match, mark the OTP as used
 	_, err = server.store.MarkOTPUsed(ctx, emailOTP.ID)
-	if handleDBError(ctx, err, WithLogArgs("OTP_id", emailOTP.ID)) {
+	if handleDBError(ctx, err, WithLogArgs("confirmEmail: failed MarkOTPUsed", "OTP_id", emailOTP.ID)) {
 		return
 	}
 
 	//5. Mark user email as verified
 	_, err = server.store.ConfirmEmail(ctx, user.ID)
 	if err != nil {
-		slog.Error("failed to mark user email as verified", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("error"))
+		slog.Error("confirmEmail: failed ConfirmEmail", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
 	}
 
@@ -218,6 +220,10 @@ type SendEmailOTP struct {
 func (r *SendEmailOTP) SanitizeEmailOTP() {
 	r.Email = strings.ToLower(r.Email)
 }
+type sendEmailOTPResp struct{
+	Message string `json:"msg"`
+	Email string `json:"email"`
+}
 func (server *Server) sendEmailOTP(ctx *gin.Context) {
 	var req SendEmailOTP
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -231,45 +237,46 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 	//2. Get the user by email
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if handleDBError(ctx, err,
-		WithNotFoundMsg("user does not exist!"),
-		WithLogArgs("user_email", req.Email),
+		WithNotFoundMsg(ErrUserNotFound),
+		WithLogArgs("sendEmailOTP: failed GetUserByEmail", "user_email", req.Email),
 	) {
 		return
 	}
 
 	if user.EmailConfirmed {
-		ctx.JSON(http.StatusConflict, errorMessage("email already verified, proceed to login"))
+		ctx.JSON(http.StatusConflict, errorMessage(ErrEmailAlreadyVerified))
 		return
 	}
 
 	//get a valid OTP if exists then the user cannot generate new OTP
 	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		if handleDBError(ctx, err, WithLogArgs("user_id", user.ID)) {
+		if handleDBError(ctx, err, WithLogArgs("sendEmailOTP: failed GetValidOTP", "user_id", user.ID)) {
 			return
 		}
 	}
 
 	// valid OTP exists — enforce cooldown
 	if err == nil && emailOTP.ExpiresAt.Time.After(time.Now()) {
-		ctx.JSON(http.StatusForbidden, errorMessage("wait before requesting another OTP"))
+		ctx.JSON(http.StatusForbidden, errorMessage(ErrOTPCooldown))
 		return
 	}
 	//3. generate otp
 	otpCode, err := auth.GenerateOTP(6)
 	if err != nil {
-		slog.Error("failed to generate OTP", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("error generating OTP Code"))
+		slog.Error("sendEmailOTP: failed GenerateOTP", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrGeneratingOTP))
 		return
 	}
 
 	//5. sign,Hash OTP and store in database
 	hashedOTP, err := auth.SignOtpCode(otpCode, server.config.TokenSymmetricKey)
 	if err != nil {
-		slog.Error("error signing OTP Code",
+		slog.Error("sendEmailOTP: failed SignOtpCode",
 			"err", err,
+			"user_ID",user.ID,
 		)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("an error occourred"))
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
 	}
 	_, err = server.store.CreateEmailOTP(ctx, db.CreateEmailOTPParams{
@@ -280,34 +287,37 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 			Valid: true,
 		},
 	})
-	if handleDBError(ctx, err, WithLogArgs("user_id", user.ID)) {
+	if handleDBError(ctx, err, WithLogArgs("sendEmailOT: failed CreateEmailOTP","user_id", user.ID)) {
 		return
 	}
 	//4. send email otp to user email
 	err = server.emailClient.SendEmailOTP(user.Email, otpCode)
 	if err != nil {
-		slog.Error("failed to send OTP email", "err", err, "user_id", user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorMessage("failed to send OTP email"))
+		slog.Error("sendEmailOTP: failed SendEmailOTP", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrSendingOTP))
 		return
 	}
-	ctx.JSON(http.StatusOK, successMessage("OTP sent successfuly to your email"))
+	ctx.JSON(http.StatusOK, sendEmailOTPResp{
+		Message: "OTP sent successfuly to your email",
+		Email: user.Email,
+	})
 
 }
 
 type loginUserRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
 type loginUserResponse struct {
 	Username          string    `json:"username"`
 	PasswordChangedAt time.Time `json:"password_changed_at"`
-	LastLoginAt         time.Time `json:"last_login_at"`
+	LastLoginAt       time.Time `json:"last_login_at"`
 	AccessToken       string    `json:"access_token"`
 	RefreshToken      string    `json:"refresh_token"`
 }
 
-func (r *loginUserRequest)sanitizeLoginUserReq(){
+func (r *loginUserRequest) sanitizeLoginUserReq() {
 	r.Email = strings.ToLower(r.Email)
 }
 
@@ -323,88 +333,85 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	//sanitize input
 	req.sanitizeLoginUserReq()
 
-	user, err := server.store.GetUserByEmail(ctx,req.Email)
-	if handleDBError(ctx,err,WithNotFoundMsg("user does not exist"),
-	WithLogArgs("user_email",req.Email,
-	)){
+	user, err := server.store.GetUserByEmail(ctx, req.Email)
+	if handleDBError(ctx, err, WithNotFoundMsg(ErrUserNotFound),
+		WithLogArgs("loginUser: failed GetUserByEmail","user_email", req.Email)) {
 		return
 	}
 
 	//check user password against saved db password
-	err = auth.CheckPassword(user.PasswordHash,req.Password)
+	err = auth.CheckPassword(user.PasswordHash, req.Password)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorMessage("Invalid email or password"))
+		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrInvalidCredentials))
 		return
 	}
 
 	//create the access token
-	access_token, err := server.tokenMaker.CreateToken(user.Username, token.AccessToken, server.config.AcessTokenDuration)
+	access_token, err := server.tokenMaker.CreateToken(user.Username, token.AccessTokenType, server.config.AcessTokenDuration)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		slog.Error("loginUser: failed CreateToken - accessToken", "err:", err, "user_email", req.Email)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
 	}
 
 	//create the refresh token signed with 1 hour and save to the database
 	week := time.Hour * 24 * 7
 
-	refresh_token, err := server.tokenMaker.CreateToken(user.Username, token.RefreshToken, week)
+	refresh_token, err := server.tokenMaker.CreateToken(user.Username, token.RefreshTokenType, week)
 	if err != nil {
-		slog.Error("failed creating refresh token","user_id",user.ID)
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		slog.Error("loginUser: failed CreateToken - refreshToken", "err:", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
 	}
 
 	//create user session + refreshtoken in db
-	ctx.Request.UserAgent()
-	ctx.ClientIP()
 
-	savedSession, err := server.store.CreateSession(ctx,db.CreateSessionParams{
-		UserID: user.ID,
+	savedSession, err := server.store.CreateSession(ctx, db.CreateSessionParams{
+		UserID:       user.ID,
 		RefreshToken: refresh_token,
 		UserAgent: pgtype.Text{
 			String: ctx.Request.UserAgent(),
-			Valid: true,
+			Valid:  true,
 		},
 		ClientIp: pgtype.Text{
 			String: ctx.ClientIP(),
-			Valid: true,
+			Valid:  true,
 		},
 		ExpiresAt: pgtype.Timestamptz{
-			Time: time.Now().Add(week),
+			Time:  time.Now().Add(week),
 			Valid: true,
 		},
 	})
-	if handleDBError(ctx,err,WithLogArgs("user_id",user.ID)){
+	if handleDBError(ctx, err, WithLogArgs("loginUser: failed CreateSession","user_id", user.ID)) {
 		return
 	}
 
 	last_login := user.LastLoginAt
-	err = server.store.UpdateLastLogin(ctx,user.ID)
-	if handleDBError(ctx,err,WithLogArgs("user_id",user.ID)){
+	err = server.store.UpdateLastLogin(ctx, user.ID)
+	if handleDBError(ctx, err, WithLogArgs("loginUser: failed UpdateLastLogin","user_id", user.ID)) {
 		return
 	}
 
 	resp := loginUserResponse{
-		Username: user.Username,
+		Username:          user.Username,
 		PasswordChangedAt: user.PasswordUpdatedAt.Time,
-		LastLoginAt: last_login.Time,
-		AccessToken: access_token,
-		RefreshToken: savedSession.RefreshToken,
+		LastLoginAt:       last_login.Time,
+		AccessToken:       access_token,
+		RefreshToken:      savedSession.RefreshToken,
 	}
 
-	
 	ctx.JSON(http.StatusOK, resp)
 
 }
-
-
 
 type refreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+
 type refreshTokenResponse struct {
-	AccessToken string `json:"access_token"`
+	Message string `json:"message"`
+	AccessToken   string `json:"access_token"`
 }
 
 func (server *Server) refreshToken(ctx *gin.Context) {
@@ -417,20 +424,41 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 	}
 
 	//verify the refresh token and get the payload
-	payload, err := server.tokenMaker.VerifyToken(req.RefreshToken, token.RefreshToken)
+	payload, err := server.tokenMaker.VerifyToken(req.RefreshToken, token.RefreshTokenType)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrInvalidToken))
 		return
 	}
 
+
+    // 2. check session in DB — this is what JWT alone can't do
+    session, err := server.store.GetSessionByRefreshToken(ctx, req.RefreshToken)
+    if handleDBError(ctx, err, WithNotFoundMsg(ErrSessionNotFound)) {
+        return
+    }
+
+    // 3. check not revoked
+    if session.IsRevoked {
+        ctx.JSON(http.StatusUnauthorized, errorMessage(ErrSessionRevoked))
+        return
+    }
+
+    // 4. check not expired
+    if session.ExpiresAt.Time.Before(time.Now()) {
+        ctx.JSON(http.StatusUnauthorized, errorMessage(ErrSessionExpired))
+        return
+    }
+
 	//refreshtoken is valid issue new access token
-	accessToken, err := server.tokenMaker.CreateToken(payload.Subject, token.AccessToken, server.config.AcessTokenDuration)
+	accessToken, err := server.tokenMaker.CreateToken(payload.Subject, token.AccessTokenType, server.config.AcessTokenDuration)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		slog.Error("refreshToken: failed CreateToken - accessToken","user_id",payload.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInvalidToken))
 		return
 	}
 
 	resp := refreshTokenResponse{
+		Message: "successfully created accessToken",
 		AccessToken: accessToken,
 	}
 

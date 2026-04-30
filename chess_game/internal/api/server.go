@@ -55,6 +55,8 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	users.POST("/confirm-email",server.confirmEmail)
 	users.POST("/send-emailotp",server.sendEmailOTP)
 	users.POST("/signup",server.createUser)
+	users.POST("/sigin",server.loginUser)
+	users.POST("/refresh-token",server.refreshToken)
 	
 
 	//router.POST("/token/refresh-token",server.refreshToken)

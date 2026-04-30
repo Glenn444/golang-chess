@@ -32,7 +32,7 @@ func (server *Server) checkUsernameExists(ctx *gin.Context) {
 	req.SanitizeParams()
 
 	exists, err := server.store.UsernameExists(ctx, req.Username)
-	if handleDBError(ctx, err, WithLogArgs("username", req.Username)) {
+	if handleDBError(ctx, err, WithLogArgs("checkUsernameExists: failed UsernameExists", req.Username)) {
 		return
 	}
 ctx.JSON(http.StatusOK, gin.H{"username": req.Username, "exists": exists})

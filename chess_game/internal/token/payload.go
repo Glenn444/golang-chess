@@ -14,8 +14,8 @@ var (
 	ErrInvalidToken = errors.New("invalid token")
 	ErrExpiredToken = errors.New("token is expired")
 
-	AccessToken  TokenType = "access"
-	RefreshToken TokenType = "refresh"
+	AccessTokenType  TokenType = "access"
+	RefreshTokenType TokenType = "refresh"
 )
 
 // Payload contains the payload data of the token

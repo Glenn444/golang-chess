@@ -345,7 +345,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	//check if user email is verified
 	if !user.EmailConfirmed{
-		ctx.JSON(http.StatusUnauthorized,emailconfirmedResp{
+		ctx.JSON(http.StatusForbidden,emailconfirmedResp{
 			Message: "email not confirmed!",
 			Email: user.Email,
 		})

@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -78,3 +79,27 @@ ctx.JSON(http.StatusOK, gin.H{"username": req.Username, "exists": exists})
 // 	ctx.JSON(http.StatusOK, resp)
 
 // }
+
+type getMeResponse struct {
+	Username       string    `json:"username"`
+	Email          string    `json:"email"`
+	EmailConfirmed bool      `json:"email_confirmed"`
+	IsActive       bool      `json:"is_active"`
+	LastLoginAt    time.Time `json:"last_login_at,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+func (server *Server) getMe(ctx *gin.Context) {
+	user, ok := server.getCurrentUser(ctx)
+	if !ok {
+		return
+	}
+	ctx.JSON(http.StatusOK, getMeResponse{
+		Username:       user.Username,
+		Email:          user.Email,
+		EmailConfirmed: user.EmailConfirmed,
+		IsActive:       user.IsActive,
+		LastLoginAt:    user.LastLoginAt.Time,
+		CreatedAt:      user.CreatedAt.Time,
+	})
+}

@@ -134,6 +134,82 @@ Tracks the lifetime of a WebRTC voice call per game. Signalling payloads (offer/
 
 ---
 
+---
+
+## API Routes
+
+### Public
+
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| `GET` | `/` | `welcome` | Health check |
+| `GET` | `/users/check-username?username=` | `checkUsernameExists` | Availability check before signup |
+| `POST` | `/users/signup` | `createUser` | Register; sends 6-digit OTP to email |
+| `POST` | `/users/confirm-email` | `confirmEmail` | Verify OTP → activates account |
+| `POST` | `/users/send-emailotp` | `sendEmailOTP` | Resend OTP (rate-limited) |
+| `POST` | `/users/signin` | `loginUser` | Returns `access_token` + `refresh_token` |
+| `POST` | `/users/refresh-token` | `refreshToken` | Issue new access token from refresh token |
+
+### Protected — `Authorization: Bearer <access_token>`
+
+#### Profile
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| `GET` | `/users/me` | `getMe` | Current user's profile (no sensitive fields) |
+
+#### Games
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| `POST` | `/games` | `createGame` | Create a new game; caller becomes white player |
+| `GET` | `/games` | `listWaitingGames` | List open games waiting for a second player |
+| `GET` | `/games/mine` | `listMyGames` | All games the caller is playing in |
+| `GET` | `/games/:id` | `getGame` | Get a single game by ID |
+| `POST` | `/games/:id/join` | `joinGame` | Join a waiting game as black player |
+| `POST` | `/games/:id/resign` | `resignGame` | Resign from an active game |
+| `GET` | `/games/:id/moves` | `getGameMoves` | Full move history for a game |
+
+#### Chat
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| `POST` | `/games/:id/chat` | `sendChatMessage` | Send a text message (also available via WebSocket) |
+| `GET` | `/games/:id/chat` | `getChatMessages` | Retrieve full chat history for a game |
+
+#### Voice (WebRTC session lifecycle)
+| Method | Path | Handler | Description |
+|---|---|---|---|
+| `POST` | `/games/:id/voice` | `startVoiceSession` | Initiate a call; only one session per game at a time |
+| `GET` | `/games/:id/voice` | `getActiveVoiceSession` | Get the current pending/active session |
+| `PATCH` | `/games/:id/voice/:vid/activate` | `activateVoiceSession` | Recipient accepts the call |
+| `DELETE` | `/games/:id/voice/:vid` | `endVoiceSession` | Either player hangs up |
+
+### WebSocket — `GET /ws`
+
+Upgrade a connection to WebSocket. Auth and room selection via query params:
+
+```
+/ws?token=<access_token>&game_id=<uuid>
+```
+
+The server verifies the token and confirms the caller is a player in the given game before upgrading. All subsequent messages use the JSON envelope:
+
+```json
+{ "type": "<event>", "payload": { ... } }
+```
+
+| Event type | Direction | Description |
+|---|---|---|
+| `make_move` | client → server → both | Broadcast a move to both players |
+| `chat` | client → server → both | Persist + broadcast a chat message |
+| `voice_offer` | client → server → other | Relay WebRTC offer to the opponent |
+| `voice_answer` | client → server → other | Relay WebRTC answer |
+| `voice_ice` | client → server → other | Relay ICE candidate |
+| `voice_end` | client → server → other | Signal call termination |
+| `error` | server → client | Error response |
+
+> **Note:** `make_move` validation against the board package is wired but not yet fully implemented — see `wsHandleMove` in [internal/api/ws.go](internal/api/ws.go).
+
+---
+
 ## Project Structure
 
 ```

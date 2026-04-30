@@ -1,10 +1,10 @@
-name: Confirm Email
+name: Signin
 method: POST
-url: '{{url8080}}/users/confirm-email'
+url: '{{url8080}}/users/signin'
 body:
   type: json
   content: |-
     {
       "email":"gmark1586@gmail.com",
-      "email_otp":"386851"
+      "password":"1234@2026!"
     }

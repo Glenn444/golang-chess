@@ -320,6 +320,10 @@ type loginUserResponse struct {
 func (r *loginUserRequest) sanitizeLoginUserReq() {
 	r.Email = strings.ToLower(r.Email)
 }
+type emailconfirmedResp struct{
+		Message string `json:"email"`
+		Email string `json:"email"`
+	}
 
 // login user
 func (server *Server) loginUser(ctx *gin.Context) {
@@ -337,6 +341,14 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	if handleDBError(ctx, err, WithNotFoundMsg(ErrUserNotFound),
 		WithLogArgs("loginUser: failed GetUserByEmail","user_email", req.Email)) {
 		return
+	}
+
+	//check if user email is verified
+	if !user.EmailConfirmed{
+		ctx.JSON(http.StatusUnauthorized,emailconfirmedResp{
+			Message: "email not confirmed!",
+			Email: user.Email,
+		})
 	}
 
 	//check user password against saved db password

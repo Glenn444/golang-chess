@@ -84,7 +84,7 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 		return
 	}
 
-	if err := server.melody.HandleRequestWithKeys(ctx.Writer, ctx.Request, map[string]interface{}{
+	if err := server.melody.HandleRequestWithKeys(ctx.Writer, ctx.Request, map[string]any{
 		wsKeyUser:   user,
 		wsKeyGameID: gameID,
 	}); err != nil {

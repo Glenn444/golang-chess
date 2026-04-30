@@ -321,7 +321,7 @@ func (r *loginUserRequest) sanitizeLoginUserReq() {
 	r.Email = strings.ToLower(r.Email)
 }
 type emailconfirmedResp struct{
-		Message string `json:"email"`
+		Message string `json:"msg"`
 		Email string `json:"email"`
 	}
 

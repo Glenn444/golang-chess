@@ -42,7 +42,9 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	// ── Public ───────────────────────────────────────────────────────────────
 	router.GET("/", server.welcome)
 
+	//users routes
 	users := router.Group("/users")
+	users.GET("/users/me",server.getMe)
 	users.GET("/check-username", server.checkUsernameExists)
 	users.POST("/signup", server.createUser)
 	users.POST("/confirm-email", server.confirmEmail)
@@ -51,29 +53,27 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	users.POST("/refresh-token", server.refreshToken)
 
 	// ── Protected (Bearer JWT required) ─────────────────────────────────────
-	auth := router.Group("/").Use(authMiddleware(server.tokenMaker))
-
-	// profile
-	auth.GET("/users/me", server.getMe)
-
 	// games
-	auth.POST("/games", server.createGame)
-	auth.GET("/games", server.listWaitingGames)
-	auth.GET("/games/mine", server.listMyGames)
-	auth.GET("/games/:id", server.getGame)
-	auth.POST("/games/:id/join", server.joinGame)
-	auth.POST("/games/:id/resign", server.resignGame)
-	auth.GET("/games/:id/moves", server.getGameMoves)
+	auth := router.Group("/games").Use(authMiddleware(server.tokenMaker))
+
+
+	auth.POST("/", server.createGame)
+	auth.GET("/", server.listWaitingGames)
+	auth.GET("/mine", server.listMyGames)
+	auth.GET("/:id", server.getGame)
+	auth.POST("/:id/join", server.joinGame)
+	auth.POST("/:id/resign", server.resignGame)
+	auth.GET("/:id/moves", server.getGameMoves)
 
 	// chat
-	auth.POST("/games/:id/chat", server.sendChatMessage)
-	auth.GET("/games/:id/chat", server.getChatMessages)
+	auth.POST("/:id/chat", server.sendChatMessage)
+	auth.GET("/:id/chat", server.getChatMessages)
 
 	// voice (WebRTC session lifecycle; signalling travels over /ws)
-	auth.POST("/games/:id/voice", server.startVoiceSession)
-	auth.GET("/games/:id/voice", server.getActiveVoiceSession)
-	auth.PATCH("/games/:id/voice/:vid/activate", server.activateVoiceSession)
-	auth.DELETE("/games/:id/voice/:vid", server.endVoiceSession)
+	auth.POST("/:id/voice", server.startVoiceSession)
+	auth.GET("/:id/voice", server.getActiveVoiceSession)
+	auth.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
+	auth.DELETE("/:id/voice/:vid", server.endVoiceSession)
 
 	// ── WebSocket ────────────────────────────────────────────────────────────
 	// Bearer token must be sent as ?token=<access_token> (WS clients can't set headers).

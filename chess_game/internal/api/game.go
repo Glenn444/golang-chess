@@ -13,6 +13,7 @@ func (server *Server) createGame(ctx *gin.Context) {
 		return
 	}
 
+	//assume that the default player wants to play white
 	game, err := server.store.CreateGame(ctx, user.ID)
 	if handleDBError(ctx, err, WithLogArgs("createGame: failed", "user_id", user.ID)) {
 		return

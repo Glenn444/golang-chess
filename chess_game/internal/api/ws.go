@@ -161,6 +161,11 @@ func (server *Server) wsHandleChat(s *melody.Session, gameID pgtype.UUID, payloa
 // wsHandleMove broadcasts a move to both players.
 // TODO: validate the move via the board package, persist via store.CreateMove,
 // then call store.UpdateGameState for check/checkmate/stalemate detection.
+type MoveResult struct{
+		Move string `json:"move"`
+		CurrentPlayer string `json:"current_player"`
+		InCheck bool `json:"in_check"`
+	}
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
 	server.activeGamesMu.Lock()
 	defer server.activeGamesMu.Unlock()
@@ -183,10 +188,6 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	user := wsUser(s)
 
 	playerColor := wsPlayerColor(s)
-	if playerColor != gamestate.CurrentPlayer{
-		wsWriteError(s,"not your turn")
-		return
-	}
 	//enforce turn
 	if playerColor != gamestate.CurrentPlayer{
 		wsWriteError(s,"not your turn")
@@ -197,6 +198,14 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	if err != nil{
 		wsWriteError(s,err.Error())
 		return
+	}
+	check := board.IsKinginCheck(*gamestate)
+	_, err = server.store.UpdateGameState(s.Request.Context(),db.UpdateGameStateParams{
+		ID: gameID,
+		InCheck: check,
+	})
+	if err != nil{
+		slog.Error("ws: wsHandleMove, failed UpdateGameState","err",err)
 	}
 
 	//increment move number after successful move
@@ -210,8 +219,17 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		MoveNumber: gamestate.MoveNumber,
 	})
 
+	if err != nil{
+		slog.Error("ws: CreateMove failed","err",err)
+	}
+	
+	result  := MoveResult{
+		Move: body.Move,
+		CurrentPlayer: gamestate.CurrentPlayer, //already flipped by board.Move()
+		InCheck: check,
+	}
 
-	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: payload})
+	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
 	server.wsBroadcastToGame(gameID, out)
 }
 

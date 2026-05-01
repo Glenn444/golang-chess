@@ -2,19 +2,42 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/gin-gonic/gin"
 )
 
+type createGameReq struct{
+	PlayerColor string `json:"player_color" binding:"required,len=1,oneof=w b"`
+}
+
+func (r *createGameReq)sanitizeCreateGameReq(){
+	r.PlayerColor = strings.ToLower(r.PlayerColor)
+}
 func (server *Server) createGame(ctx *gin.Context) {
+	var req createGameReq
+
+	if err := ctx.ShouldBindJSON(&req); err != nil{
+		ctx.JSON(http.StatusBadRequest,errorResponse(err))
+		return
+	}
+	req.sanitizeCreateGameReq()
+
 	user, ok := server.getCurrentUser(ctx)
 	if !ok {
 		return
 	}
 
-	//assume that the default player wants to play white
-	game, err := server.store.CreateGame(ctx, user.ID)
+	var game db.Game
+	var err error
+	switch req.PlayerColor {
+	case "w":
+		game,err = server.store.CreateGameAsWhite(ctx,user.ID)
+	case "b":
+		game,err = server.store.CreateGameAsBlack(ctx,user.ID)
+	}
+	
 	if handleDBError(ctx, err, WithLogArgs("createGame: failed", "user_id", user.ID)) {
 		return
 	}
@@ -77,15 +100,30 @@ func (server *Server) joinGame(ctx *gin.Context) {
 		return
 	}
 
-	if uuidEq(game.WhitePlayerID, user.ID) {
+	// prevent joining own game (check both slots)
+	if uuidEq(game.WhitePlayerID, user.ID) || uuidEq(game.BlackPlayerID,user.ID){
 		ctx.JSON(http.StatusForbidden, errorMessage(ErrCannotJoinOwnGame))
 		return
 	}
 
-	updated, err := server.store.JoinGame(ctx, db.JoinGameParams{
-		ID:            gameID,
-		BlackPlayerID: user.ID,
-	})
+	// determine which slot is open
+	var updated db.Game
+
+	switch {
+	case !game.WhitePlayerID.Valid:
+		updated,err = server.store.JoinGameAsWhite(ctx,db.JoinGameAsWhiteParams{
+			ID: gameID,
+			WhitePlayerID: user.ID,
+		})
+	case !game.BlackPlayerID.Valid:
+		updated,err = server.store.JoinGameAsBlack(ctx,db.JoinGameAsBlackParams{
+			ID: gameID,
+			BlackPlayerID: user.ID,
+		})
+	default:
+		ctx.JSON(http.StatusConflict,errorMessage(ErrGameAlreadyFull))
+		return
+	}
 	if handleDBError(ctx, err,
 		WithNotFoundMsg(ErrGameNotJoinable),
 		WithLogArgs("joinGame: JoinGame", "game_id", ctx.Param("id"), "user_id", user.ID)) {

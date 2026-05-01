@@ -29,6 +29,7 @@ const (
 	ErrNotAPlayer        = "you are not a player in this game"
 	ErrCannotJoinOwnGame = "cannot join your own game"
 	ErrGameNotJoinable   = "game is not available to join"
+	ErrGameAlreadyFull = "game is already full"
 
 	// voice
 	ErrVoiceSessionNotFound      = "voice session not found"

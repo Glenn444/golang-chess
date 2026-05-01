@@ -11,14 +11,35 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createGame = `-- name: CreateGame :one
+const createGameAsBlack = `-- name: CreateGameAsBlack :one
+INSERT INTO games (black_player_id)
+VALUES ($1)
+RETURNING id, white_player_id, black_player_id, state, in_check, created_at, updated_at
+`
+
+func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UUID) (Game, error) {
+	row := q.db.QueryRow(ctx, createGameAsBlack, blackPlayerID)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.WhitePlayerID,
+		&i.BlackPlayerID,
+		&i.State,
+		&i.InCheck,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createGameAsWhite = `-- name: CreateGameAsWhite :one
 INSERT INTO games (white_player_id)
 VALUES ($1)
 RETURNING id, white_player_id, black_player_id, state, in_check, created_at, updated_at
 `
 
-func (q *Queries) CreateGame(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error) {
-	row := q.db.QueryRow(ctx, createGame, whitePlayerID)
+func (q *Queries) CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error) {
+	row := q.db.QueryRow(ctx, createGameAsWhite, whitePlayerID)
 	var i Game
 	err := row.Scan(
 		&i.ID,
@@ -97,7 +118,7 @@ func (q *Queries) GetGamesByPlayerID(ctx context.Context, whitePlayerID pgtype.U
 	return items, nil
 }
 
-const joinGame = `-- name: JoinGame :one
+const joinGameAsBlack = `-- name: JoinGameAsBlack :one
 UPDATE games
 SET
     black_player_id = $2,
@@ -109,13 +130,45 @@ WHERE id = $1
 RETURNING id, white_player_id, black_player_id, state, in_check, created_at, updated_at
 `
 
-type JoinGameParams struct {
+type JoinGameAsBlackParams struct {
 	ID            pgtype.UUID `json:"id"`
 	BlackPlayerID pgtype.UUID `json:"black_player_id"`
 }
 
-func (q *Queries) JoinGame(ctx context.Context, arg JoinGameParams) (Game, error) {
-	row := q.db.QueryRow(ctx, joinGame, arg.ID, arg.BlackPlayerID)
+func (q *Queries) JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams) (Game, error) {
+	row := q.db.QueryRow(ctx, joinGameAsBlack, arg.ID, arg.BlackPlayerID)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.WhitePlayerID,
+		&i.BlackPlayerID,
+		&i.State,
+		&i.InCheck,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const joinGameAsWhite = `-- name: JoinGameAsWhite :one
+UPDATE games
+SET
+    white_player_id = $2,
+    state           = 'active',
+    updated_at      = NOW()
+WHERE id = $1
+  AND state = 'waiting'
+  AND white_player_id IS NULL
+RETURNING id, white_player_id, black_player_id, state, in_check, created_at, updated_at
+`
+
+type JoinGameAsWhiteParams struct {
+	ID            pgtype.UUID `json:"id"`
+	WhitePlayerID pgtype.UUID `json:"white_player_id"`
+}
+
+func (q *Queries) JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams) (Game, error) {
+	row := q.db.QueryRow(ctx, joinGameAsWhite, arg.ID, arg.WhitePlayerID)
 	var i Game
 	err := row.Scan(
 		&i.ID,

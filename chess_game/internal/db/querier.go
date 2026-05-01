@@ -19,7 +19,8 @@ type Querier interface {
 	CountRecentOTPsForUser(ctx context.Context, userID pgtype.UUID) (int64, error)
 	CreateChatMessage(ctx context.Context, arg CreateChatMessageParams) (ChatMessage, error)
 	CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) (EmailOtp, error)
-	CreateGame(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error)
+	CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UUID) (Game, error)
+	CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error)
 	CreateMove(ctx context.Context, arg CreateMoveParams) (GameMove, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
@@ -53,7 +54,8 @@ type Querier interface {
 	IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) (EmailOtp, error)
 	// Burn all live codes for a user before issuing a new one.
 	InvalidateUserOTPs(ctx context.Context, userID pgtype.UUID) error
-	JoinGame(ctx context.Context, arg JoinGameParams) (Game, error)
+	JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams) (Game, error)
+	JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams) (Game, error)
 	ListWaitingGames(ctx context.Context) ([]Game, error)
 	// Call this immediately after a successful match to prevent replay.
 	MarkOTPUsed(ctx context.Context, id pgtype.UUID) (EmailOtp, error)

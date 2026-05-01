@@ -3,12 +3,15 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/Glenn444/golang-chess/config"
 	"github.com/Glenn444/golang-chess/internal/db"
+	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/Glenn444/golang-chess/internal/utils/emails"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/olahol/melody"
 )
 
@@ -19,6 +22,10 @@ type Server struct {
 	store       db.Store
 	router      *gin.Engine
 	melody      *melody.Melody
+
+	//chess game
+	activeGames map[pgtype.UUID]*pieces.GameState
+	activeGamesmu sync.RWMutex //protect concurremt ws access
 }
 
 func NewServer(config config.Config, store db.Store) (*Server, error) {
@@ -44,7 +51,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 
 	//users routes
 	users := router.Group("/users")
-	users.GET("/users/me",server.getMe)
+	users.GET("/me",server.getMe)
 	users.GET("/check-username", server.checkUsernameExists)
 	users.POST("/signup", server.createUser)
 	users.POST("/confirm-email", server.confirmEmail)
@@ -78,6 +85,8 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	// ── WebSocket ────────────────────────────────────────────────────────────
 	// Bearer token must be sent as ?token=<access_token> (WS clients can't set headers).
 	// Game room is selected via ?game_id=<uuid>.
+	//Example url
+	//ws://localhost:8080/ws/game?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMyJ9.abc123&game_id=550e8400-e29b-41d4-a716-446655440000
 	router.GET("/ws", server.handleWebSocket)
 
 	server.router = router

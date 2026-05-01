@@ -25,7 +25,7 @@ type Server struct {
 
 	//chess game
 	activeGames map[pgtype.UUID]*pieces.GameState
-	activeGamesmu sync.RWMutex //protect concurremt ws access
+	activeGamesMu sync.RWMutex //protect concurremt ws access
 }
 
 func NewServer(config config.Config, store db.Store) (*Server, error) {
@@ -40,6 +40,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 		config:      config,
 		emailClient: *emails.NewEmailClient(config.RESEND_API_KEY),
 		melody:      melody.New(),
+		
 	}
 	server.setupMelody()
 

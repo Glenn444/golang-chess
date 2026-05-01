@@ -4,17 +4,22 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Glenn444/golang-chess/internal/board"
 	db "github.com/Glenn444/golang-chess/internal/db"
+	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/gin-gonic/gin"
 )
 
 type createGameReq struct{
 	PlayerColor string `json:"player_color" binding:"required,len=1,oneof=w b"`
+	Opponent string `json:"opponent" binding:"required,oneof=person stockfish"`
 }
 
 func (r *createGameReq)sanitizeCreateGameReq(){
 	r.PlayerColor = strings.ToLower(r.PlayerColor)
 }
+
+//create a chess game
 func (server *Server) createGame(ctx *gin.Context) {
 	var req createGameReq
 
@@ -41,6 +46,20 @@ func (server *Server) createGame(ctx *gin.Context) {
 	if handleDBError(ctx, err, WithLogArgs("createGame: failed", "user_id", user.ID)) {
 		return
 	}
+
+	//initialise a game state in memory
+	gameState := &pieces.GameState{
+		CurrentPlayer: "w",
+		Board: board.Initialise_board(board.Create_board()),
+		CapturedPieces: make(map[string][]pieces.PieceInterface),
+		UserColor: req.PlayerColor,
+		PlayAgainst: req.Opponent,
+	}
+
+	//save the game in memory
+	server.activeGamesMu.Lock()
+	server.activeGames[game.ID] = gameState
+	server.activeGamesMu.Unlock()
 
 	ctx.JSON(http.StatusCreated, game)
 }

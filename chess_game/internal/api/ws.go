@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/Glenn444/golang-chess/internal/board"
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,7 @@ import (
 const (
 	wsKeyUser   = "ws_user"
 	wsKeyGameID = "ws_game_id"
+	wsKeyPlayerColor = "ws_player_color"
 )
 
 // WSEvent is the JSON envelope for every WebSocket message.
@@ -83,10 +85,16 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 		ctx.JSON(http.StatusForbidden, errorMessage(ErrNotAPlayer))
 		return
 	}
-
+	var playerColor string
+	if uuidEq(game.WhitePlayerID,user.ID){
+		playerColor = "w"
+	}else{
+		playerColor = "b"
+	}
 	if err := server.melody.HandleRequestWithKeys(ctx.Writer, ctx.Request, map[string]any{
 		wsKeyUser:   user,
 		wsKeyGameID: gameID,
+		wsKeyPlayerColor: playerColor,
 	}); err != nil {
 		slog.Error("ws: upgrade failed", "err", err)
 	}
@@ -154,6 +162,55 @@ func (server *Server) wsHandleChat(s *melody.Session, gameID pgtype.UUID, payloa
 // TODO: validate the move via the board package, persist via store.CreateMove,
 // then call store.UpdateGameState for check/checkmate/stalemate detection.
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
+	server.activeGamesMu.Lock()
+	defer server.activeGamesMu.Unlock()
+
+	gamestate,ok := server.activeGames[gameID]
+	if !ok{
+		wsWriteError(s,"game not found")
+		return
+	}
+	var body struct {
+		Move string `json:"move"` //e2e3
+	}
+	if err := json.Unmarshal(payload, &body); err != nil || body.Move == "" {
+		wsWriteError(s, "invalid move payload")
+		return
+	}
+	
+
+	previousPlayer := gamestate.CurrentPlayer
+	user := wsUser(s)
+
+	playerColor := wsPlayerColor(s)
+	if playerColor != gamestate.CurrentPlayer{
+		wsWriteError(s,"not your turn")
+		return
+	}
+	//enforce turn
+	if playerColor != gamestate.CurrentPlayer{
+		wsWriteError(s,"not your turn")
+		return
+	}
+	
+	err := board.Move(gamestate,body.Move)
+	if err != nil{
+		wsWriteError(s,err.Error())
+		return
+	}
+
+	//increment move number after successful move
+	gamestate.MoveNumber++
+
+	_,err = server.store.CreateMove(s.Request.Context(),db.CreateMoveParams{
+		GameID: gameID,
+		PlayerID: user.ID,
+		PlayerColor: db.PlayerColor(previousPlayer),
+		MoveNotation: body.Move,
+		MoveNumber: gamestate.MoveNumber,
+	})
+
+
 	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: payload})
 	server.wsBroadcastToGame(gameID, out)
 }
@@ -193,4 +250,9 @@ func wsWriteError(s *melody.Session, msg string) {
 func wsMarshal(v any) json.RawMessage {
 	b, _ := json.Marshal(v)
 	return b
+}
+
+func wsPlayerColor(s *melody.Session)string{
+	v,_ := s.Get("ws_player_color")
+	return v.(string)
 }

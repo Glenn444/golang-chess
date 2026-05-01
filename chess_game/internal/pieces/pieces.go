@@ -29,6 +29,7 @@ type GameState struct {
 	PlayAgainst    string //person or stockfish
 	UserColor      string
 	Castle	Castling
+	MoveNumber int32
 }
 
 type PieceInterface interface {

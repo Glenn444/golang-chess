@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	wsKeyUser   = "ws_user"
-	wsKeyGameID = "ws_game_id"
+	wsKeyUser        = "ws_user"
+	wsKeyGameID      = "ws_game_id"
 	wsKeyPlayerColor = "ws_player_color"
 )
 
@@ -86,14 +86,14 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 		return
 	}
 	var playerColor string
-	if uuidEq(game.WhitePlayerID,user.ID){
+	if uuidEq(game.WhitePlayerID, user.ID) {
 		playerColor = "w"
-	}else{
+	} else {
 		playerColor = "b"
 	}
 	if err := server.melody.HandleRequestWithKeys(ctx.Writer, ctx.Request, map[string]any{
-		wsKeyUser:   user,
-		wsKeyGameID: gameID,
+		wsKeyUser:        user,
+		wsKeyGameID:      gameID,
 		wsKeyPlayerColor: playerColor,
 	}); err != nil {
 		slog.Error("ws: upgrade failed", "err", err)
@@ -161,18 +161,19 @@ func (server *Server) wsHandleChat(s *melody.Session, gameID pgtype.UUID, payloa
 // wsHandleMove broadcasts a move to both players.
 // TODO: validate the move via the board package, persist via store.CreateMove,
 // then call store.UpdateGameState for check/checkmate/stalemate detection.
-type MoveResult struct{
-		Move string `json:"move"`
-		CurrentPlayer string `json:"current_player"`
-		InCheck bool `json:"in_check"`
-	}
+type MoveResult struct {
+	Move          string `json:"move"`
+	CurrentPlayer string `json:"current_player"`
+	InCheck       bool   `json:"in_check"`
+}
+
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
 	server.activeGamesMu.Lock()
 	defer server.activeGamesMu.Unlock()
 
-	gamestate,ok := server.activeGames[gameID]
-	if !ok{
-		wsWriteError(s,"game not found")
+	gamestate, ok := server.activeGames[gameID]
+	if !ok {
+		wsWriteError(s, "game not found")
 		return
 	}
 	var body struct {
@@ -182,51 +183,50 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		wsWriteError(s, "invalid move payload")
 		return
 	}
-	
 
 	previousPlayer := gamestate.CurrentPlayer
 	user := wsUser(s)
 
 	playerColor := wsPlayerColor(s)
 	//enforce turn
-	if playerColor != gamestate.CurrentPlayer{
-		wsWriteError(s,"not your turn")
+	if playerColor != gamestate.CurrentPlayer {
+		wsWriteError(s, "not your turn")
 		return
 	}
-	
-	err := board.Move(gamestate,body.Move)
-	if err != nil{
-		wsWriteError(s,err.Error())
+
+	err := board.Move(gamestate, body.Move)
+	if err != nil {
+		wsWriteError(s, err.Error())
 		return
 	}
 	check := board.IsKinginCheck(*gamestate)
-	_, err = server.store.UpdateGameState(s.Request.Context(),db.UpdateGameStateParams{
-		ID: gameID,
+	_, err = server.store.UpdateGameState(s.Request.Context(), db.UpdateGameStateParams{
+		ID:      gameID,
 		InCheck: check,
 	})
-	if err != nil{
-		slog.Error("ws: wsHandleMove, failed UpdateGameState","err",err)
+	if err != nil {
+		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
 	}
 
 	//increment move number after successful move
 	gamestate.MoveNumber++
 
-	_,err = server.store.CreateMove(s.Request.Context(),db.CreateMoveParams{
-		GameID: gameID,
-		PlayerID: user.ID,
-		PlayerColor: db.PlayerColor(previousPlayer),
+	_, err = server.store.CreateMove(s.Request.Context(), db.CreateMoveParams{
+		GameID:       gameID,
+		PlayerID:     user.ID,
+		PlayerColor:  db.PlayerColor(previousPlayer),
 		MoveNotation: body.Move,
-		MoveNumber: gamestate.MoveNumber,
+		MoveNumber:   gamestate.MoveNumber,
 	})
 
-	if err != nil{
-		slog.Error("ws: CreateMove failed","err",err)
+	if err != nil {
+		slog.Error("ws: CreateMove failed", "err", err)
 	}
-	
-	result  := MoveResult{
-		Move: body.Move,
+
+	result := MoveResult{
+		Move:          body.Move,
 		CurrentPlayer: gamestate.CurrentPlayer, //already flipped by board.Move()
-		InCheck: check,
+		InCheck:       check,
 	}
 
 	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
@@ -270,7 +270,7 @@ func wsMarshal(v any) json.RawMessage {
 	return b
 }
 
-func wsPlayerColor(s *melody.Session)string{
-	v,_ := s.Get("ws_player_color")
+func wsPlayerColor(s *melody.Session) string {
+	v, _ := s.Get("ws_player_color")
 	return v.(string)
 }

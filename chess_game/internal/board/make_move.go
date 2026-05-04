@@ -88,8 +88,14 @@ func Move(game1 *pieces.GameState, move string) error {
 		move_pos = move
 	}
 
-	destrow, destcol := chess.Chess_notation_to_indices(move_pos)
-	sourcerow, sourcecol := chess.Chess_notation_to_indices(sourcepos)
+	destrow, destcol, err := chess.ChessNotationToIndices(move_pos)
+	if err != nil {
+		return err
+	}
+	sourcerow, sourcecol, err := chess.ChessNotationToIndices(sourcepos)
+	if err != nil {
+		return err
+	}
 
 	piece := game.Board[sourcerow][sourcecol].Piece
 	piece.AssignPosition(move_pos)

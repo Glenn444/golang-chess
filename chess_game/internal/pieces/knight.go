@@ -18,7 +18,7 @@ func (k *Knight) GetLegalSquares(g GameState) []string {
 	//letter := string(k.Position[0])
 	//num, _ := strconv.Atoi(k.Position[1:])
 
-	row, col := chess.Chess_notation_to_indices(k.Position)
+	row, col, _ := chess.ChessNotationToIndices(k.Position)
 
 	knightMoves := [][2]int{{2, 1}, {2, -1}, {-2, 1}, {-2, -1}, {1, 2}, {1, -2}, {-1, 2}, {-1, -2}}
 

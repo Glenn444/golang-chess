@@ -16,48 +16,44 @@ func (r *Rook) GetLegalSquares(g GameState) []string {
 	var positions []string
 
 	allDiagnols := [][]string{
-		getHorizontalVertical(*r,-1,0),
-		getHorizontalVertical(*r,0,-1),
-		getHorizontalVertical(*r,0,1),
-		getHorizontalVertical(*r,1,0),
+		getHorizontalVertical(*r, -1, 0),
+		getHorizontalVertical(*r, 0, -1),
+		getHorizontalVertical(*r, 0, 1),
+		getHorizontalVertical(*r, 1, 0),
 	}
-	//return positions
-	for _,diagnol := range allDiagnols{
-		for _, pos := range diagnol{
-			i, j := chess.Chess_notation_to_indices(pos)
+	for _, diag := range allDiagnols {
+		for _, pos := range diag {
+			i, j, _ := chess.ChessNotationToIndices(pos)
 			square := g.Board[i][j]
 
-			if square.Occupied{
-				if square.Piece.GetColor() != r.Color{
+			if square.Occupied {
+				if square.Piece.GetColor() != r.Color {
 					positions = append(positions, pos)
 				}
 				break
 			}
-			
+
 			positions = append(positions, pos)
 		}
-		
 
 	}
-	//fmt.Printf("legalsquares: %v\n",positions)
 	return positions
 
 }
 
-func getHorizontalVertical(r Rook,rowDelta int, colDelta int) []string {
-	
+func getHorizontalVertical(r Rook, rowDelta int, colDelta int) []string {
 	var possible_positions []string
 
-	row,col := chess.Chess_notation_to_indices(r.Position)
-	
-	for true{
-		r := row+rowDelta
-		c := col+colDelta
+	row, col, _ := chess.ChessNotationToIndices(r.Position)
 
-		if r >= 8 || r < 0 || c >= 8 || c < 0{
+	for {
+		r := row + rowDelta
+		c := col + colDelta
+
+		if r >= 8 || r < 0 || c >= 8 || c < 0 {
 			break
 		}
-		pos := chess.Indices_to_chess_notation(r,c)
+		pos := chess.Indices_to_chess_notation(r, c)
 		possible_positions = append(possible_positions, pos)
 		row = r
 		col = c

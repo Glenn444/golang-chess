@@ -19,10 +19,16 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 
 		from := move[0:2]
 		to := move[2:4]
-		rowto, colto := chess.Chess_notation_to_indices(to)
+		rowto, colto, err := chess.ChessNotationToIndices(to)
+		if err != nil {
+			return "", err
+		}
 		occupied := game.Board[rowto][colto].Occupied
 		if occupied {
-			rowfrom, colfrom := chess.Chess_notation_to_indices(from)
+			rowfrom, colfrom, err := chess.ChessNotationToIndices(from)
+			if err != nil {
+				return "", err
+			}
 			if !game.Board[rowfrom][colfrom].Occupied{
 				return "",errors.New("coordinateToAlgebra error,not occupied")
 			}
@@ -32,11 +38,14 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 				return fmt.Sprintf("%sx%s", pieceType, to),nil
 			}
 			toPos := fmt.Sprintf("%sx%s", string(from[0]), to)
-			
+
 			return toPos,nil
 		} else {
 
-			rowfrom, colfrom := chess.Chess_notation_to_indices(from)
+			rowfrom, colfrom, err := chess.ChessNotationToIndices(from)
+			if err != nil {
+				return "", err
+			}
 			if !game.Board[rowfrom][colfrom].Occupied{
 				return "",errors.New("coordinateToAlgebra error,not occupied")
 			}
@@ -45,7 +54,7 @@ func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
 			if pieceType != "P" {
 				return fmt.Sprintf("%s%s", pieceType, to),nil
 			}
-			
+
 			return to,nil
 		}
 	}

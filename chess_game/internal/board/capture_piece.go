@@ -21,7 +21,10 @@ func CapturePiece(game *pieces.GameState, move string) error {
 		"a": true, "b": true, "c": true, "d": true, "e": true, "f": true, "g": true, "h": true,
 	}
 
-	row, col := chess.Chess_notation_to_indices(destCapturePos)
+	row, col, err := chess.ChessNotationToIndices(destCapturePos)
+	if err != nil {
+		return err
+	}
 	pieceSquare := game.Board[row][col]
 
 	if pieceSquare.Occupied && game.CurrentPlayer != pieceSquare.Piece.GetColor() {
@@ -42,8 +45,14 @@ func CapturePiece(game *pieces.GameState, move string) error {
 
 			//initialPiecePosition = initialPos
 
-			destrow, destcol := chess.Chess_notation_to_indices(destCapturePos)
-			sourcerow, sourcecol := chess.Chess_notation_to_indices(initialPos)
+			destrow, destcol, err := chess.ChessNotationToIndices(destCapturePos)
+			if err != nil {
+				return err
+			}
+			sourcerow, sourcecol, err := chess.ChessNotationToIndices(initialPos)
+			if err != nil {
+				return err
+			}
 
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)
@@ -85,8 +94,14 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			pieces.CastlePieceMoved(game, movedPieceType)
 
 			
-			destrow, destcol := chess.Chess_notation_to_indices(destCapturePos)
-			sourcerow, sourcecol := chess.Chess_notation_to_indices(initialPos)
+			destrow, destcol, err := chess.ChessNotationToIndices(destCapturePos)
+			if err != nil {
+				return err
+			}
+			sourcerow, sourcecol, err := chess.ChessNotationToIndices(initialPos)
+			if err != nil {
+				return err
+			}
 
 			piece := game.Board[sourcerow][sourcecol].Piece
 			piece.AssignPosition(destCapturePos)
@@ -105,7 +120,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 				Occupied: true,
 				Piece:    piece,
 			}
-			
+
 			stockfishMove := fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
 			fmt.Printf("move added to stockfish game: %s %s",game.StockfishGame, stockfishMove)

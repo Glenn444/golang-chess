@@ -60,11 +60,11 @@ func TestMove(t *testing.T) {
 			move:          "e4",
 			expectedErr:   false,
 			afterMove: func(t *testing.T, game *pieces.GameState) {
-				row, col := chess.Chess_notation_to_indices("e4")
+				row, col, _ := chess.ChessNotationToIndices("e4")
 				if !game.Board[row][col].Occupied {
 					t.Error("expected e4 to be occupied after pawn move")
 				}
-				row, col = chess.Chess_notation_to_indices("e2")
+				row, col, _ = chess.ChessNotationToIndices("e2")
 				if game.Board[row][col].Occupied {
 					t.Error("expected e2 to be empty after pawn move")
 				}
@@ -86,11 +86,11 @@ func TestMove(t *testing.T) {
 			move:          "Ra4",
 			expectedErr:   false,
 			afterMove: func(t *testing.T, game *pieces.GameState) {
-				row, col := chess.Chess_notation_to_indices("a4")
+				row, col, _ := chess.ChessNotationToIndices("a4")
 				if !game.Board[row][col].Occupied {
 					t.Error("expected a4 to be occupied after rook move")
 				}
-				row, col = chess.Chess_notation_to_indices("a1")
+				row, col, _ = chess.ChessNotationToIndices("a1")
 				if game.Board[row][col].Occupied {
 					t.Error("expected a1 to be empty after rook move")
 				}
@@ -119,11 +119,11 @@ func TestMove(t *testing.T) {
 			move:          "exd5",
 			expectedErr:   false,
 			afterMove: func(t *testing.T, game *pieces.GameState) {
-				row, col := chess.Chess_notation_to_indices("d5")
+				row, col, _ := chess.ChessNotationToIndices("d5")
 				if !game.Board[row][col].Occupied {
 					t.Error("expected d5 to be occupied after capture")
 				}
-				row, col = chess.Chess_notation_to_indices("e4")
+				row, col, _ = chess.ChessNotationToIndices("e4")
 				if game.Board[row][col].Occupied {
 					t.Error("expected e4 to be empty after capture")
 				}

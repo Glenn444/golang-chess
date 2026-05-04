@@ -25,12 +25,12 @@ func (p *Pawn) GetLegalSquares(g GameState) []string {
 	case 2:
 		added = true
 		pos1 := fmt.Sprintf("%s%d", letter, num+1)
-		rowpos1, colpos1 := chess.Chess_notation_to_indices(pos1)
+		rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
 		if isInBounds(rowpos1, colpos1) && !g.Board[rowpos1][colpos1].Occupied {
 			positions = append(positions, pos1)
 
 			pos2 := fmt.Sprintf("%s%d", letter, num+2)
-			rowpos2, colpos2 := chess.Chess_notation_to_indices(pos2)
+			rowpos2, colpos2, _ := chess.ChessNotationToIndices(pos2)
 
 			if isInBounds(rowpos2, colpos2) && !g.Board[rowpos2][colpos2].Occupied {
 				positions = append(positions, pos2)
@@ -39,7 +39,7 @@ func (p *Pawn) GetLegalSquares(g GameState) []string {
 
 		//positions = append(positions, pos1, pos2)
 
-		row, col := chess.Chess_notation_to_indices(p.Position)
+		row, col, _ := chess.ChessNotationToIndices(p.Position)
 		diagRowR := row + 1
 		diagColR := col + 1
 		if isInBounds(diagRowR, diagColR) && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
@@ -57,12 +57,12 @@ func (p *Pawn) GetLegalSquares(g GameState) []string {
 	case 7:
 		added = true
 		pos1 := fmt.Sprintf("%s%d", letter, num-1)
-		rowpos1, colpos1 := chess.Chess_notation_to_indices(pos1)
+		rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
 		if !g.Board[rowpos1][colpos1].Occupied {
 			positions = append(positions, pos1)
 
 			pos2 := fmt.Sprintf("%s%d", letter, num-2)
-			rowpos2, colpos2 := chess.Chess_notation_to_indices(pos2)
+			rowpos2, colpos2, _ := chess.ChessNotationToIndices(pos2)
 
 			if !g.Board[rowpos2][colpos2].Occupied {
 				positions = append(positions, pos2)
@@ -70,7 +70,7 @@ func (p *Pawn) GetLegalSquares(g GameState) []string {
 		}
 		//positions = append(positions, pos1, pos2)
 
-		row, col := chess.Chess_notation_to_indices(p.Position)
+		row, col, _ := chess.ChessNotationToIndices(p.Position)
 
 		diagRowR := row - 1
 		diagColR := col - 1
@@ -93,13 +93,13 @@ func (p *Pawn) GetLegalSquares(g GameState) []string {
 		switch p.Color {
 		case "w":
 			pos1 := fmt.Sprintf("%s%d", letter, num+1)
-			rowpos1, colpos1 := chess.Chess_notation_to_indices(pos1)
+			rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
 			if isInBounds(rowpos1, colpos1) && !g.Board[rowpos1][colpos1].Occupied {
 				positions = append(positions, pos1)
 			}
 			//positions = append(positions, pos1)
 
-			row, col := chess.Chess_notation_to_indices(p.Position)
+			row, col, _ := chess.ChessNotationToIndices(p.Position)
 			diagRowR := row + 1
 			diagColR := col + 1
 			if isInBounds(diagRowR, diagColR) && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
@@ -115,13 +115,13 @@ func (p *Pawn) GetLegalSquares(g GameState) []string {
 			}
 		case "b":
 			pos1 := fmt.Sprintf("%s%d", letter, num-1)
-			rowpos1, colpos1 := chess.Chess_notation_to_indices(pos1)
+			rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
 			if !g.Board[rowpos1][colpos1].Occupied {
 				positions = append(positions, pos1)
 			}
 			//positions = append(positions, pos1)
 
-			row, col := chess.Chess_notation_to_indices(p.Position)
+			row, col, _ := chess.ChessNotationToIndices(p.Position)
 			diagRowR := row - 1
 			diagColR := col - 1
 			if isInBounds(diagRowR, diagColR) && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {

@@ -1,5 +1,7 @@
 package chess
 
+
+//Remove occupied squares from a
 func RemoveOwnOccupiedSquares(a, b []string) []string {
     // build a set from b
     removeSet := make(map[string]struct{}, len(b))

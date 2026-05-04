@@ -158,13 +158,13 @@ func (server *Server) wsHandleChat(s *melody.Session, gameID pgtype.UUID, payloa
 	server.wsBroadcastToGame(gameID, out)
 }
 
-// wsHandleMove broadcasts a move to both players.
-// TODO: validate the move via the board package, persist via store.CreateMove,
-// then call store.UpdateGameState for check/checkmate/stalemate detection.
+// wsHandleMove validates and broadcasts a move, persisting the result.
 type MoveResult struct {
 	Move          string `json:"move"`
 	CurrentPlayer string `json:"current_player"`
 	InCheck       bool   `json:"in_check"`
+	IsCheckmate   bool   `json:"is_checkmate"`
+	IsStalemate   bool   `json:"is_stalemate"`
 }
 
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
@@ -199,13 +199,30 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		wsWriteError(s, err.Error())
 		return
 	}
+
 	check := board.IsKinginCheck(*gamestate)
+	isCheckmate := board.IsCheckmate(*gamestate)
+	isStalemate := board.IsStalemate(*gamestate)
+
+	gameState := db.GameStateActive
+	switch {
+	case isCheckmate:
+		gameState = db.GameStateCheckmate
+	case isStalemate:
+		gameState = db.GameStateStalemate
+	}
+
 	_, err = server.store.UpdateGameState(s.Request.Context(), db.UpdateGameStateParams{
 		ID:      gameID,
+		State:   gameState,
 		InCheck: check,
 	})
 	if err != nil {
 		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
+	}
+
+	if isCheckmate || isStalemate {
+		delete(server.activeGames, gameID)
 	}
 
 	//increment move number after successful move
@@ -227,6 +244,8 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		Move:          body.Move,
 		CurrentPlayer: gamestate.CurrentPlayer, //already flipped by board.Move()
 		InCheck:       check,
+		IsCheckmate:   isCheckmate,
+		IsStalemate:   isStalemate,
 	}
 
 	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})

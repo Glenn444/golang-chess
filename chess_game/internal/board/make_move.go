@@ -24,7 +24,7 @@ func Move(game1 *pieces.GameState, move string) error {
 		return errors.New("invalid move")
 	}
 	if chess.IsAlgebraic(move) {
-		algebraicMove, err := CoordinateToAlgebraic(*game1, move)
+		algebraicMove, err := CoordinateToAlgebraic(game1, move)
 		if err != nil {
 			return err
 		}
@@ -49,7 +49,7 @@ func Move(game1 *pieces.GameState, move string) error {
 		if err != nil {
 			return err
 		}
-		if IsKinginCheck(*game) {
+		if IsKinginCheck(game) {
 			return errors.New("King is still in check!!!\n")
 		} else {
 
@@ -77,7 +77,7 @@ func Move(game1 *pieces.GameState, move string) error {
 		move_pos = string(move[2:])
 	}
 
-	sourcepos, err := CurrentPlayer_Occupied_Piece_position(*game, move)
+	sourcepos, err := CurrentPlayer_Occupied_Piece_position(game, move)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func Move(game1 *pieces.GameState, move string) error {
 	}
 
 	//checking check
-	if IsKinginCheck(*game) {
+	if IsKinginCheck(game) {
 		return errors.New("king is still in check!!!\n")
 	} else {
 		CopyBoard(game1.Board, game.Board)

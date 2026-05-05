@@ -8,7 +8,7 @@ import (
 /*
 - Returns occupied squares
 */
-func Occupied_squares(g pieces.GameState, pos string)(bool,string)  {
+func Occupied_squares(g *pieces.GameState, pos string)(bool,string)  {
 	destrow,destcol, err := chess.ChessNotationToIndices(pos)
 	if err != nil {
 		return false, ""

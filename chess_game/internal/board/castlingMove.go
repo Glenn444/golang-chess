@@ -34,7 +34,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 			rookSquareOccupied := gameState.Board[0][7].Occupied && gameState.Board[0][7].Piece.GetPieceType() == "R"
 			kingSquareOccupied := gameState.Board[0][4].Occupied && gameState.Board[0][4].Piece.GetPieceType() == "K"
 			if f1 && g1 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.WhiteKingMoved &&
-				!gameState.Castle.WhiteRookKingsideMoved && !IsKinginCheck(*gameState) && !CastlingSquareisAttacked(*gameState,WhiteKingside){
+				!gameState.Castle.WhiteRookKingsideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,WhiteKingside){
 				kingPos := chess.Indices_to_chess_notation(0, 6)
 				rookPos := chess.Indices_to_chess_notation(0, 5)
 				gameState.Board[0][6] = pieces.Square{
@@ -79,7 +79,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 			rookSquareOccupied := gameState.Board[0][0].Occupied && gameState.Board[0][0].Piece.GetPieceType() == "R"
 			kingSquareOccupied := gameState.Board[0][4].Occupied && gameState.Board[0][4].Piece.GetPieceType() == "K"
 			if b1 && c1 && d1 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.WhiteKingMoved &&
-				!gameState.Castle.WhiteRookQueensideMoved && !IsKinginCheck(*gameState) && !CastlingSquareisAttacked(*gameState,WhiteQueenside) {
+				!gameState.Castle.WhiteRookQueensideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,WhiteQueenside) {
 				kingPos := chess.Indices_to_chess_notation(0, 2)
 				rookPos := chess.Indices_to_chess_notation(0, 1)
 
@@ -128,7 +128,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 			rookSquareOccupied := gameState.Board[7][7].Occupied && gameState.Board[7][7].Piece.GetPieceType() == "R"
 			kingSquareOccupied := gameState.Board[7][4].Occupied && gameState.Board[7][4].Piece.GetPieceType() == "K"
 			if f8 && g8 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.BlackKingMoved &&
-				!gameState.Castle.BlackRookKingsideMoved && !IsKinginCheck(*gameState) && !CastlingSquareisAttacked(*gameState,BlackKingside){
+				!gameState.Castle.BlackRookKingsideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,BlackKingside){
 				kingPos := chess.Indices_to_chess_notation(7, 6)
 				rookPos := chess.Indices_to_chess_notation(7, 5)
 				gameState.Board[7][6] = pieces.Square{
@@ -173,7 +173,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 			rookSquareOccupied := gameState.Board[7][0].Occupied && gameState.Board[7][0].Piece.GetPieceType() == "R"
 			kingSquareOccupied := gameState.Board[7][4].Occupied && gameState.Board[7][4].Piece.GetPieceType() == "K"
 			if b8 && c8 && d8 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.BlackKingMoved &&
-				!gameState.Castle.BlackRookQueensideMoved && !IsKinginCheck(*gameState) && !CastlingSquareisAttacked(*gameState,BlackQueenside) {
+				!gameState.Castle.BlackRookQueensideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,BlackQueenside) {
 				kingPos := chess.Indices_to_chess_notation(7, 2)
 				rookPos := chess.Indices_to_chess_notation(7, 1)
 				gameState.Board[7][1] = pieces.Square{
@@ -222,7 +222,7 @@ func CastlingMove(gameState *pieces.GameState, move string) error {
 	return nil
 }
 
-func CastlingSquareisAttacked(game pieces.GameState, castlingSquares []string) bool {
+func CastlingSquareisAttacked(game *pieces.GameState, castlingSquares []string) bool {
 	for _, squares := range game.Board {
 		for _, square := range squares {
 

@@ -12,7 +12,7 @@ type Rook struct {
 	Points	int64
 }
 
-func (r *Rook) GetLegalSquares(g GameState) []string {
+func (r *Rook) GetLegalSquares(g *GameState) []string {
 	var positions []string
 
 	allDiagnols := [][]string{

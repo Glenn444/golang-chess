@@ -27,7 +27,7 @@ func Cli(g *pieces.GameState) {
 				log.Fatalf("%s", err)
 			}
 		
-			board.PrintBoard(*g)
+			board.PrintBoard(g)
 			continue
 		} else if g.CurrentPlayer == "w" {
 			fmt.Printf("White Move > ")

@@ -7,7 +7,7 @@ import (
 )
 
 
-func IsKinginCheck(game pieces.GameState)bool{
+func IsKinginCheck(game *pieces.GameState)bool{
 	var kingPos string
 	for _,squares := range game.Board{
 		for _, square := range squares{

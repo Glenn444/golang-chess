@@ -82,7 +82,7 @@ func TestIsCheckMate(t *testing.T) {
 	for _, tt := range checkMateTests {
 		t.Run(tt.name, func(t *testing.T) {
 			board := pieces.SetUpBoard(tt.boardState)
-			gameState := pieces.GameState{
+			gameState := &pieces.GameState{
 				CurrentPlayer: tt.currentPlayer,
 				Board:         board,
 			}

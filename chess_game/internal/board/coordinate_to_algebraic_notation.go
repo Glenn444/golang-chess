@@ -8,7 +8,7 @@ import (
 	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
-func CoordinateToAlgebraic(game pieces.GameState, move string) (string,error) {
+func CoordinateToAlgebraic(game *pieces.GameState, move string) (string,error) {
 	//move - e2e4 should be e4 if pawn and Qe4 if queen e.t.c
 	//ensure move is not a capture,pwan move
 	//check if to position is occupied

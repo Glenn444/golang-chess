@@ -98,9 +98,9 @@ func (c *CLI) printBoardState([]string) error {
 		}
 	}
 	fmt.Printf("White Points: %d, \t Black Points: %d\n", sumW, sumB)
-	if board.IsKinginCheck(*c.game) {
+	if board.IsKinginCheck(c.game) {
 		fmt.Printf("Check!!!!!!!!!!!\n")
 	}
-	board.PrintBoard(*c.game)
+	board.PrintBoard(c.game)
 	return nil
 }

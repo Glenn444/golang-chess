@@ -29,7 +29,7 @@ func TestKingPiece(t *testing.T){
 
 	chessBoard :=  SetUpBoard(initialBoard)
 
-	gameState := GameState{
+	gameState := &GameState{
 		CurrentPlayer: "w",
 		Board:        chessBoard,
 	}

@@ -13,7 +13,7 @@ type Bishop struct {
 	Points	int64
 }
 
-func (b *Bishop) GetLegalSquares(g GameState) []string {
+func (b *Bishop) GetLegalSquares(g *GameState) []string {
 	var positions []string
 
 	//fmt.Printf("diagnol squares top right d4: %v\n",getDiagnolSquares("d4",1,1))

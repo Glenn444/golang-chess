@@ -14,7 +14,7 @@ type Pawn struct {
 	Points    int64
 }
 
-func (p *Pawn) GetLegalSquares(g GameState) []string {
+func (p *Pawn) GetLegalSquares(g *GameState) []string {
 	var positions []string
 
 	letter := string(p.Position[0])

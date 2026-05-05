@@ -9,7 +9,7 @@ import (
 
 // IsCheckmate returns true when the current player is in check and has no
 // legal move that escapes check.
-func IsCheckmate(game pieces.GameState) bool {
+func IsCheckmate(game *pieces.GameState) bool {
 	if !IsKinginCheck(game) {
 		return false
 	}
@@ -18,7 +18,7 @@ func IsCheckmate(game pieces.GameState) bool {
 
 // currentPlayerHasLegalMove tries every piece's every candidate square and
 // returns true as soon as it finds a move that does not leave the king in check.
-func currentPlayerHasLegalMove(game pieces.GameState) bool {
+func currentPlayerHasLegalMove(game *pieces.GameState) bool {
 	for _, row := range game.Board {
 		for _, square := range row {
 			if !square.Occupied || square.Piece.GetColor() != game.CurrentPlayer {
@@ -40,7 +40,7 @@ func currentPlayerHasLegalMove(game pieces.GameState) bool {
 
 // moveLeavesKingInCheck simulates the move from→to on a board copy and
 // returns true if the current player's king is still in check afterwards.
-func moveLeavesKingInCheck(game pieces.GameState, from, to string) bool {
+func moveLeavesKingInCheck(game *pieces.GameState, from, to string) bool {
 	boardCopy := Create_board()
 	CopyBoard(boardCopy, game.Board)
 
@@ -75,7 +75,7 @@ func moveLeavesKingInCheck(game pieces.GameState, from, to string) bool {
 		opponentColor = "w"
 	}
 
-	tempGame := pieces.GameState{Board: boardCopy}
+	tempGame := &pieces.GameState{Board: boardCopy}
 	for _, row := range boardCopy {
 		for _, sq := range row {
 			if sq.Occupied && sq.Piece.GetColor() == opponentColor {

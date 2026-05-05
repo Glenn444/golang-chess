@@ -7,7 +7,7 @@ import (
 	"github.com/Glenn444/golang-chess/internal/pieces"
 )
 
-func GetInitialPositionByPiece(destinationPos string, pieceType string, gm pieces.GameState)(piece pieces.PieceInterface,err error){
+func GetInitialPositionByPiece(destinationPos string, pieceType string, gm *pieces.GameState)(piece pieces.PieceInterface,err error){
 	for _,squares := range gm.Board{
 		for _, square := range squares{
 			if square.Occupied && square.Piece.GetPieceType() == pieceType && square.Piece.GetColor() == gm.CurrentPlayer{

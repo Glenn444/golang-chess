@@ -13,7 +13,7 @@ type King struct {
 	Points 	int64
 }
 
-func (k *King) GetLegalSquares(g GameState) []string {
+func (k *King) GetLegalSquares(g *GameState) []string {
 	// board files (columns) and ranks (rows)
 	files := "abcdefgh"
 	rank := int(k.Position[1] - '0')

@@ -81,7 +81,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			return nil
 
 		} else if pieceType == "N" || pieceType == "Q" || pieceType == "K" || pieceType == "B" || pieceType == "R" {
-			initialPiece, err := GetInitialPositionByPiece(destCapturePos, pieceType, *game)
+			initialPiece, err := GetInitialPositionByPiece(destCapturePos, pieceType, game)
 			if err != nil {
 				return errors.New("invalid move capture")
 			}

@@ -36,7 +36,7 @@ func Create_board() [][]pieces.Square {
 	return board
 }
 
-func CurrentPlayer_Occupied_Piece_position(g pieces.GameState, pos string) (string,error) {
+func CurrentPlayer_Occupied_Piece_position(g *pieces.GameState, pos string) (string,error) {
 	
 	occupied_squares := GetAllOccupiedSquares(g)
 

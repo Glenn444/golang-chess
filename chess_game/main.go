@@ -32,7 +32,7 @@ func main() {
 		log.Fatalf("%s",err2.Error())
 	}
 
-	var game = pieces.GameState{
+	var game = &pieces.GameState{
 		CurrentPlayer: "w",
 		Board:         initialBoard_position,
 		CapturedPieces: make(map[string][]pieces.PieceInterface),
@@ -42,5 +42,5 @@ func main() {
 
 	board.PrintBoard(game)
 	
-	cli.Cli(&game)
+	cli.Cli(game)
 }

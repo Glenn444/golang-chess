@@ -3,6 +3,7 @@ package pieces
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
@@ -30,10 +31,11 @@ type GameState struct {
 	UserColor      string
 	Castle	Castling
 	MoveNumber int32
+	mu sync.RWMutex
 }
 
 type PieceInterface interface {
-	GetLegalSquares(g GameState) []string
+	GetLegalSquares(g *GameState) []string
 	GetColor() string
 	GetPosition() string
 	GetPieceType() string

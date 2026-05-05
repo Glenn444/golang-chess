@@ -200,9 +200,9 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		return
 	}
 
-	check := board.IsKinginCheck(*gamestate)
-	isCheckmate := board.IsCheckmate(*gamestate)
-	isStalemate := board.IsStalemate(*gamestate)
+	check := board.IsKinginCheck(gamestate)
+	isCheckmate := board.IsCheckmate(gamestate)
+	isStalemate := board.IsStalemate(gamestate)
 
 	gameState := db.GameStateActive
 	switch {

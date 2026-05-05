@@ -6,7 +6,7 @@ import (
 	"github.com/Glenn444/golang-chess/internal/pieces"
 )
 
-func PrintBoard(game pieces.GameState) {
+func PrintBoard(game *pieces.GameState) {
 	fmt.Printf("      a  b  c  d  e  f  g  h\n")
 	if game.CurrentPlayer == "b" {
 		for i, row := range game.Board {

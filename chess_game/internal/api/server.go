@@ -17,7 +17,7 @@ import (
 
 type Server struct {
 	config      config.Config
-	emailClient emails.EmailClient
+	emailClient emails.EmailSender
 	tokenMaker  token.Maker
 	store       db.Store
 	router      *gin.Engine
@@ -38,7 +38,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 		tokenMaker:  jwtTokenMaker,
 		store:       store,
 		config:      config,
-		emailClient: *emails.NewEmailClient(config.RESEND_API_KEY),
+		emailClient: emails.NewEmailClient(config.RESEND_API_KEY),
 		melody:      melody.New(),
 		
 	}

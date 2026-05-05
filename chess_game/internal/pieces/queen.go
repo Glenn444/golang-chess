@@ -7,7 +7,7 @@ type Queen struct {
 	Points    int64
 }
 
-func (q *Queen) GetLegalSquares(g GameState) []string {
+func (q *Queen) GetLegalSquares(g *GameState) []string {
 	b := Bishop{
 		Color:     q.Color,
 		PieceType: "B",

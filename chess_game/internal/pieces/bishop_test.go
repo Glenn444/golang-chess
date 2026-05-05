@@ -29,7 +29,7 @@ func TestBishop(t *testing.T) {
 	
 
 	boardState := SetUpBoard(initialBoard)
-	gameState := GameState{
+	gameState := &GameState{
 		CurrentPlayer: "w",
 		Board:        boardState ,
 	}

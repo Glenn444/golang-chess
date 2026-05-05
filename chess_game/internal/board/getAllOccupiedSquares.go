@@ -5,7 +5,7 @@ import (
 	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
-func GetAllOccupiedSquares(game pieces.GameState) []string {
+func GetAllOccupiedSquares(game *pieces.GameState) []string {
 	var OccupiedSquares []string
 	for i, b := range game.Board {
 		for j, s := range b {

@@ -1,3 +1,0 @@
-name: Check Username
-method: GET
-url: '{{url8080}}/users/check-username?username=glenn'

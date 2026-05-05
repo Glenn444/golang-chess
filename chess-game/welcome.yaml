@@ -1,3 +1,0 @@
-name: Welcome
-method: GET
-url: '{{url8080}}/'

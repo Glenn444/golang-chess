@@ -1,7 +1,0 @@
-name: Chess Game
-version: 1
-defaults:
-  auth: null
-  sendCookies: true
-  storeCookies: true
-  persistCookies: false

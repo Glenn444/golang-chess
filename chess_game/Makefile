@@ -34,7 +34,7 @@ build-server:
 	go build ./cmd/server   # builds the server binary
 
 mock:
-	mockgen -destination internal/db/mock/store.go github.com/Glenn444/banking-app/internal/database Store
+	mockgen -destination internal/db/mock/store.go github.com/Glenn444/golang-chess/internal/db Store
 
 createschema:
 	goose -dir sql/schema create create_users_table sql

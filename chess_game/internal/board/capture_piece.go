@@ -74,7 +74,7 @@ func CapturePiece(game *pieces.GameState, move string) error {
 			}
 			stockfishMove := fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
-			fmt.Printf("move added to stockfish game: %s %s",game.StockfishGame, stockfishMove)
+			
 
 			//stockfish coordinate move
 			//coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
@@ -123,7 +123,6 @@ func CapturePiece(game *pieces.GameState, move string) error {
 
 			stockfishMove := fmt.Sprintf("%s%s", initialPos, destCapturePos)
 			game.StockfishGame = append(game.StockfishGame, stockfishMove)
-			fmt.Printf("move added to stockfish game: %s %s",game.StockfishGame, stockfishMove)
 
 			//coordinateMove := fmt.Sprintf("%s%s",initialPos,destPiece.GetPosition())
 			return nil

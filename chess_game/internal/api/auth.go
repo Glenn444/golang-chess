@@ -349,6 +349,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 			Message: "email not confirmed!",
 			Email: user.Email,
 		})
+		return
 	}
 
 	//check user password against saved db password

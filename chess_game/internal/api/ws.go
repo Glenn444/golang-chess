@@ -172,7 +172,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	//lock access to the activeGames
 	server.activeGamesMu.RLock()
 	gamestate, ok := server.activeGames[gameID]
-	server.activeGamesMu.Unlock()
+	server.activeGamesMu.RUnlock()
 
 	if !ok {
 		wsWriteError(s, "game not found")
@@ -186,7 +186,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		return
 	}
 	
-	gamestate.GameStateMu.RLock()
+	gamestate.GameStateMu.Lock()
 	defer gamestate.GameStateMu.Unlock()
 	previousPlayer := gamestate.CurrentPlayer
 	user := wsUser(s)
@@ -226,7 +226,9 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	}
 
 	if isCheckmate || isStalemate {
+		server.activeGamesMu.Lock()
 		delete(server.activeGames, gameID)
+		server.activeGamesMu.Unlock()
 	}
 
 	//increment move number after successful move

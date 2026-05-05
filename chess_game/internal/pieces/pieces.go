@@ -31,7 +31,7 @@ type GameState struct {
 	UserColor      string
 	Castle	Castling
 	MoveNumber int32
-	mu sync.RWMutex
+	GameStateMu sync.RWMutex
 }
 
 type PieceInterface interface {

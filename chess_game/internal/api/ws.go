@@ -168,10 +168,12 @@ type MoveResult struct {
 }
 
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
-	server.activeGamesMu.Lock()
-	defer server.activeGamesMu.Unlock()
 
+	//lock access to the activeGames
+	server.activeGamesMu.RLock()
 	gamestate, ok := server.activeGames[gameID]
+	server.activeGamesMu.Unlock()
+
 	if !ok {
 		wsWriteError(s, "game not found")
 		return
@@ -183,7 +185,9 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		wsWriteError(s, "invalid move payload")
 		return
 	}
-
+	
+	gamestate.GameStateMu.RLock()
+	defer gamestate.GameStateMu.Unlock()
 	previousPlayer := gamestate.CurrentPlayer
 	user := wsUser(s)
 

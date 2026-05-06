@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
@@ -29,9 +30,11 @@ type GameState struct {
 	StockfishGame  []string
 	PlayAgainst    string //person or stockfish
 	UserColor      string
-	Castle	Castling
-	MoveNumber int32
-	GameStateMu sync.RWMutex
+	Castle         Castling
+	MoveNumber     int32
+	Status         db.GameState
+	InCheck        bool
+	GameStateMu    sync.RWMutex
 }
 
 type PieceInterface interface {

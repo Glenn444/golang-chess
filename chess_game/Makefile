@@ -21,6 +21,9 @@ migrateup:
 migratedown:
 	goose -dir sql/schema postgres "$(DB_URL)" down
 
+migratedown0:
+	goose -dir sql/schema postgres "$(DB_URL)" down-to 0
+
 sqlc:
 	sqlc generate
 

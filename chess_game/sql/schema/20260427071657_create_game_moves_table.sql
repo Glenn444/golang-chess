@@ -1,6 +1,5 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TYPE player_color AS ENUM ('w', 'b');
 
 CREATE TABLE game_moves (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

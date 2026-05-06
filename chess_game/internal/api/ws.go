@@ -7,6 +7,7 @@ import (
 
 	"github.com/Glenn444/golang-chess/internal/board"
 	db "github.com/Glenn444/golang-chess/internal/db"
+	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -102,6 +103,33 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 
 func (server *Server) wsOnConnect(s *melody.Session) {
 	u := wsUser(s)
+	gameID := wsGameID(s)
+
+	server.activeGamesMu.Lock()
+    defer server.activeGamesMu.Unlock()
+
+	if _,exists := server.activeGames[gameID];exists{
+	// send current state to the joining session so their UI is in sync
+    gameState := server.activeGames[gameID]
+    out, _ := json.Marshal(WSEvent{
+        Type:    "game_state",
+        Payload: wsMarshal(gameState),
+    })
+    s.Write(out)
+    return
+	}
+
+	// first player to connect — load from DB
+    game, err := server.store.GetGameByID(s.Request.Context(), gameID)
+    if err != nil {
+        slog.Error("ws: failed to load game on connect", "game_id", gameID, "err", err)
+        s.CloseWithMsg(melody.FormatCloseMessage(1011, "failed to load game"))
+        return
+    }
+
+    server.activeGames[gameID] = restoreGameState(game)
+    slog.Info("ws: game loaded into memory", "game_id", gameID)
+
 	slog.Info("ws: connected", "username", u.Username)
 }
 
@@ -208,18 +236,23 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	isCheckmate := board.IsCheckmate(gamestate)
 	isStalemate := board.IsStalemate(gamestate)
 
-	gameState := db.GameStateActive
+	gameStatus := db.GameStateActive
 	switch {
 	case isCheckmate:
-		gameState = db.GameStateCheckmate
+		gameStatus = db.GameStateCheckmate
 	case isStalemate:
-		gameState = db.GameStateStalemate
+		gameStatus = db.GameStateStalemate
 	}
+
+	//increment move number after successful move
+	gamestate.MoveNumber++
 
 	_, err = server.store.UpdateGameState(s.Request.Context(), db.UpdateGameStateParams{
 		ID:      gameID,
-		State:   gameState,
+		State:   gameStatus,
 		InCheck: check,
+		CurrentPlayer: db.PlayerColor(gamestate.Status),
+		MoveCount: gamestate.MoveNumber,
 	})
 	if err != nil {
 		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
@@ -231,8 +264,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		server.activeGamesMu.Unlock()
 	}
 
-	//increment move number after successful move
-	gamestate.MoveNumber++
+	
 
 	_, err = server.store.CreateMove(s.Request.Context(), db.CreateMoveParams{
 		GameID:       gameID,
@@ -298,4 +330,16 @@ func wsMarshal(v any) json.RawMessage {
 func wsPlayerColor(s *melody.Session) string {
 	v, _ := s.Get("ws_player_color")
 	return v.(string)
+}
+
+
+func restoreGameState(game db.Game) *pieces.GameState {
+    
+    // restore board from game.BoardState if you serialize it
+    return &pieces.GameState{
+		CurrentPlayer: string(game.CurrentPlayer),
+		MoveNumber: game.MoveCount,
+		Status: game.State,
+		InCheck: game.InCheck,
+	}
 }

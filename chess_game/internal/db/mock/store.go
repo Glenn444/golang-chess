@@ -349,6 +349,21 @@ func (mr *MockStoreMockRecorder) EndVoiceSession(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EndVoiceSession", reflect.TypeOf((*MockStore)(nil).EndVoiceSession), ctx, id)
 }
 
+// GetActiveGamesByUser mocks base method.
+func (m *MockStore) GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype.UUID) ([]db.Game, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveGamesByUser", ctx, whitePlayerID)
+	ret0, _ := ret[0].([]db.Game)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActiveGamesByUser indicates an expected call of GetActiveGamesByUser.
+func (mr *MockStoreMockRecorder) GetActiveGamesByUser(ctx, whitePlayerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveGamesByUser", reflect.TypeOf((*MockStore)(nil).GetActiveGamesByUser), ctx, whitePlayerID)
+}
+
 // GetActiveVoiceSessionByGameID mocks base method.
 func (m *MockStore) GetActiveVoiceSessionByGameID(ctx context.Context, gameID pgtype.UUID) (db.VoiceSession, error) {
 	m.ctrl.T.Helper()

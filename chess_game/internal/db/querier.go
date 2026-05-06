@@ -34,6 +34,7 @@ type Querier interface {
 	DeleteMovesByGameID(ctx context.Context, gameID pgtype.UUID) error
 	DeleteUser(ctx context.Context, id pgtype.UUID) error
 	EndVoiceSession(ctx context.Context, id pgtype.UUID) (VoiceSession, error)
+	GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype.UUID) ([]Game, error)
 	GetActiveVoiceSessionByGameID(ctx context.Context, gameID pgtype.UUID) (VoiceSession, error)
 	GetChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) ([]ChatMessage, error)
 	GetChatMessagesByGameIDPaginated(ctx context.Context, arg GetChatMessagesByGameIDPaginatedParams) ([]ChatMessage, error)

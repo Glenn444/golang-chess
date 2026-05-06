@@ -167,6 +167,8 @@ type Game struct {
 	BlackPlayerID pgtype.UUID        `json:"black_player_id"`
 	State         GameState          `json:"state"`
 	InCheck       bool               `json:"in_check"`
+	CurrentPlayer PlayerColor        `json:"current_player"`
+	MoveCount     int32              `json:"move_count"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }

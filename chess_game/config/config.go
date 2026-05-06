@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+	"github.com/gin-contrib/cors"
 )
 
 type Config struct {
@@ -14,6 +15,7 @@ type Config struct {
 	AcessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	TokenSymmetricKey  string        `mapstructure:"TokenSymmetricKey"`
 	RESEND_API_KEY     string        `mapstructure:"RESEND_API_KEY"`
+	Environment        string        `mapstructure:"ENVIRONMENT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -51,4 +53,23 @@ func LoadConfig(path string) (config Config, err error) {
 	}
 
 	return
+}
+
+func (c Config) CORSConfig() cors.Config {
+    if c.Environment == "production" {
+        return cors.Config{
+            AllowOrigins:     []string{"https://chesske.com", "https://www.chesske.com"},
+            AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+            AllowHeaders:     []string{"Authorization", "Content-Type"},
+            AllowCredentials: true,
+        }
+    }
+
+    // development — allow common Vite/React/Next ports
+    return cors.Config{
+        AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173"},
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Authorization", "Content-Type"},
+        AllowCredentials: true,
+    }
 }

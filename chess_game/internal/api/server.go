@@ -10,6 +10,7 @@ import (
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/Glenn444/golang-chess/internal/utils/emails"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/olahol/melody"
@@ -40,6 +41,7 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 		config:      config,
 		emailClient: emails.NewEmailClient(config.RESEND_API_KEY),
 		melody:      melody.New(),
+		activeGames: make(map[pgtype.UUID]*pieces.GameState),
 		
 	}
 	server.setupMelody()
@@ -47,12 +49,13 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
+	router.Use(cors.New(config.CORSConfig()))
 	// ── Public ───────────────────────────────────────────────────────────────
 	router.GET("/", server.welcome)
 
 	//users routes
 	users := router.Group("/users")
-	users.GET("/me",server.getMe)
+	
 	users.GET("/check-username", server.checkUsernameExists)
 	users.POST("/signup", server.createUser)
 	users.POST("/confirm-email", server.confirmEmail)
@@ -61,27 +64,36 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	users.POST("/refresh-token", server.refreshToken)
 
 	// ── Protected (Bearer JWT required) ─────────────────────────────────────
+	
+	//users
+	authUsers := router.Group("/users").Use(authMiddleware(server.tokenMaker))
+
+	authUsers.GET("/me",server.getMe)
+
 	// games
-	auth := router.Group("/games").Use(authMiddleware(server.tokenMaker))
+	authGames := router.Group("/games").Use(authMiddleware(server.tokenMaker))
 
-
-	auth.POST("/", server.createGame)
-	auth.GET("/", server.listWaitingGames)
-	auth.GET("/mine", server.listMyGames)
-	auth.GET("/:id", server.getGame)
-	auth.POST("/:id/join", server.joinGame)
-	auth.POST("/:id/resign", server.resignGame)
-	auth.GET("/:id/moves", server.getGameMoves)
+	authGames.POST("/", server.createGame)
+	authGames.GET("/", server.listWaitingGames)
+	authGames.GET("/mine", server.listMyGames)
+	authGames.GET("/:id", server.getGame)
+	authGames.POST("/:id/join", server.joinGame)
+	authGames.POST("/:id/resign", server.resignGame)
+	authGames.GET("/:id/moves", server.getGameMoves)
 
 	// chat
-	auth.POST("/:id/chat", server.sendChatMessage)
-	auth.GET("/:id/chat", server.getChatMessages)
+	authChat := router.Group("/chat").Use(authMiddleware(server.tokenMaker))
+
+	authChat.POST("/:id/chat", server.sendChatMessage)
+	authChat.GET("/:id/chat", server.getChatMessages)
 
 	// voice (WebRTC session lifecycle; signalling travels over /ws)
-	auth.POST("/:id/voice", server.startVoiceSession)
-	auth.GET("/:id/voice", server.getActiveVoiceSession)
-	auth.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
-	auth.DELETE("/:id/voice/:vid", server.endVoiceSession)
+	authVoice := router.Group("/voice").Use(authMiddleware(server.tokenMaker))
+
+	authVoice.POST("/:id/voice", server.startVoiceSession)
+	authVoice.GET("/:id/voice", server.getActiveVoiceSession)
+	authVoice.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
+	authVoice.DELETE("/:id/voice/:vid", server.endVoiceSession)
 
 	// ── WebSocket ────────────────────────────────────────────────────────────
 	// Bearer token must be sent as ?token=<access_token> (WS clients can't set headers).

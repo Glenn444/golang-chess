@@ -18,6 +18,11 @@ WHERE white_player_id = $1
    OR black_player_id = $1
 ORDER BY created_at DESC;
 
+-- name: GetActiveGamesByUser :many
+SELECT * FROM games 
+WHERE (white_player_id = $1 OR black_player_id = $1)
+AND status IN ('waiting', 'active');
+
 -- name: ListWaitingGames :many
 SELECT * FROM games
 WHERE state = 'waiting'

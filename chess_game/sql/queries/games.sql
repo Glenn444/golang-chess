@@ -57,6 +57,7 @@ SET
     in_check       = $3,
     current_player = $4,
     move_count     = $5,
+    board_state    = $6,
     updated_at     = NOW()
 WHERE id = $1
 RETURNING *;

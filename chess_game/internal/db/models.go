@@ -169,6 +169,7 @@ type Game struct {
 	InCheck       bool               `json:"in_check"`
 	CurrentPlayer PlayerColor        `json:"current_player"`
 	MoveCount     int32              `json:"move_count"`
+	BoardState    string             `json:"board_state"`
 	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
 }

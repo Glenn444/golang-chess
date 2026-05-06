@@ -56,6 +56,19 @@ func (server *Server) createGame(ctx *gin.Context) {
 		PlayAgainst: req.Opponent,
 	}
 
+	// persist the initial board state
+	_, err = server.store.UpdateGameState(ctx, db.UpdateGameStateParams{
+		ID:            game.ID,
+		State:         db.GameStateWaiting,
+		InCheck:       false,
+		CurrentPlayer: db.PlayerColorW,
+		MoveCount:     0,
+		BoardState:    board.SerializeGameState(gameState),
+	})
+	if handleDBError(ctx, err, WithLogArgs("createGame: failed to persist board state", "game_id", game.ID)) {
+		return
+	}
+
 	//save the game in memory
 	server.activeGamesMu.Lock()
 	server.activeGames[game.ID] = gameState

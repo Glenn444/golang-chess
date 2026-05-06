@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -113,22 +112,20 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 	gameID := wsGameID(s)
 
 	server.activeGamesMu.Lock()
-	if _, exists := server.activeGames[gameID]; exists {
-		// send current state to the joining session so their UI is in sync
-		gameState := server.activeGames[gameID]
+	if gameState, exists := server.activeGames[gameID]; exists {
+		server.activeGamesMu.Unlock()
+		// send current state so reconnecting UI is in sync
 		out, _ := json.Marshal(WSEvent{
 			Type:    "game_state",
 			Payload: wsMarshal(gameState),
 		})
 		s.Write(out)
+		slog.Info("ws: reconnected", "username", u.Username)
 		return
 	}
+	server.activeGamesMu.Unlock()
 
-    // first player — load from DB
-    // unlock before the DB call (I/O should not hold the lock)
-    server.activeGamesMu.Unlock()
-
-	// first player to connect — load from DB
+	// first player — load from DB
 	game, err := server.store.GetGameByID(s.Request.Context(), gameID)
 	if err != nil {
 		slog.Error("ws: failed to load game on connect", "game_id", gameID, "err", err)
@@ -136,72 +133,48 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 		return
 	}
 
-	// re-lock only to write to the map
 	server.activeGamesMu.Lock()
 	server.activeGames[gameID] = restoreGameState(game)
 	server.activeGamesMu.Unlock()
-	slog.Info("ws: game loaded into memory", "game_id", gameID)
 
+	slog.Info("ws: game loaded into memory", "game_id", gameID)
 	slog.Info("ws: connected", "username", u.Username)
 }
 
 func (server *Server) wsOnDisconnect(s *melody.Session) {
 	user := wsUser(s)
-	gameId := wsGameID(s)
+	gameID := wsGameID(s)
 
-	//broadcast to remaining player diconnected user
-	out,_ := json.Marshal(WSEvent{Type: EventPlayerDisconnected,Payload: wsMarshal(gin.H{
-		"username":user.Username,
-		"color":wsPlayerColor(s),
+	// broadcast player_disconnected to remaining players
+	out, _ := json.Marshal(WSEvent{Type: EventPlayerDisconnected, Payload: wsMarshal(gin.H{
+		"username": user.Username,
+		"color":    wsPlayerColor(s),
 	})})
-	server.wsBroadcastToGame(gameId,out)
+	server.wsBroadcastToGame(gameID, out)
 
-	//after broadcasting disconnect, start a timer
-	ctx,cancel := context.WithTimeout(context.Background(), 10 * time.Minute)
-	defer cancel()
-
-	reconnectedCh := make(chan bool)
-
-	go func (gameID pgtype.UUID)  {
-		time.Sleep(5 * time.Minute)
-
-		//check if they reconnected
-		server.melody.BroadcastFilter([]byte{}, func(other *melody.Session) bool {
-        if uuidEq(wsGameID(other), gameID) && wsUser(other).ID == user.ID {
-            reconnectedCh <- true
-        }
-        return false
-    })
-	}(gameId)
-
-	select  {
-	case reconnect := <- reconnectedCh:
-		//cancel wait if reconnect is true
-		if reconnect == true{
-			cancel()
-		}
-		
-
-	case <- ctx.Done():
-		//broadcast to the other user the user has not connected
-		
-	}
-
-	//count remaining sessions in this game
-	activeSession := 0
-	server.melody.BroadcastFilter([]byte{},func(other *melody.Session) bool {
-		if other != s && uuidEq(wsGameID(other),gameId){
-			activeSession++
+	// count remaining sessions for this game (not including the disconnecting one)
+	remaining := 0
+	server.melody.BroadcastFilter([]byte{}, func(other *melody.Session) bool {
+		if other != s && uuidEq(wsGameID(other), gameID) {
+			remaining++
 		}
 		return false
 	})
 
+	// if this was the last session, schedule cleanup after a grace period
+	if remaining == 0 {
+		// Start a background goroutine that waits and then cleans up
+		// if the player reconnects during this window, wsOnConnect
+		// re-populates activeGames, making the delete a no-op.
+		go func(gid pgtype.UUID) {
+			time.Sleep(5 * time.Minute)
+			server.activeGamesMu.Lock()
+			delete(server.activeGames, gid)
+			server.activeGamesMu.Unlock()
+		}(gameID)
+	}
 
-	server.activeGamesMu.Lock()
-	delete(server.activeGames,gameId)
-	server.activeGamesMu.Unlock()
-
-	slog.Info("ws: disconnected", "username", user.Username)
+	slog.Info("ws: disconnected", "username", user.Username, "remaining", remaining)
 }
 
 func (server *Server) wsOnMessage(s *melody.Session, raw []byte) {
@@ -317,8 +290,9 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		ID:            gameID,
 		State:         gameStatus,
 		InCheck:       check,
-		CurrentPlayer: db.PlayerColor(gamestate.Status),
+		CurrentPlayer: db.PlayerColor(gamestate.CurrentPlayer),
 		MoveCount:     gamestate.MoveNumber,
+		BoardState:    board.SerializeGameState(gamestate),
 	})
 	if err != nil {
 		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
@@ -397,12 +371,14 @@ func wsPlayerColor(s *melody.Session) string {
 }
 
 func restoreGameState(game db.Game) *pieces.GameState {
-
-	// restore board from game.BoardState if you serialize it
+	boardState, stockfishHistory := board.DeserializeGameState(game.BoardState)
 	return &pieces.GameState{
-		CurrentPlayer: string(game.CurrentPlayer),
-		MoveNumber:    game.MoveCount,
-		Status:        game.State,
-		InCheck:       game.InCheck,
+		CurrentPlayer:  string(game.CurrentPlayer),
+		Board:          boardState,
+		MoveNumber:     game.MoveCount,
+		Status:         game.State,
+		InCheck:        game.InCheck,
+		StockfishGame:  stockfishHistory,
+		CapturedPieces: make(map[string][]pieces.PieceInterface),
 	}
 }

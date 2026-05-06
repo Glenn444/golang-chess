@@ -3,6 +3,11 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Glenn444/golang-chess/config"
@@ -12,21 +17,16 @@ import (
 )
 
 func main() {
-	config, err := config.LoadConfig(".")
+	cfg, err := config.LoadConfig(".")
 	if err != nil {
 		log.Fatal("error loading the config, ", err)
 	}
 
-	var DB_URL = config.DB_URL //os.Getenv("DB_URL")
-	//var dbDriver = config.DBDriver
-	var Address = config.ServerAddress
-
-	//set up pool connection with config
-	dbConfig, err := pgxpool.ParseConfig(DB_URL)
+	dbConfig, err := pgxpool.ParseConfig(cfg.DB_URL)
 	if err != nil {
 		log.Fatal("cannot parse db config: ", err)
 	}
-	
+
 	dbConfig.MaxConns = 10
 	dbConfig.MinConns = 2
 	dbConfig.MaxConnLifetime = 30 * time.Minute
@@ -35,22 +35,45 @@ func main() {
 	if err != nil {
 		log.Fatal("cannot create db connection pool: ", err)
 	}
-
 	defer pool.Close()
 
-	err = pool.Ping(context.Background())
-	if err != nil {
+	if err := pool.Ping(context.Background()); err != nil {
 		log.Fatal("cannot connect to db: ", err)
 	}
 
 	store := db.NewStore(pool)
-	server, err := api.NewServer(config, store)
+	server, err := api.NewServer(cfg, store)
 	if err != nil {
 		log.Fatal("failed to set up server: ", err)
 	}
 
-	err = server.Start(Address)
-	if err != nil {
-		log.Fatal("cannot start server: ", err)
+	// Start the server in a goroutine so we can listen for shutdown signals.
+	errCh := make(chan error, 1)
+	go func() {
+		slog.Info("server starting", "address", cfg.ServerAddress)
+		if err := server.Start(cfg.ServerAddress); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+		}
+	}()
+
+	// Wait for interrupt signal or server error.
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case sig := <-quit:
+		slog.Info("shutting down", "signal", sig.String())
+	case err := <-errCh:
+		slog.Error("server error", "err", err)
 	}
+
+	// Graceful shutdown with a deadline.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		slog.Error("forced to shutdown", "err", err)
+	}
+
+	slog.Info("server stopped")
 }

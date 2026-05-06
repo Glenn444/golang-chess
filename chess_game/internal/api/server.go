@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sync"
@@ -23,9 +24,10 @@ type Server struct {
 	store       db.Store
 	router      *gin.Engine
 	melody      *melody.Melody
+	httpServer  *http.Server
 
 	//chess game
-	activeGames map[pgtype.UUID]*pieces.GameState
+	activeGames   map[pgtype.UUID]*pieces.GameState
 	activeGamesMu sync.RWMutex //protect concurremt ws access
 }
 
@@ -81,19 +83,15 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	authGames.POST("/:id/resign", server.resignGame)
 	authGames.GET("/:id/moves", server.getGameMoves)
 
-	// chat
-	authChat := router.Group("/chat").Use(authMiddleware(server.tokenMaker))
-
-	authChat.POST("/:id/chat", server.sendChatMessage)
-	authChat.GET("/:id/chat", server.getChatMessages)
+	// chat (scoped under games)
+	authGames.POST("/:id/chat", server.sendChatMessage)
+	authGames.GET("/:id/chat", server.getChatMessages)
 
 	// voice (WebRTC session lifecycle; signalling travels over /ws)
-	authVoice := router.Group("/voice").Use(authMiddleware(server.tokenMaker))
-
-	authVoice.POST("/:id/voice", server.startVoiceSession)
-	authVoice.GET("/:id/voice", server.getActiveVoiceSession)
-	authVoice.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
-	authVoice.DELETE("/:id/voice/:vid", server.endVoiceSession)
+	authGames.POST("/:id/voice", server.startVoiceSession)
+	authGames.GET("/:id/voice", server.getActiveVoiceSession)
+	authGames.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
+	authGames.DELETE("/:id/voice/:vid", server.endVoiceSession)
 
 	// ── WebSocket ────────────────────────────────────────────────────────────
 	// Bearer token must be sent as ?token=<access_token> (WS clients can't set headers).
@@ -107,7 +105,15 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 }
 
 func (server *Server) Start(address string) error {
-	return server.router.Run(address)
+	server.httpServer = &http.Server{
+		Addr:    address,
+		Handler: server.router,
+	}
+	return server.httpServer.ListenAndServe()
+}
+
+func (server *Server) Shutdown(ctx context.Context) error {
+	return server.httpServer.Shutdown(ctx)
 }
 
 func (server *Server) welcome(ctx *gin.Context) {

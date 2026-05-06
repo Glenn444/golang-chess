@@ -196,6 +196,19 @@ func setupWSRouter(t *testing.T, server *Server, store *mock_db.MockStore) (*htt
 	return srv, token, gameID
 }
 
+func drainGameState(t *testing.T, conn *websocket.Conn) {
+	t.Helper()
+	var evt WSEvent
+	if err := conn.ReadJSON(&evt); err != nil {
+		return
+	}
+	if evt.Type == "game_state" {
+		return
+	}
+	// If it wasn't game_state, it's unexpected; fail the test
+	t.Fatalf("expected game_state event on connect, got %q", evt.Type)
+}
+
 func TestWSMakeMoveIntegration(t *testing.T) {
 	t.Run("successful move broadcasts result", func(t *testing.T) {
 		server, store, _ := newTestWSServer(t)
@@ -211,6 +224,9 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 		defer conn.Close()
 
 		_ = gameID
+
+		// drain the initial game_state event sent on connect
+		drainGameState(t, conn)
 
 		// Send a valid white pawn move
 		moveEvent := WSEvent{
@@ -252,6 +268,8 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 		require.NoError(t, err)
 		defer conn.Close()
 
+		drainGameState(t, conn)
+
 		// White sends a move but it's black's turn
 		moveEvent := WSEvent{
 			Type:    EventMakeMove,
@@ -283,6 +301,7 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 		defer conn.Close()
 
 		_ = gameID
+		drainGameState(t, conn)
 
 		// Send an impossible move
 		moveEvent := WSEvent{
@@ -317,6 +336,8 @@ func TestWSHandleChatIntegration(t *testing.T) {
 		require.NoError(t, err)
 		defer conn.Close()
 
+		drainGameState(t, conn)
+
 		chatEvent := WSEvent{
 			Type:    EventChat,
 			Payload: json.RawMessage(`{"content":"hello!"}`),
@@ -338,6 +359,8 @@ func TestWSHandleChatIntegration(t *testing.T) {
 		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 		require.NoError(t, err)
 		defer conn.Close()
+
+		drainGameState(t, conn)
 
 		chatEvent := WSEvent{
 			Type:    EventChat,

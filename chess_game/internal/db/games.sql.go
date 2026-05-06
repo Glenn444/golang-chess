@@ -14,7 +14,7 @@ import (
 const createGameAsBlack = `-- name: CreateGameAsBlack :one
 INSERT INTO games (black_player_id)
 VALUES ($1)
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at
 `
 
 func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UUID) (Game, error) {
@@ -28,6 +28,7 @@ func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UU
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
+			&i.BoardState,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -37,7 +38,7 @@ func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UU
 const createGameAsWhite = `-- name: CreateGameAsWhite :one
 INSERT INTO games (white_player_id)
 VALUES ($1)
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at
 `
 
 func (q *Queries) CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error) {
@@ -51,6 +52,7 @@ func (q *Queries) CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UU
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
+			&i.BoardState,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -68,7 +70,7 @@ func (q *Queries) DeleteGame(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getActiveGamesByUser = `-- name: GetActiveGamesByUser :many
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at FROM games 
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at FROM games 
 WHERE (white_player_id = $1 OR black_player_id = $1)
 AND status IN ('waiting', 'active')
 `
@@ -90,6 +92,7 @@ func (q *Queries) GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype
 			&i.InCheck,
 			&i.CurrentPlayer,
 			&i.MoveCount,
+			&i.BoardState,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -104,7 +107,7 @@ func (q *Queries) GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype
 }
 
 const getGameByID = `-- name: GetGameByID :one
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at FROM games
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at FROM games
 WHERE id = $1
 `
 
@@ -119,6 +122,7 @@ func (q *Queries) GetGameByID(ctx context.Context, id pgtype.UUID) (Game, error)
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
+			&i.BoardState,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -126,7 +130,7 @@ func (q *Queries) GetGameByID(ctx context.Context, id pgtype.UUID) (Game, error)
 }
 
 const getGamesByPlayerID = `-- name: GetGamesByPlayerID :many
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at FROM games
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at FROM games
 WHERE white_player_id = $1
    OR black_player_id = $1
 ORDER BY created_at DESC
@@ -149,6 +153,7 @@ func (q *Queries) GetGamesByPlayerID(ctx context.Context, whitePlayerID pgtype.U
 			&i.InCheck,
 			&i.CurrentPlayer,
 			&i.MoveCount,
+			&i.BoardState,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -171,7 +176,7 @@ SET
 WHERE id = $1
   AND state = 'waiting'
   AND black_player_id IS NULL
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at
 `
 
 type JoinGameAsBlackParams struct {
@@ -190,6 +195,7 @@ func (q *Queries) JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
+			&i.BoardState,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -205,7 +211,7 @@ SET
 WHERE id = $1
   AND state = 'waiting'
   AND white_player_id IS NULL
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at
 `
 
 type JoinGameAsWhiteParams struct {
@@ -224,6 +230,7 @@ func (q *Queries) JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
+			&i.BoardState,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -231,7 +238,7 @@ func (q *Queries) JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams
 }
 
 const listWaitingGames = `-- name: ListWaitingGames :many
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at FROM games
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at FROM games
 WHERE state = 'waiting'
 ORDER BY created_at ASC
 `
@@ -253,6 +260,7 @@ func (q *Queries) ListWaitingGames(ctx context.Context) ([]Game, error) {
 			&i.InCheck,
 			&i.CurrentPlayer,
 			&i.MoveCount,
+			&i.BoardState,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -273,9 +281,10 @@ SET
     in_check       = $3,
     current_player = $4,
     move_count     = $5,
+    board_state    = $6,
     updated_at     = NOW()
 WHERE id = $1
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at
 `
 
 type UpdateGameStateParams struct {
@@ -284,6 +293,7 @@ type UpdateGameStateParams struct {
 	InCheck       bool        `json:"in_check"`
 	CurrentPlayer PlayerColor `json:"current_player"`
 	MoveCount     int32       `json:"move_count"`
+	BoardState    string      `json:"board_state"`
 }
 
 func (q *Queries) UpdateGameState(ctx context.Context, arg UpdateGameStateParams) (Game, error) {
@@ -293,6 +303,7 @@ func (q *Queries) UpdateGameState(ctx context.Context, arg UpdateGameStateParams
 		arg.InCheck,
 		arg.CurrentPlayer,
 		arg.MoveCount,
+		arg.BoardState,
 	)
 	var i Game
 	err := row.Scan(
@@ -303,6 +314,7 @@ func (q *Queries) UpdateGameState(ctx context.Context, arg UpdateGameStateParams
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
+			&i.BoardState,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

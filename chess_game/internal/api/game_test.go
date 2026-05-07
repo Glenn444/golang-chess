@@ -105,7 +105,7 @@ func TestCreateGame(t *testing.T) {
 		store.EXPECT().CreateGameAsWhite(gomock.Any(), user.ID).Return(game, nil)
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
 
-		ctx, rec := newGameCtx(http.MethodPost, "/games", createGameReq{
+		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
 			Opponent:    "person",
 		})
@@ -140,7 +140,7 @@ func TestCreateGame(t *testing.T) {
 		store.EXPECT().CreateGameAsBlack(gomock.Any(), user.ID).Return(game, nil)
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
 
-		ctx, rec := newGameCtx(http.MethodPost, "/games", createGameReq{
+		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "b",
 			Opponent:    "person",
 		})

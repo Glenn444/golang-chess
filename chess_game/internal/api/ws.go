@@ -17,10 +17,14 @@ import (
 )
 
 const (
-	wsKeyUser        = "ws_user"
-	wsKeyGameID      = "ws_game_id"
-	wsKeyPlayerColor = "ws_player_color"
+	wsKeyUser          = "ws_user"
+	wsKeyGameID        = "ws_game_id"
+	wsKeyPlayerColor   = "ws_player_color"
+	wsKeyAuthenticated = "ws_authenticated"
 
+	// WebSocket keepalive
+	pingInterval = 30 * time.Second
+	authTimeout  = 10 * time.Second
 )
 
 // WSEvent is the JSON envelope for every WebSocket message.
@@ -30,51 +34,47 @@ type WSEvent struct {
 }
 
 const (
-	EventMakeMove    = "make_move"
-	EventChat        = "chat"
-	EventVoiceOffer  = "voice_offer"
-	EventVoiceAnswer = "voice_answer"
-	EventVoiceICE    = "voice_ice"
-	EventVoiceEnd    = "voice_end"
-	EventError       = "error"
-
-
-	EventPlayerDisconnected = "player_disconnected"
-	EventPlayerReconnected  = "player_reconnected" // useful later
+	EventMakeMove            = "make_move"
+	EventChat                = "chat"
+	EventVoiceOffer          = "voice_offer"
+	EventVoiceAnswer         = "voice_answer"
+	EventVoiceICE            = "voice_ice"
+	EventVoiceEnd            = "voice_end"
+	EventError               = "error"
+	EventAuth                = "auth"
+	EventAuthRequired        = "auth_required"
+	EventPlayerDisconnected  = "player_disconnected"
+	EventPlayerReconnected   = "player_reconnected"
+	EventPing                = "ping"
+	EventPong                = "pong"
 )
 
-// setupMelody wires the melody lifecycle hooks. Called once in NewServer.
+// setupMelody wires lifecycle hooks and keepalive. Called once in NewServer.
 func (server *Server) setupMelody() {
 	m := server.melody
+	m.Upgrader.ReadBufferSize = 1024
+	m.Upgrader.WriteBufferSize = 1024
+
 	m.HandleConnect(server.wsOnConnect)
 	m.HandleDisconnect(server.wsOnDisconnect)
 	m.HandleMessage(server.wsOnMessage)
+
+	// Application-level keepalive: send a ping every pingInterval.
+	// Clients should reply with {"type":"pong"}.
+	go func() {
+		ticker := time.NewTicker(pingInterval)
+		defer ticker.Stop()
+		for range ticker.C {
+			pingMsg, _ := json.Marshal(WSEvent{Type: EventPing})
+			server.melody.Broadcast(pingMsg)
+		}
+	}()
 }
 
-// handleWebSocket upgrades the connection to WebSocket.
-// Query params:
-//
-//	?token=<access_token>   — Bearer JWT (WS clients cannot set custom headers)
-//	?game_id=<uuid>         — game room to join
+// handleWebSocket upgrades to WebSocket. No auth token in query string —
+// the client authenticates by sending an "auth" message as the first frame.
+// Only ?game_id=<uuid> is required.
 func (server *Server) handleWebSocket(ctx *gin.Context) {
-	rawToken := ctx.Query("token")
-	if rawToken == "" {
-		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrUnauthorized))
-		return
-	}
-
-	payload, err := server.tokenMaker.VerifyToken(rawToken, token.AccessTokenType)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrInvalidToken))
-		return
-	}
-
-	user, err := server.store.GetUserByUsername(ctx, payload.Username)
-	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrUserNotFound))
-		return
-	}
-
 	parsed, err := uuid.Parse(ctx.Query("game_id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorMessage("game_id query param required"))
@@ -82,77 +82,68 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 	}
 	gameID := pgtype.UUID{Bytes: parsed, Valid: true}
 
-	// verify the caller is actually a player in this game
-	game, err := server.store.GetGameByID(ctx, gameID)
-	if err != nil {
+	// Verify the game exists before upgrading.
+	if _, err := server.store.GetGameByID(ctx, gameID); err != nil {
 		ctx.JSON(http.StatusNotFound, errorMessage(ErrGameNotFound))
 		return
 	}
-	if !uuidEq(game.WhitePlayerID, user.ID) && !uuidEq(game.BlackPlayerID, user.ID) {
-		ctx.JSON(http.StatusForbidden, errorMessage(ErrNotAPlayer))
-		return
-	}
-	var playerColor string
-	if uuidEq(game.WhitePlayerID, user.ID) {
-		playerColor = "w"
-	} else {
-		playerColor = "b"
-	}
+
 	if err := server.melody.HandleRequestWithKeys(ctx.Writer, ctx.Request, map[string]any{
-		wsKeyUser:        user,
-		wsKeyGameID:      gameID,
-		wsKeyPlayerColor: playerColor,
+		wsKeyGameID:        gameID,
+		wsKeyAuthenticated: false,
 	}); err != nil {
 		slog.Error("ws: upgrade failed", "err", err)
 	}
 }
 
 func (server *Server) wsOnConnect(s *melody.Session) {
-	u := wsUser(s)
-	gameID := wsGameID(s)
+	if wsIsAuthenticated(s) {
+		// Pre-authenticated session — load game state.
+		u := wsUser(s)
+		gameID := wsGameID(s)
 
-	server.activeGamesMu.Lock()
-	if gameState, exists := server.activeGames[gameID]; exists {
+		server.activeGamesMu.Lock()
+		if gameState, exists := server.activeGames[gameID]; exists {
+			server.activeGamesMu.Unlock()
+			out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: wsMarshal(gameState)})
+			s.Write(out)
+			slog.Info("ws: reconnected", "username", u.Username)
+			return
+		}
 		server.activeGamesMu.Unlock()
-		// send current state so reconnecting UI is in sync
-		out, _ := json.Marshal(WSEvent{
-			Type:    "game_state",
-			Payload: wsMarshal(gameState),
-		})
-		s.Write(out)
-		slog.Info("ws: reconnected", "username", u.Username)
-		return
-	}
-	server.activeGamesMu.Unlock()
 
-	// first player — load from DB
-	game, err := server.store.GetGameByID(s.Request.Context(), gameID)
-	if err != nil {
-		slog.Error("ws: failed to load game on connect", "game_id", gameID, "err", err)
-		s.CloseWithMsg(melody.FormatCloseMessage(1011, "failed to load game"))
+		game, err := server.store.GetGameByID(s.Request.Context(), gameID)
+		if err != nil {
+			slog.Error("ws: failed to load game on connect", "game_id", gameID, "err", err)
+			s.CloseWithMsg(melody.FormatCloseMessage(1011, "failed to load game"))
+			return
+		}
+		server.activeGamesMu.Lock()
+		server.activeGames[gameID] = restoreGameState(game)
+		server.activeGamesMu.Unlock()
+		slog.Info("ws: game loaded into memory", "game_id", gameID)
+		slog.Info("ws: connected", "username", u.Username)
 		return
 	}
 
-	server.activeGamesMu.Lock()
-	server.activeGames[gameID] = restoreGameState(game)
-	server.activeGamesMu.Unlock()
-
-	slog.Info("ws: game loaded into memory", "game_id", gameID)
-	slog.Info("ws: connected", "username", u.Username)
+	slog.Info("ws: connected — waiting for auth")
+	s.Write([]byte(`{"type":"auth_required"}`))
 }
 
 func (server *Server) wsOnDisconnect(s *melody.Session) {
-	user := wsUser(s)
+	user, ok := wsUserSafe(s)
+	if !ok {
+		slog.Info("ws: unauthenticated session disconnected")
+		return
+	}
 	gameID := wsGameID(s)
 
-	// broadcast player_disconnected to remaining players
 	out, _ := json.Marshal(WSEvent{Type: EventPlayerDisconnected, Payload: wsMarshal(gin.H{
 		"username": user.Username,
 		"color":    wsPlayerColor(s),
 	})})
 	server.wsBroadcastToGame(gameID, out)
 
-	// count remaining sessions for this game (not including the disconnecting one)
 	remaining := 0
 	server.melody.BroadcastFilter([]byte{}, func(other *melody.Session) bool {
 		if other != s && uuidEq(wsGameID(other), gameID) {
@@ -161,11 +152,7 @@ func (server *Server) wsOnDisconnect(s *melody.Session) {
 		return false
 	})
 
-	// if this was the last session, schedule cleanup after a grace period
 	if remaining == 0 {
-		// Start a background goroutine that waits and then cleans up
-		// if the player reconnects during this window, wsOnConnect
-		// re-populates activeGames, making the delete a no-op.
 		go func(gid pgtype.UUID) {
 			time.Sleep(5 * time.Minute)
 			server.activeGamesMu.Lock()
@@ -184,6 +171,22 @@ func (server *Server) wsOnMessage(s *melody.Session, raw []byte) {
 		return
 	}
 
+	// Pong responses just reset the keepalive — no further processing.
+	if event.Type == EventPong {
+		return
+	}
+
+	// If not yet authenticated, require an auth message first.
+	if !wsIsAuthenticated(s) {
+		if event.Type != EventAuth {
+			wsWriteError(s, "authentication required — send auth message first")
+			s.Close()
+			return
+		}
+		server.wsHandleAuth(s, event.Payload)
+		return
+	}
+
 	gameID := wsGameID(s)
 
 	switch event.Type {
@@ -192,11 +195,87 @@ func (server *Server) wsOnMessage(s *melody.Session, raw []byte) {
 	case EventMakeMove:
 		server.wsHandleMove(s, gameID, event.Payload)
 	case EventVoiceOffer, EventVoiceAnswer, EventVoiceICE, EventVoiceEnd:
-		// relay WebRTC signalling directly to the other player — no DB storage
 		server.wsRelayToOthers(s, gameID, raw)
 	default:
 		wsWriteError(s, "unknown event type: "+event.Type)
 	}
+}
+
+// wsHandleAuth verifies the JWT token, sets session keys, and sends the
+// current game state to the newly authenticated client.
+func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
+	var body struct {
+		Token string `json:"token"`
+	}
+	if err := json.Unmarshal(payload, &body); err != nil || body.Token == "" {
+		wsWriteError(s, "auth payload must include token")
+		return
+	}
+
+	payloadToken, err := server.tokenMaker.VerifyToken(body.Token, token.AccessTokenType)
+	if err != nil {
+		wsWriteError(s, ErrInvalidToken)
+		return
+	}
+
+	user, err := server.store.GetUserByUsername(s.Request.Context(), payloadToken.Username)
+	if err != nil {
+		wsWriteError(s, ErrUserNotFound)
+		return
+	}
+
+	gameID := wsGameID(s)
+
+	dbGame, err := server.store.GetGameByID(s.Request.Context(), gameID)
+	if err != nil {
+		wsWriteError(s, ErrGameNotFound)
+		return
+	}
+	if !uuidEq(dbGame.WhitePlayerID, user.ID) && !uuidEq(dbGame.BlackPlayerID, user.ID) {
+		wsWriteError(s, ErrNotAPlayer)
+		return
+	}
+
+	var playerColor string
+	if uuidEq(dbGame.WhitePlayerID, user.ID) {
+		playerColor = "w"
+	} else {
+		playerColor = "b"
+	}
+
+	s.Set(wsKeyUser, user)
+	s.Set(wsKeyPlayerColor, playerColor)
+	s.Set(wsKeyAuthenticated, true)
+
+	slog.Info("ws: authenticated", "username", user.Username, "game_id", gameID)
+
+	// Load or restore game state.
+	server.activeGamesMu.Lock()
+	if gameState, exists := server.activeGames[gameID]; exists {
+		server.activeGamesMu.Unlock()
+		out, _ := json.Marshal(WSEvent{
+			Type:    "game_state",
+			Payload: wsMarshal(gameState),
+		})
+		s.Write(out)
+		slog.Info("ws: reconnected", "username", user.Username)
+		return
+	}
+	server.activeGamesMu.Unlock()
+
+	// First player — restore from DB.
+	game, err := server.store.GetGameByID(s.Request.Context(), gameID)
+	if err != nil {
+		wsWriteError(s, "failed to load game")
+		return
+	}
+
+	server.activeGamesMu.Lock()
+	server.activeGames[gameID] = restoreGameState(game)
+	server.activeGamesMu.Unlock()
+
+	slog.Info("ws: game loaded into memory", "game_id", gameID)
+	slog.Info("ws: connected", "username", user.Username)
 }
 
 // wsHandleChat persists the message then broadcasts it to the game room.
@@ -235,8 +314,6 @@ type MoveResult struct {
 }
 
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
-
-	//lock access to the activeGames
 	server.activeGamesMu.RLock()
 	gamestate, ok := server.activeGames[gameID]
 	server.activeGamesMu.RUnlock()
@@ -246,7 +323,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		return
 	}
 	var body struct {
-		Move string `json:"move"` //e2e3
+		Move string `json:"move"`
 	}
 	if err := json.Unmarshal(payload, &body); err != nil || body.Move == "" {
 		wsWriteError(s, "invalid move payload")
@@ -259,7 +336,6 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	user := wsUser(s)
 
 	playerColor := wsPlayerColor(s)
-	//enforce turn
 	if playerColor != gamestate.CurrentPlayer {
 		wsWriteError(s, "not your turn")
 		return
@@ -283,7 +359,6 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		gameStatus = db.GameStateStalemate
 	}
 
-	//increment move number after successful move
 	gamestate.MoveNumber++
 
 	_, err = server.store.UpdateGameState(s.Request.Context(), db.UpdateGameStateParams{
@@ -311,14 +386,13 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		MoveNotation: body.Move,
 		MoveNumber:   gamestate.MoveNumber,
 	})
-
 	if err != nil {
 		slog.Error("ws: CreateMove failed", "err", err)
 	}
 
 	result := MoveResult{
 		Move:          body.Move,
-		CurrentPlayer: gamestate.CurrentPlayer, //already flipped by board.Move()
+		CurrentPlayer: gamestate.CurrentPlayer,
 		InCheck:       check,
 		IsCheckmate:   isCheckmate,
 		IsStalemate:   isStalemate,
@@ -329,7 +403,6 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 }
 
 // wsRelayToOthers forwards a message to every other session in the same game room.
-// Used for WebRTC signalling (offer/answer/ICE) which must not echo back to sender.
 func (server *Server) wsRelayToOthers(s *melody.Session, gameID pgtype.UUID, msg []byte) {
 	server.melody.BroadcastFilter(msg, func(other *melody.Session) bool {
 		return other != s && uuidEq(wsGameID(other), gameID)
@@ -350,9 +423,26 @@ func wsUser(s *melody.Session) db.User {
 	return v.(db.User)
 }
 
+func wsUserSafe(s *melody.Session) (db.User, bool) {
+	v, exists := s.Get(wsKeyUser)
+	if !exists {
+		return db.User{}, false
+	}
+	return v.(db.User), true
+}
+
 func wsGameID(s *melody.Session) pgtype.UUID {
 	v, _ := s.Get(wsKeyGameID)
 	return v.(pgtype.UUID)
+}
+
+func wsIsAuthenticated(s *melody.Session) bool {
+	v, exists := s.Get(wsKeyAuthenticated)
+	if !exists {
+		return false
+	}
+	auth, _ := v.(bool)
+	return auth
 }
 
 func wsWriteError(s *melody.Session, msg string) {
@@ -366,7 +456,7 @@ func wsMarshal(v any) json.RawMessage {
 }
 
 func wsPlayerColor(s *melody.Session) string {
-	v, _ := s.Get("ws_player_color")
+	v, _ := s.Get(wsKeyPlayerColor)
 	return v.(string)
 }
 

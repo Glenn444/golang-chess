@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/Glenn444/golang-chess/config"
 	"github.com/Glenn444/golang-chess/internal/db"
@@ -12,6 +14,7 @@ import (
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/Glenn444/golang-chess/internal/utils/emails"
 	"github.com/gin-contrib/cors"
+	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/olahol/melody"
@@ -25,39 +28,88 @@ type Server struct {
 	router      *gin.Engine
 	melody      *melody.Melody
 	httpServer  *http.Server
+	ready       atomic.Bool
 
 	//chess game
 	activeGames   map[pgtype.UUID]*pieces.GameState
-	activeGamesMu sync.RWMutex //protect concurremt ws access
+	activeGamesMu sync.RWMutex
 }
 
-func NewServer(config config.Config, store db.Store) (*Server, error) {
-	jwtTokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
+func NewServer(cfg config.Config, store db.Store) (*Server, error) {
+	jwtTokenMaker, err := token.NewJWTMaker(cfg.TokenSymmetricKey)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create token maker %w\n", err)
+		return nil, fmt.Errorf("cannot create token maker %w", err)
 	}
 
 	server := &Server{
 		tokenMaker:  jwtTokenMaker,
 		store:       store,
-		config:      config,
-		emailClient: emails.NewEmailClient(config.RESEND_API_KEY),
+		config:      cfg,
+		emailClient: emails.NewEmailClient(cfg.RESEND_API_KEY),
 		melody:      melody.New(),
 		activeGames: make(map[pgtype.UUID]*pieces.GameState),
-		
 	}
 	server.setupMelody()
 
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
-	router.Use(cors.New(config.CORSConfig()))
-	// ── Public ───────────────────────────────────────────────────────────────
+	// ── Global middleware ─────────────────────────────────────────────────────
+	router.Use(cors.New(cfg.CORSConfig()))
+
+	// Rate limiting: 100 req/min for public routes, 200/min for auth routes.
+	publicLimiter := ratelimit.RateLimiter(
+		ratelimit.InMemoryStore(&ratelimit.InMemoryOptions{
+			Rate:  time.Minute,
+			Limit: 100,
+		}),
+		&ratelimit.Options{
+			ErrorHandler: func(c *gin.Context, info ratelimit.Info) {
+				c.JSON(http.StatusTooManyRequests, errorMessage("rate limit exceeded"))
+				c.Abort()
+			},
+		},
+	)
+	authLimiter := ratelimit.RateLimiter(
+		ratelimit.InMemoryStore(&ratelimit.InMemoryOptions{
+			Rate:  time.Minute,
+			Limit: 200,
+		}),
+		&ratelimit.Options{
+			ErrorHandler: func(c *gin.Context, info ratelimit.Info) {
+				c.JSON(http.StatusTooManyRequests, errorMessage("rate limit exceeded"))
+				c.Abort()
+			},
+		},
+	)
+
+	// ── Health / Readiness ────────────────────────────────────────────────────
+	router.GET("/healthz", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "alive"})
+	})
+
+	router.GET("/readyz", func(c *gin.Context) {
+		if !server.ready.Load() {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not ready"})
+			return
+		}
+		if err := server.store.Ping(c.Request.Context()); err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": "not ready",
+				"reason": "database unreachable",
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "ready"})
+	})
+
+	// ── Welcome ───────────────────────────────────────────────────────────────
 	router.GET("/", server.welcome)
 
-	//users routes
+	// ── Public (rate-limited) ─────────────────────────────────────────────────
 	users := router.Group("/users")
-	
+	users.Use(publicLimiter)
+
 	users.GET("/check-username", server.checkUsernameExists)
 	users.POST("/signup", server.createUser)
 	users.POST("/confirm-email", server.confirmEmail)
@@ -65,16 +117,11 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	users.POST("/signin", server.loginUser)
 	users.POST("/refresh-token", server.refreshToken)
 
-	// ── Protected (Bearer JWT required) ─────────────────────────────────────
-	
-	//users
-	authUsers := router.Group("/users").Use(authMiddleware(server.tokenMaker))
+	// ── Protected (Bearer JWT + rate-limited) ─────────────────────────────────
+	authUsers := router.Group("/users").Use(authMiddleware(server.tokenMaker), authLimiter)
+	authUsers.GET("/me", server.getMe)
 
-	authUsers.GET("/me",server.getMe)
-
-	// games
-	authGames := router.Group("/games").Use(authMiddleware(server.tokenMaker))
-
+	authGames := router.Group("/games").Use(authMiddleware(server.tokenMaker), authLimiter)
 	authGames.POST("/", server.createGame)
 	authGames.GET("/", server.listWaitingGames)
 	authGames.GET("/mine", server.listMyGames)
@@ -83,24 +130,21 @@ func NewServer(config config.Config, store db.Store) (*Server, error) {
 	authGames.POST("/:id/resign", server.resignGame)
 	authGames.GET("/:id/moves", server.getGameMoves)
 
-	// chat (scoped under games)
+	// chat + voice (scoped under games)
 	authGames.POST("/:id/chat", server.sendChatMessage)
 	authGames.GET("/:id/chat", server.getChatMessages)
-
-	// voice (WebRTC session lifecycle; signalling travels over /ws)
 	authGames.POST("/:id/voice", server.startVoiceSession)
 	authGames.GET("/:id/voice", server.getActiveVoiceSession)
 	authGames.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
 	authGames.DELETE("/:id/voice/:vid", server.endVoiceSession)
 
-	// ── WebSocket ────────────────────────────────────────────────────────────
-	// Bearer token must be sent as ?token=<access_token> (WS clients can't set headers).
-	// Game room is selected via ?game_id=<uuid>.
-	//Example url
-	//ws://localhost:8080/ws/game?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMyJ9.abc123&game_id=550e8400-e29b-41d4-a716-446655440000
+	// ── WebSocket ─────────────────────────────────────────────────────────────
+	// No token in query string — client sends an "auth" message as the first
+	// frame after upgrading. Game room is selected via ?game_id=<uuid>.
 	router.GET("/ws", server.handleWebSocket)
 
 	server.router = router
+	server.ready.Store(true)
 	return server, nil
 }
 
@@ -113,6 +157,7 @@ func (server *Server) Start(address string) error {
 }
 
 func (server *Server) Shutdown(ctx context.Context) error {
+	server.ready.Store(false)
 	return server.httpServer.Shutdown(ctx)
 }
 

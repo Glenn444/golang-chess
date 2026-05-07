@@ -1,0 +1,586 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "title": "implements the Chess Game HTTP and WebSocket server.",
+    "contact": {
+      "name": "Chess Game API",
+      "email": "info@chess-game.local"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "1.0.0"
+  },
+  "host": "localhost:8080",
+  "basePath": "/",
+  "paths": {
+    "/games": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "List all games waiting for a second player.",
+        "operationId": "listWaitingGames",
+        "responses": {
+          "200": {
+            "description": "List of waiting games"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Create a new chess game.",
+        "operationId": "createGame",
+        "responses": {
+          "201": {
+            "description": "Game created"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/mine": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "List the current user's games.",
+        "operationId": "listMyGames",
+        "responses": {
+          "200": {
+            "description": "List of user's games"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Get a game by ID.",
+        "operationId": "getGame",
+        "responses": {
+          "200": {
+            "description": "Game details"
+          },
+          "400": {
+            "description": "Invalid game ID"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Game not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}/chat": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Get chat history for a game.",
+        "operationId": "getChatMessages",
+        "responses": {
+          "200": {
+            "description": "Chat messages"
+          },
+          "400": {
+            "description": "Invalid game ID"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Send a chat message in a game.",
+        "operationId": "sendChatMessage",
+        "responses": {
+          "201": {
+            "description": "Message sent"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not a player"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}/join": {
+      "post": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Join a waiting game as the second player.",
+        "operationId": "joinGame",
+        "responses": {
+          "200": {
+            "description": "Joined successfully"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Cannot join own game"
+          },
+          "404": {
+            "description": "Game not found"
+          },
+          "409": {
+            "description": "Game already full"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}/moves": {
+      "get": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Get the move history for a game.",
+        "operationId": "getGameMoves",
+        "responses": {
+          "200": {
+            "description": "List of moves"
+          },
+          "400": {
+            "description": "Invalid game ID"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}/resign": {
+      "post": {
+        "tags": [
+          "Games"
+        ],
+        "summary": "Resign from an active game.",
+        "operationId": "resignGame",
+        "responses": {
+          "200": {
+            "description": "Resigned successfully"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not a player in this game"
+          },
+          "409": {
+            "description": "Game not active"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}/voice": {
+      "get": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Get the active voice session for a game.",
+        "operationId": "getActiveVoiceSession",
+        "responses": {
+          "200": {
+            "description": "Active voice session"
+          },
+          "400": {
+            "description": "Invalid game ID"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "No active session"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Start a WebRTC voice session.",
+        "operationId": "startVoiceSession",
+        "responses": {
+          "201": {
+            "description": "Voice session created"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not a player"
+          },
+          "409": {
+            "description": "Active session already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}/voice/{vid}": {
+      "delete": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "End a voice session.",
+        "operationId": "endVoiceSession",
+        "responses": {
+          "200": {
+            "description": "Voice session ended"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not a player"
+          },
+          "404": {
+            "description": "Session not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/games/{id}/voice/{vid}/activate": {
+      "patch": {
+        "tags": [
+          "Voice"
+        ],
+        "summary": "Accept an incoming voice call.",
+        "operationId": "activateVoiceSession",
+        "responses": {
+          "200": {
+            "description": "Voice session activated"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not the call recipient"
+          },
+          "404": {
+            "description": "Session not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness check — is the process alive?",
+        "operationId": "healthz",
+        "responses": {
+          "200": {
+            "description": "Server is alive"
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Readiness check — can the server accept traffic?",
+        "operationId": "readyz",
+        "responses": {
+          "200": {
+            "description": "Server is ready"
+          },
+          "503": {
+            "description": "Server not ready"
+          }
+        }
+      }
+    },
+    "/users/check-username": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Check whether a username is available.",
+        "operationId": "checkUsernameExists",
+        "responses": {
+          "200": {
+            "description": "Username availability"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/confirm-email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Confirm email address with a 6-digit OTP code.",
+        "operationId": "confirmEmail",
+        "responses": {
+          "200": {
+            "description": "Email verified"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "403": {
+            "description": "Invalid OTP"
+          },
+          "404": {
+            "description": "User or OTP not found"
+          },
+          "409": {
+            "description": "Email already verified"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get the current authenticated user's profile.",
+        "operationId": "getMe",
+        "responses": {
+          "200": {
+            "description": "User profile"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/refresh-token": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Issue a new access token using a refresh token.",
+        "operationId": "refreshToken",
+        "responses": {
+          "200": {
+            "description": "New access token issued"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid or expired token"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/send-emailotp": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Resend the OTP verification code to email.",
+        "operationId": "sendEmailOTP",
+        "responses": {
+          "200": {
+            "description": "OTP sent"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "403": {
+            "description": "Cooldown active"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "409": {
+            "description": "Email already verified"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/signin": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign in with email and password. Returns access and refresh tokens.",
+        "operationId": "loginUser",
+        "responses": {
+          "200": {
+            "description": "Login successful, returns tokens"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/signup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register a new user. Sends an OTP to the provided email address.",
+        "operationId": "createUser",
+        "responses": {
+          "200": {
+            "description": "User created, OTP sent"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "409": {
+            "description": "Username or email already taken"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/ws": {
+      "get": {
+        "description": "Query: game_id (uuid, required) — the game to join.\n\nAfter upgrade, authenticate by sending an auth message first:\n\n{\"type\":\"auth\",\"payload\":{\"token\":\"\u003cjwt\u003e\"}}\n\nThen send game events (make_move, chat, voice_offer, etc).\n\nServer sends keepalive pings: {\"type\":\"ping\"}. Reply with {\"type\":\"pong\"}.",
+        "tags": [
+          "WebSocket"
+        ],
+        "summary": "Upgrade to WebSocket for real-time gameplay.",
+        "operationId": "handleWebSocket",
+        "responses": {
+          "101": {
+            "description": "Switching Protocols"
+          },
+          "400": {
+            "description": "Missing or invalid game_id"
+          },
+          "404": {
+            "description": "Game not found"
+          }
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
+    }
+  }
+}

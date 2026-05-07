@@ -10,18 +10,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type createGameReq struct{
+type CreateGameReq struct{
 	PlayerColor string `json:"player_color" binding:"required,len=1,oneof=w b"`
 	Opponent string `json:"opponent" binding:"required,oneof=person stockfish"`
 }
 
-func (r *createGameReq)sanitizeCreateGameReq(){
+func (r *CreateGameReq)sanitizeCreateGameReq(){
 	r.PlayerColor = strings.ToLower(r.PlayerColor)
 }
 
 //create a chess game
 func (server *Server) createGame(ctx *gin.Context) {
-	var req createGameReq
+	var req CreateGameReq
 
 	if err := ctx.ShouldBindJSON(&req); err != nil{
 		ctx.JSON(http.StatusBadRequest,errorResponse(err))

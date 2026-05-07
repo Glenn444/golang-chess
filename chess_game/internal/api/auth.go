@@ -220,7 +220,7 @@ type SendEmailOTP struct {
 func (r *SendEmailOTP) SanitizeEmailOTP() {
 	r.Email = strings.ToLower(r.Email)
 }
-type sendEmailOTPResp struct{
+type SendEmailOTPResp struct{
 	Message string `json:"msg"`
 	Email string `json:"email"`
 }
@@ -297,19 +297,19 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrSendingOTP))
 		return
 	}
-	ctx.JSON(http.StatusOK, sendEmailOTPResp{
+	ctx.JSON(http.StatusOK, SendEmailOTPResp{
 		Message: "OTP sent successfuly to your email",
 		Email: user.Email,
 	})
 
 }
 
-type loginUserRequest struct {
+type LoginUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-type loginUserResponse struct {
+type LoginUserResponse struct {
 	Username          string    `json:"username"`
 	PasswordChangedAt time.Time `json:"password_changed_at"`
 	LastLoginAt       time.Time `json:"last_login_at"`
@@ -317,17 +317,17 @@ type loginUserResponse struct {
 	RefreshToken      string    `json:"refresh_token"`
 }
 
-func (r *loginUserRequest) sanitizeLoginUserReq() {
+func (r *LoginUserRequest) sanitizeLoginUserReq() {
 	r.Email = strings.ToLower(r.Email)
 }
-type emailconfirmedResp struct{
+type EmailConfirmedResp struct{
 		Message string `json:"msg"`
 		Email string `json:"email"`
 	}
 
 // login user
 func (server *Server) loginUser(ctx *gin.Context) {
-	var req loginUserRequest
+	var req LoginUserRequest
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
@@ -345,7 +345,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	//check if user email is verified
 	if !user.EmailConfirmed{
-		ctx.JSON(http.StatusForbidden,emailconfirmedResp{
+		ctx.JSON(http.StatusForbidden,EmailConfirmedResp{
 			Message: "email not confirmed!",
 			Email: user.Email,
 		})
@@ -405,7 +405,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
-	resp := loginUserResponse{
+	resp := LoginUserResponse{
 		Username:          user.Username,
 		PasswordChangedAt: user.PasswordUpdatedAt.Time,
 		LastLoginAt:       last_login.Time,
@@ -417,18 +417,18 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 }
 
-type refreshTokenRequest struct {
+type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
 
-type refreshTokenResponse struct {
+type RefreshTokenResponse struct {
 	Message string `json:"message"`
 	AccessToken   string `json:"access_token"`
 }
 
 func (server *Server) refreshToken(ctx *gin.Context) {
-	var req refreshTokenRequest
+	var req RefreshTokenRequest
 
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
@@ -470,7 +470,7 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		return
 	}
 
-	resp := refreshTokenResponse{
+	resp := RefreshTokenResponse{
 		Message: "successfully created accessToken",
 		AccessToken: accessToken,
 	}

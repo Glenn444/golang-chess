@@ -25,8 +25,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// ── test helpers ─────────────────────────────────────────────────────────────────
-
 func newTestWSServer(t *testing.T) (*Server, *mock_db.MockStore, string) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
@@ -54,87 +52,33 @@ func mustToken(maker token.Maker, username string) string {
 	return t
 }
 
-// ── handleWebSocket tests (pre-upgrade, JSON error responses) ────────────────────
+// ── handleWebSocket tests (returns JSON before upgrade) ─────────────────────────
 
 func TestHandleWebSocket(t *testing.T) {
-	t.Run("missing token", func(t *testing.T) {
+	t.Run("missing game_id", func(t *testing.T) {
 		server, _, _ := newTestWSServer(t)
 		ctx, rec := newGameCtx(http.MethodGet, "/ws", nil)
-		server.handleWebSocket(ctx)
-		require.Equal(t, http.StatusUnauthorized, rec.Code)
-	})
-
-	t.Run("invalid token", func(t *testing.T) {
-		server, _, _ := newTestWSServer(t)
-		ctx, rec := newGameCtx(http.MethodGet, "/ws?token=bad-token&game_id=00000000-0000-0000-0000-000000000001", nil)
-		server.handleWebSocket(ctx)
-		require.Equal(t, http.StatusUnauthorized, rec.Code)
-	})
-
-	t.Run("user not found", func(t *testing.T) {
-		server, store, validToken := newTestWSServer(t)
-		gameID := gameUUID()
-
-		store.EXPECT().GetUserByUsername(gomock.Any(), "testuser").Return(db.User{}, pgx.ErrNoRows)
-
-		ctx, rec := newGameCtx(http.MethodGet,
-			"/ws?token="+validToken+"&game_id="+uuid.UUID(gameID.Bytes).String(), nil)
-		server.handleWebSocket(ctx)
-		require.Equal(t, http.StatusUnauthorized, rec.Code)
-	})
-
-	t.Run("missing game_id", func(t *testing.T) {
-		server, store, validToken := newTestWSServer(t)
-		user := db.User{ID: userUUID(), Username: "testuser"}
-		store.EXPECT().GetUserByUsername(gomock.Any(), "testuser").Return(user, nil)
-
-		ctx, rec := newGameCtx(http.MethodGet, "/ws?token="+validToken, nil)
 		server.handleWebSocket(ctx)
 		require.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 
 	t.Run("invalid game_id format", func(t *testing.T) {
-		server, store, validToken := newTestWSServer(t)
-		user := db.User{ID: userUUID(), Username: "testuser"}
-		store.EXPECT().GetUserByUsername(gomock.Any(), "testuser").Return(user, nil)
-
-		ctx, rec := newGameCtx(http.MethodGet, "/ws?token="+validToken+"&game_id=not-a-uuid", nil)
+		server, _, _ := newTestWSServer(t)
+		ctx, rec := newGameCtx(http.MethodGet, "/ws?game_id=not-a-uuid", nil)
 		server.handleWebSocket(ctx)
 		require.Equal(t, http.StatusBadRequest, rec.Code)
 	})
 
 	t.Run("game not found", func(t *testing.T) {
-		server, store, validToken := newTestWSServer(t)
+		server, store, _ := newTestWSServer(t)
 		gameID := gameUUID()
-		user := db.User{ID: userUUID(), Username: "testuser"}
 
-		store.EXPECT().GetUserByUsername(gomock.Any(), "testuser").Return(user, nil)
 		store.EXPECT().GetGameByID(gomock.Any(), gameID).Return(db.Game{}, pgx.ErrNoRows)
 
 		ctx, rec := newGameCtx(http.MethodGet,
-			"/ws?token="+validToken+"&game_id="+uuid.UUID(gameID.Bytes).String(), nil)
+			"/ws?game_id="+uuid.UUID(gameID.Bytes).String(), nil)
 		server.handleWebSocket(ctx)
 		require.Equal(t, http.StatusNotFound, rec.Code)
-	})
-
-	t.Run("user not a player in game", func(t *testing.T) {
-		server, store, validToken := newTestWSServer(t)
-		gameID := gameUUID()
-		user := db.User{ID: userUUID(), Username: "testuser"}
-		dbGame := db.Game{
-			ID:            gameID,
-			WhitePlayerID: userUUID(),
-			BlackPlayerID: userUUID(),
-			State:         db.GameStateActive,
-		}
-
-		store.EXPECT().GetUserByUsername(gomock.Any(), "testuser").Return(user, nil)
-		store.EXPECT().GetGameByID(gomock.Any(), gameID).Return(dbGame, nil)
-
-		ctx, rec := newGameCtx(http.MethodGet,
-			"/ws?token="+validToken+"&game_id="+uuid.UUID(gameID.Bytes).String(), nil)
-		server.handleWebSocket(ctx)
-		require.Equal(t, http.StatusForbidden, rec.Code)
 	})
 }
 
@@ -149,12 +93,7 @@ func setupWSRouter(t *testing.T, server *Server, store *mock_db.MockStore) (*htt
 	gameID := gameUUID()
 	whiteID := userUUID()
 
-	dbGame := db.Game{
-		ID:            gameID,
-		WhitePlayerID: whiteID,
-		BlackPlayerID: userUUID(),
-		State:         db.GameStateActive,
-	}
+	_ = store
 
 	user := db.User{
 		ID:       whiteID,
@@ -162,7 +101,6 @@ func setupWSRouter(t *testing.T, server *Server, store *mock_db.MockStore) (*htt
 		Email:    "white@example.com",
 	}
 
-	// Set up in-memory game state
 	gameState := &pieces.GameState{
 		CurrentPlayer:  "w",
 		Board:          board.Initialise_board(board.Create_board()),
@@ -176,12 +114,13 @@ func setupWSRouter(t *testing.T, server *Server, store *mock_db.MockStore) (*htt
 
 	server.router = router
 
-	// Register the WebSocket endpoint — bypass auth by using the pre-verified user
+	// Pre-authenticated: session already has user, gameID, color, and auth flag.
 	router.GET("/ws", func(ctx *gin.Context) {
 		if err := server.melody.HandleRequestWithKeys(ctx.Writer, ctx.Request, map[string]any{
-			wsKeyUser:        user,
-			wsKeyGameID:      gameID,
-			wsKeyPlayerColor: "w",
+			wsKeyUser:          user,
+			wsKeyGameID:        gameID,
+			wsKeyPlayerColor:   "w",
+			wsKeyAuthenticated: true,
 		}); err != nil {
 			slog.Error("ws: upgrade failed", "err", err)
 		}
@@ -190,10 +129,7 @@ func setupWSRouter(t *testing.T, server *Server, store *mock_db.MockStore) (*htt
 	srv := httptest.NewServer(router)
 	t.Cleanup(srv.Close)
 
-	token := mustToken(server.tokenMaker, "whiteplayer")
-	_ = dbGame
-
-	return srv, token, gameID
+	return srv, mustToken(server.tokenMaker, "whiteplayer"), gameID
 }
 
 func drainGameState(t *testing.T, conn *websocket.Conn) {
@@ -205,7 +141,6 @@ func drainGameState(t *testing.T, conn *websocket.Conn) {
 	if evt.Type == "game_state" {
 		return
 	}
-	// If it wasn't game_state, it's unexpected; fail the test
 	t.Fatalf("expected game_state event on connect, got %q", evt.Type)
 }
 
@@ -224,11 +159,8 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 		defer conn.Close()
 
 		_ = gameID
-
-		// drain the initial game_state event sent on connect
 		drainGameState(t, conn)
 
-		// Send a valid white pawn move
 		moveEvent := WSEvent{
 			Type:    EventMakeMove,
 			Payload: json.RawMessage(`{"move":"e4"}`),
@@ -256,7 +188,6 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil).AnyTimes()
 		store.EXPECT().CreateMove(gomock.Any(), gomock.Any()).Return(db.GameMove{}, nil).AnyTimes()
 
-		// Set game state to black's turn so white's move is rejected
 		server.activeGamesMu.Lock()
 		server.activeGames[gameID].GameStateMu.Lock()
 		server.activeGames[gameID].CurrentPlayer = "b"
@@ -270,7 +201,6 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 
 		drainGameState(t, conn)
 
-		// White sends a move but it's black's turn
 		moveEvent := WSEvent{
 			Type:    EventMakeMove,
 			Payload: json.RawMessage(`{"move":"e4"}`),
@@ -303,7 +233,6 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 		_ = gameID
 		drainGameState(t, conn)
 
-		// Send an impossible move
 		moveEvent := WSEvent{
 			Type:    EventMakeMove,
 			Payload: json.RawMessage(`{"move":"Ke5"}`),
@@ -375,8 +304,6 @@ func TestWSHandleChatIntegration(t *testing.T) {
 		require.Equal(t, EventError, respEvent.Type)
 	})
 }
-
-// ── helpers ──────────────────────────────────────────────────────────────────────
 
 func wsURL(httpURL string) string {
 	return "ws" + strings.TrimPrefix(httpURL, "http")

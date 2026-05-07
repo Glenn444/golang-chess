@@ -282,7 +282,7 @@ func TestLoginUser(t *testing.T) {
 		}, nil)
 		store.EXPECT().UpdateLastLogin(gomock.Any(), user.ID).Return(nil)
 
-		ctx, rec := authCtx(http.MethodPost, "/users/signin", loginUserRequest{
+		ctx, rec := authCtx(http.MethodPost, "/users/signin", LoginUserRequest{
 			Email:    user.Email,
 			Password: password,
 		})
@@ -290,7 +290,7 @@ func TestLoginUser(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, rec.Code)
 
-		var resp loginUserResponse
+		var resp LoginUserResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 		require.Equal(t, user.Username, resp.Username)
 		require.NotEmpty(t, resp.AccessToken)
@@ -313,7 +313,7 @@ func TestLoginUser(t *testing.T) {
 
 		store.EXPECT().GetUserByEmail(gomock.Any(), user.Email).Return(user, nil)
 
-		ctx, rec := authCtx(http.MethodPost, "/users/signin", loginUserRequest{
+		ctx, rec := authCtx(http.MethodPost, "/users/signin", LoginUserRequest{
 			Email:    user.Email,
 			Password: "wrong_password",
 		})
@@ -327,7 +327,7 @@ func TestLoginUser(t *testing.T) {
 
 		store.EXPECT().GetUserByEmail(gomock.Any(), "nobody@example.com").Return(db.User{}, pgx.ErrNoRows)
 
-		ctx, rec := authCtx(http.MethodPost, "/users/signin", loginUserRequest{
+		ctx, rec := authCtx(http.MethodPost, "/users/signin", LoginUserRequest{
 			Email:    "nobody@example.com",
 			Password: "anything123",
 		})
@@ -356,14 +356,14 @@ func TestRefreshToken(t *testing.T) {
 
 		store.EXPECT().GetSessionByRefreshToken(gomock.Any(), refreshToken).Return(session, nil)
 
-		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", refreshTokenRequest{
+		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", RefreshTokenRequest{
 			RefreshToken: refreshToken,
 		})
 		server.refreshToken(ctx)
 
 		require.Equal(t, http.StatusOK, rec.Code)
 
-		var resp refreshTokenResponse
+		var resp RefreshTokenResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 		require.NotEmpty(t, resp.AccessToken)
 	})
@@ -371,7 +371,7 @@ func TestRefreshToken(t *testing.T) {
 	t.Run("invalid token", func(t *testing.T) {
 		server, _, _ := newTestAuthServer(t)
 
-		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", refreshTokenRequest{
+		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", RefreshTokenRequest{
 			RefreshToken: "not-a-valid-jwt-token",
 		})
 		server.refreshToken(ctx)
@@ -394,7 +394,7 @@ func TestRefreshToken(t *testing.T) {
 
 		store.EXPECT().GetSessionByRefreshToken(gomock.Any(), refreshToken).Return(session, nil)
 
-		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", refreshTokenRequest{
+		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", RefreshTokenRequest{
 			RefreshToken: refreshToken,
 		})
 		server.refreshToken(ctx)
@@ -417,7 +417,7 @@ func TestRefreshToken(t *testing.T) {
 
 		store.EXPECT().GetSessionByRefreshToken(gomock.Any(), refreshToken).Return(session, nil)
 
-		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", refreshTokenRequest{
+		ctx, rec := authCtx(http.MethodPost, "/users/refresh-token", RefreshTokenRequest{
 			RefreshToken: refreshToken,
 		})
 		server.refreshToken(ctx)

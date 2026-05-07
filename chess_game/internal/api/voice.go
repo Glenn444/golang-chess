@@ -7,6 +7,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary      Start voice session
+// @Description  Initiates a WebRTC voice call in a game. Signalling travels over WebSocket.
+// @Tags         Voice
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      201  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/voice [post]
 func (server *Server) startVoiceSession(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {
@@ -48,6 +62,19 @@ func (server *Server) startVoiceSession(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, session)
 }
 
+// @Summary      Get active voice session
+// @Description  Returns the active voice session for a game, if one exists.
+// @Tags         Voice
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      200  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/voice [get]
 func (server *Server) getActiveVoiceSession(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {
@@ -64,6 +91,21 @@ func (server *Server) getActiveVoiceSession(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, session)
 }
 
+// @Summary      Accept voice call
+// @Description  Accepts an incoming voice call. Only the non-initiating player can accept.
+// @Tags         Voice
+// @Accept       json
+// @Produce      json
+// @Param        id   path  string  true  "Game UUID"
+// @Param        vid  path  string  true  "Voice session UUID"
+// @Security     Bearer
+// @Success      200  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/voice/{vid}/activate [patch]
 func (server *Server) activateVoiceSession(ctx *gin.Context) {
 	vid, ok := parseUUIDParam(ctx, "vid")
 	if !ok {
@@ -98,6 +140,21 @@ func (server *Server) activateVoiceSession(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updated)
 }
 
+// @Summary      End voice call
+// @Description  Ends a voice session. Either player in the game can end the call.
+// @Tags         Voice
+// @Accept       json
+// @Produce      json
+// @Param        id   path  string  true  "Game UUID"
+// @Param        vid  path  string  true  "Voice session UUID"
+// @Security     Bearer
+// @Success      200  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/voice/{vid} [delete]
 func (server *Server) endVoiceSession(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {

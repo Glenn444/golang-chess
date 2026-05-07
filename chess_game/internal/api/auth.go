@@ -38,6 +38,17 @@ type CreateUserResponse struct {
 	CreatedAt         time.Time `json:"created_at"`
 }
 
+// @Summary      Register a new user
+// @Description  Creates an account and sends a 6-digit OTP to the provided email.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  CreateUserRequest  true  "Registration payload"
+// @Success      200   {object}  CreateUserResponse
+// @Failure      400   {object}  map[string]string
+// @Failure      409   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /users/signup [post]
 func (server *Server) createUser(ctx *gin.Context) {
 
 	var req CreateUserRequest
@@ -138,6 +149,19 @@ type ConfirmEmailResponse struct {
 	Email   string `json:"email"`
 }
 
+// @Summary      Confirm email
+// @Description  Verifies email address with the 6-digit OTP code.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  ConfirmEmail  true  "OTP payload"
+// @Success      200   {object}  ConfirmEmailResponse
+// @Failure      400   {object}  map[string]string
+// @Failure      403   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
+// @Failure      409   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /users/confirm-email [post]
 func (server *Server) confirmEmail(ctx *gin.Context) {
 	var req ConfirmEmail
 
@@ -224,6 +248,19 @@ type SendEmailOTPResp struct{
 	Message string `json:"msg"`
 	Email string `json:"email"`
 }
+// @Summary      Send OTP
+// @Description  Resends the OTP verification code to the user's email.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  SendEmailOTP  true  "Email payload"
+// @Success      200   {object}  SendEmailOTPResp
+// @Failure      400   {object}  map[string]string
+// @Failure      403   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
+// @Failure      409   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /users/send-emailotp [post]
 func (server *Server) sendEmailOTP(ctx *gin.Context) {
 	var req SendEmailOTP
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -326,6 +363,18 @@ type EmailConfirmedResp struct{
 	}
 
 // login user
+// @Summary      Sign in
+// @Description  Authenticates with email and password. Returns access + refresh tokens.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  LoginUserRequest  true  "Login payload"
+// @Success      200   {object}  LoginUserResponse
+// @Failure      400   {object}  map[string]string
+// @Failure      401   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /users/signin [post]
 func (server *Server) loginUser(ctx *gin.Context) {
 	var req LoginUserRequest
 	err := ctx.ShouldBindJSON(&req)
@@ -427,6 +476,17 @@ type RefreshTokenResponse struct {
 	AccessToken   string `json:"access_token"`
 }
 
+// @Summary      Refresh token
+// @Description  Issues a new access token using a valid refresh token.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  RefreshTokenRequest  true  "Refresh token payload"
+// @Success      200   {object}  RefreshTokenResponse
+// @Failure      400   {object}  map[string]string
+// @Failure      401   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /users/refresh-token [post]
 func (server *Server) refreshToken(ctx *gin.Context) {
 	var req RefreshTokenRequest
 

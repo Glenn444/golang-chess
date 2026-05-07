@@ -11,10 +11,23 @@ import (
 	"time"
 
 	"github.com/Glenn444/golang-chess/config"
+	_ "github.com/Glenn444/golang-chess/docs"
 	"github.com/Glenn444/golang-chess/internal/api"
 	"github.com/Glenn444/golang-chess/internal/db"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 )
+
+// @title           Chess Game API
+// @version         1.0.0
+// @description     Multiplayer chess game server with WebSocket real-time gameplay, chat, and voice signalling.
+// @host            localhost:8080
+// @BasePath        /
+
+// @securityDefinitions.apikey Bearer
+// @in              header
+// @name            Authorization
+// @description     JWT Bearer token. Prefix with "Bearer ".
 
 func main() {
 	cfg, err := config.LoadConfig(".")

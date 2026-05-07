@@ -16,6 +16,8 @@ import (
 	"github.com/gin-contrib/cors"
 	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/olahol/melody"
 )
@@ -84,24 +86,11 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	)
 
 	// ── Health / Readiness ────────────────────────────────────────────────────
-	router.GET("/healthz", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "alive"})
-	})
+	router.GET("/healthz", server.healthz)
+	router.GET("/readyz", server.readyz)
 
-	router.GET("/readyz", func(c *gin.Context) {
-		if !server.ready.Load() {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not ready"})
-			return
-		}
-		if err := server.store.Ping(c.Request.Context()); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"status": "not ready",
-				"reason": "database unreachable",
-			})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "ready"})
-	})
+	// ── Swagger UI ────────────────────────────────────────────────────────────
+	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// ── Welcome ───────────────────────────────────────────────────────────────
 	router.GET("/", server.welcome)
@@ -161,6 +150,44 @@ func (server *Server) Shutdown(ctx context.Context) error {
 	return server.httpServer.Shutdown(ctx)
 }
 
+// @Summary      Health check
+// @Description  Returns server liveness status.
+// @Tags         Health
+// @Produce      json
+// @Success      200  {object}  map[string]string
+// @Router       /healthz [get]
+func (server *Server) healthz(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "alive"})
+}
+
+// @Summary      Readiness check
+// @Description  Checks database connectivity and returns readiness status.
+// @Tags         Health
+// @Produce      json
+// @Success      200  {object}  map[string]string
+// @Failure      503  {object}  map[string]string
+// @Router       /readyz [get]
+func (server *Server) readyz(c *gin.Context) {
+	if !server.ready.Load() {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "not ready"})
+		return
+	}
+	if err := server.store.Ping(c.Request.Context()); err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status": "not ready",
+			"reason": "database unreachable",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ready"})
+}
+
+// @Summary      Welcome
+// @Description  Returns a welcome message.
+// @Tags         General
+// @Produce      json
+// @Success      200  {object}  map[string]string
+// @Router       / [get]
 func (server *Server) welcome(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Welcome to the Chess Game Server"})
 }

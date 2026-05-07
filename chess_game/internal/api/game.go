@@ -20,6 +20,18 @@ func (r *CreateGameReq)sanitizeCreateGameReq(){
 }
 
 //create a chess game
+// @Summary      Create a game
+// @Description  Creates a new chess game. Choose your color (w/b) and opponent type.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Param        body  body  CreateGameReq  true  "Game creation payload"
+// @Security     Bearer
+// @Success      201  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games [post]
 func (server *Server) createGame(ctx *gin.Context) {
 	var req CreateGameReq
 
@@ -77,6 +89,16 @@ func (server *Server) createGame(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, game)
 }
 
+// @Summary      List waiting games
+// @Description  Returns all games waiting for a second player.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {array}   object
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games [get]
 func (server *Server) listWaitingGames(ctx *gin.Context) {
 	games, err := server.store.ListWaitingGames(ctx)
 	if handleDBError(ctx, err, WithLogArgs("listWaitingGames: failed")) {
@@ -85,6 +107,16 @@ func (server *Server) listWaitingGames(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, games)
 }
 
+// @Summary      List my games
+// @Description  Returns all games the current user is participating in.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {array}   object
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/mine [get]
 func (server *Server) listMyGames(ctx *gin.Context) {
 	user, ok := server.getCurrentUser(ctx)
 	if !ok {
@@ -98,6 +130,19 @@ func (server *Server) listMyGames(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, games)
 }
 
+// @Summary      Get a game
+// @Description  Returns a game by its UUID.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      200  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id} [get]
 func (server *Server) getGame(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {
@@ -114,6 +159,21 @@ func (server *Server) getGame(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, game)
 }
 
+// @Summary      Join a game
+// @Description  Joins a waiting game as the second player.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      200  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/join [post]
 func (server *Server) joinGame(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {
@@ -165,6 +225,20 @@ func (server *Server) joinGame(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updated)
 }
 
+// @Summary      Resign from a game
+// @Description  Resigns from an active game.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      200  {object}  object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      409  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/resign [post]
 func (server *Server) resignGame(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {
@@ -205,6 +279,18 @@ func (server *Server) resignGame(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, updated)
 }
 
+// @Summary      Get game moves
+// @Description  Returns the move history for a game.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      200  {array}   object
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/moves [get]
 func (server *Server) getGameMoves(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {

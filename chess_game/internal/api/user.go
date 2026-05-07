@@ -20,6 +20,16 @@ func (r *CheckUsernameExistsParams) SanitizeParams() {
 	r.Username = strings.ToLower(r.Username)
 }
 
+// @Summary      Check username availability
+// @Description  Returns whether a username is taken or available.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        username  query  string  true  "Username to check"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /users/check-username [get]
 func (server *Server) checkUsernameExists(ctx *gin.Context) {
 	//check if username exists
 	var req CheckUsernameExistsParams
@@ -49,6 +59,16 @@ type getMeResponse struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+// @Summary      Get current user
+// @Description  Returns the authenticated user's profile.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {object}  getMeResponse
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /users/me [get]
 func (server *Server) getMe(ctx *gin.Context) {
 	user, ok := server.getCurrentUser(ctx)
 	if !ok {

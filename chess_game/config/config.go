@@ -19,35 +19,37 @@ type Config struct {
 }
 
 func LoadConfig(path string) (config Config, err error) {
-	viper.AddConfigPath(path) //name of config file (without extension)
+	viper.AddConfigPath(path)
 	viper.SetConfigName("app")
 	viper.SetConfigType("env")
 
+	// Environment variables take precedence over config file.
 	viper.AutomaticEnv()
 
-	err = viper.ReadInConfig()
-
-	if err != nil {
-		return
+	// ReadInConfig is optional — in production (Docker), all values
+	// come from environment variables and no config file is mounted.
+	if fileErr := viper.ReadInConfig(); fileErr != nil {
+		// Config file not found is OK; proceed with env vars only.
+		if _, ok := fileErr.(viper.ConfigFileNotFoundError); !ok {
+			// Some other file error — still try to proceed with env vars.
+		}
 	}
 
 	err = viper.Unmarshal(&config)
 
-    // catch missing required fields
-    if config.DBDriver == "" {
-        err = fmt.Errorf("DB_DRIVER is required but not set")
-        return
-    }
-    if config.DB_URL == "" {
-        err = fmt.Errorf("DB_URL is required but not set")
-        return
-    }
-	
-	if config.AcessTokenDuration == time.Duration(0){
-        err = fmt.Errorf("AcessTokenDuration is required but not set")
-        return
-    }
-	if config.TokenSymmetricKey == ""{
+	if config.DBDriver == "" {
+		err = fmt.Errorf("DB_DRIVER is required but not set")
+		return
+	}
+	if config.DB_URL == "" {
+		err = fmt.Errorf("DB_URL is required but not set")
+		return
+	}
+	if config.AcessTokenDuration == time.Duration(0) {
+		err = fmt.Errorf("AcessTokenDuration is required but not set")
+		return
+	}
+	if config.TokenSymmetricKey == "" {
 		err = fmt.Errorf("TokenSymmetricKey is required but not set")
 		return
 	}

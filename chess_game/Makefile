@@ -42,4 +42,28 @@ mock:
 createschema:
 	goose -dir sql/schema create create_users_table sql
 
-.PHONY: postgres createdb dropdb migrateup migratedown generatesql test server mock
+# ── Docker / Production ─────────────────────────────────────────────────────
+docker-build:
+	docker build -t chess-server .
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f
+
+docker-migrate:
+	docker compose exec server sh -c 'goose -dir sql/schema postgres "$$DB_URL" up'
+
+docker-restart:
+	docker compose down && docker compose up -d --build
+
+# ── Dev helpers ─────────────────────────────────────────────────────────────
+swagger:
+	swag init --generalInfo cmd/server/main.go --output ./docs
+
+.PHONY: postgres createdb dropdb migrateup migratedown generatesql test server mock \
+        docker-build docker-up docker-down docker-logs docker-migrate docker-restart swagger

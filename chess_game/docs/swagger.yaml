@@ -41,6 +41,8 @@ definitions:
         minLength: 6
         type: string
       username:
+        maxLength: 30
+        minLength: 3
         type: string
     required:
     - email
@@ -55,6 +57,17 @@ definitions:
         type: string
       password_changed_at:
         type: string
+      username:
+        type: string
+    type: object
+  api.ICEServer:
+    properties:
+      credential:
+        type: string
+      urls:
+        items:
+          type: string
+        type: array
       username:
         type: string
     type: object
@@ -118,6 +131,13 @@ definitions:
         type: string
       msg:
         type: string
+    type: object
+  api.cloudflareICEResponse:
+    properties:
+      iceServers:
+        items:
+          $ref: '#/definitions/api.ICEServer'
+        type: array
     type: object
   api.getMeResponse:
     properties:
@@ -231,6 +251,61 @@ paths:
       tags:
       - Games
   /games/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a game and all associated moves/chat. Only a participant
+        can delete their game.
+      parameters:
+      - description: Game UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Delete a game
+      tags:
+      - Games
     get:
       consumes:
       - application/json
@@ -812,6 +887,34 @@ paths:
       summary: Readiness check
       tags:
       - Health
+  /turn-credentials:
+    get:
+      description: Returns short-lived Cloudflare TURN credentials for WebRTC voice
+        calls.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.cloudflareICEResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Get TURN credentials
+      tags:
+      - Voice
   /users/check-username:
     get:
       consumes:

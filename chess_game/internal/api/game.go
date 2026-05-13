@@ -1,7 +1,7 @@
 package api
 
 import (
-	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -10,7 +10,6 @@ import (
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
 )
 
 type CreateGameReq struct{
@@ -60,15 +59,17 @@ func (server *Server) createGame(ctx *gin.Context) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Reject if the user already has active or waiting games.
-	existing, err := server.store.GetActiveGamesByUser(ctx, user.ID)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		handleDBError(ctx, err, WithLogArgs("createGame: GetActiveGamesByUser", "user_id", user.ID))
+	// Fetch all games for this user and reject if any are active or waiting.
+	allGames, err := server.store.GetGamesByPlayerID(ctx, user.ID)
+	if err != nil {
+		handleDBError(ctx, err, WithLogArgs("createGame: GetGamesByPlayerID", "user_id", user.ID))
 		return
 	}
-	if len(existing) > 0 {
-		ctx.JSON(http.StatusConflict, errorMessage("you already have an active or pending game — finish or delete it before creating a new one"))
-		return
+	for _, g := range allGames {
+		if g.State == db.GameStateWaiting || g.State == db.GameStateActive {
+			ctx.JSON(http.StatusConflict, errorMessage("you already have an active or pending game — finish or delete it before creating a new one"))
+			return
+		}
 	}
 
 	var game db.Game
@@ -111,6 +112,65 @@ func (server *Server) createGame(ctx *gin.Context) {
 	server.activeGamesMu.Unlock()
 
 	ctx.JSON(http.StatusCreated, game)
+}
+
+// @Summary      Delete a game
+// @Description  Deletes a game and all associated moves/chat. Only a participant can delete their game.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      403  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id} [delete]
+func (server *Server) deleteGame(ctx *gin.Context) {
+	gameID, ok := parseUUIDParam(ctx, "id")
+	if !ok {
+		return
+	}
+
+	user, ok := server.getCurrentUser(ctx)
+	if !ok {
+		return
+	}
+
+	game, err := server.store.GetGameByID(ctx, gameID)
+	if handleDBError(ctx, err,
+		WithNotFoundMsg(ErrGameNotFound),
+		WithLogArgs("deleteGame: GetGameByID", "game_id", ctx.Param("id"))) {
+		return
+	}
+
+	// Only a participant can delete the game.
+	if !uuidEq(game.WhitePlayerID, user.ID) && !uuidEq(game.BlackPlayerID, user.ID) {
+		ctx.JSON(http.StatusForbidden, errorMessage(ErrNotAPlayer))
+		return
+	}
+
+	// Clean up associated data.
+	if err := server.store.DeleteMovesByGameID(ctx, gameID); err != nil {
+		slog.Error("deleteGame: DeleteMovesByGameID", "game_id", ctx.Param("id"), "err", err)
+	}
+	if err := server.store.DeleteChatMessagesByGameID(ctx, gameID); err != nil {
+		slog.Error("deleteGame: DeleteChatMessagesByGameID", "game_id", ctx.Param("id"), "err", err)
+	}
+
+	if err := server.store.DeleteGame(ctx, gameID); err != nil {
+		handleDBError(ctx, err, WithLogArgs("deleteGame: DeleteGame", "game_id", ctx.Param("id")))
+		return
+	}
+
+	// Remove from in-memory active games if present.
+	server.activeGamesMu.Lock()
+	delete(server.activeGames, gameID)
+	server.activeGamesMu.Unlock()
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "game deleted"})
 }
 
 // @Summary      List waiting games

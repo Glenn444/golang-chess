@@ -104,7 +104,7 @@ func TestCreateGame(t *testing.T) {
 		game := testGame()
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
-		store.EXPECT().GetActiveGamesByUser(gomock.Any(), user.ID).Return([]db.Game{}, nil)
+		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{}, nil)
 		store.EXPECT().CreateGameAsWhite(gomock.Any(), user.ID).Return(game, nil)
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
 
@@ -140,7 +140,7 @@ func TestCreateGame(t *testing.T) {
 		game.BlackPlayerID = user.ID
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
-		store.EXPECT().GetActiveGamesByUser(gomock.Any(), user.ID).Return([]db.Game{}, nil)
+		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{}, nil)
 		store.EXPECT().CreateGameAsBlack(gomock.Any(), user.ID).Return(game, nil)
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
 
@@ -162,7 +162,7 @@ func TestCreateGame(t *testing.T) {
 		activeGame := testGame()
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
-		store.EXPECT().GetActiveGamesByUser(gomock.Any(), user.ID).Return([]db.Game{activeGame}, nil)
+		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{activeGame}, nil)
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",

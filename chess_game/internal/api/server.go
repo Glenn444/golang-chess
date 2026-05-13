@@ -152,6 +152,7 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	authGames.GET("/:id", server.getGame)
 	authGames.POST("/:id/join", server.joinGame)
 	authGames.POST("/:id/resign", server.resignGame)
+	authGames.DELETE("/:id", server.deleteGame)
 	authGames.GET("/:id/moves", server.getGameMoves)
 
 	// chat + voice (scoped under games)

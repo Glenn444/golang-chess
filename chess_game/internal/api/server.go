@@ -58,7 +58,7 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 
 	gin.ForceConsoleColor()
 	router := gin.Default()
-
+	router.RedirectTrailingSlash = false  // add this
 	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("username", func(fl validator.FieldLevel) bool {
@@ -140,8 +140,8 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	authUsers.GET("/me", server.getMe)
 
 	authGames := router.Group("/games").Use(authMiddleware(server.tokenMaker), authLimiter)
-	authGames.POST("/", server.createGame)
-	authGames.GET("/", server.listWaitingGames)
+	authGames.POST("", server.createGame)
+	authGames.GET("", server.listWaitingGames)
 	authGames.GET("/mine", server.listMyGames)
 	authGames.GET("/:id", server.getGame)
 	authGames.POST("/:id/join", server.joinGame)

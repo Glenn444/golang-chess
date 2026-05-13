@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"github.com/Glenn444/golang-chess/config"
@@ -33,7 +34,8 @@ func newTestGameServer(t *testing.T) (*Server, *mock_db.MockStore) {
 		},
 		tokenMaker:  tokenMaker,
 		store:       store,
-		activeGames: make(map[pgtype.UUID]*pieces.GameState),
+		activeGames:   make(map[pgtype.UUID]*pieces.GameState),
+	createGameMUs: make(map[pgtype.UUID]*sync.Mutex),
 	}
 	return server, store
 }

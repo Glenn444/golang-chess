@@ -45,8 +45,10 @@ type Server struct {
 	ready       atomic.Bool
 
 	//chess game
-	activeGames   map[pgtype.UUID]*pieces.GameState
-	activeGamesMu sync.RWMutex
+	activeGames    map[pgtype.UUID]*pieces.GameState
+	activeGamesMu  sync.RWMutex
+	createGameMUs  map[pgtype.UUID]*sync.Mutex // per-user mutex to prevent duplicate games
+	createGameMUsMu sync.Mutex                  // protects the createGameMUs map
 }
 
 func NewServer(cfg config.Config, store db.Store) (*Server, error) {
@@ -61,7 +63,8 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 		config:      cfg,
 		emailClient: emails.NewEmailClient(cfg.RESEND_API_KEY),
 		melody:      melody.New(),
-		activeGames: make(map[pgtype.UUID]*pieces.GameState),
+		activeGames:   make(map[pgtype.UUID]*pieces.GameState),
+		createGameMUs: make(map[pgtype.UUID]*sync.Mutex),
 	}
 	server.setupMelody()
 

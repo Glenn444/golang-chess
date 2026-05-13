@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/Glenn444/golang-chess/internal/board"
 	db "github.com/Glenn444/golang-chess/internal/db"
@@ -47,6 +48,17 @@ func (server *Server) createGame(ctx *gin.Context) {
 	if !ok {
 		return
 	}
+
+	// Serialize game creation per user to prevent race-condition duplicates.
+	server.createGameMUsMu.Lock()
+	if _, exists := server.createGameMUs[user.ID]; !exists {
+		server.createGameMUs[user.ID] = &sync.Mutex{}
+	}
+	mu := server.createGameMUs[user.ID]
+	server.createGameMUsMu.Unlock()
+
+	mu.Lock()
+	defer mu.Unlock()
 
 	// Reject if the user already has active or waiting games.
 	existing, err := server.store.GetActiveGamesByUser(ctx, user.ID)

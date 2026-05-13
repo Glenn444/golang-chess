@@ -1,6 +1,3 @@
--include .env
-export
-
 DB_URL ?= postgres://postgres:secret@localhost:5432/simple_bank?sslmode=disable
 
 postgres:
@@ -38,6 +35,9 @@ build-server:
 
 build-linux:
 	GOOS=linux GOARCH=amd64 go build -o chesske ./cmd/server
+
+deploy:
+	./deploy.sh
 
 mock:
 	mockgen -destination internal/db/mock/store.go github.com/Glenn444/golang-chess/internal/db Store

@@ -7,15 +7,9 @@ import (
 	"github.com/Glenn444/golang-chess/internal/board"
 	"github.com/Glenn444/golang-chess/internal/cli"
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil{
-		log.Fatalf("error loading .env: %s\n",err)
-	}
-	
 	b := board.Create_board()
 	initialBoard_position := board.Initialise_board(b)
 

@@ -19,14 +19,24 @@ func Cli(g *pieces.GameState) {
 	for {
 		if g.UserColor != g.CurrentPlayer && g.PlayAgainst == "stockfish" {
 			fmt.Printf("stockfish to play\n")
-			sf := stockfish.NewStockfish()
-			fmt.Printf("stockfishgame: %s\n",g.StockfishGame)
+			sf, err := stockfish.NewStockfish()
+			if err != nil {
+				log.Fatalf("stockfish failed to start: %v", err)
+			}
+			if sf == nil {
+				fmt.Println("stockfish engine not configured (STOCKFISH_ENGINE_PATH not set)")
+				return
+			}
 			stockfishMove := sf.GetBestMove(g.StockfishGame)
-			err := board.Move(g, stockfishMove)
+			if stockfishMove == "" {
+				fmt.Println("stockfish returned no move")
+				return
+			}
+			err = board.Move(g, stockfishMove)
 			if err != nil {
 				log.Fatalf("%s", err)
 			}
-		
+
 			board.PrintBoard(g)
 			continue
 		} else if g.CurrentPlayer == "w" {

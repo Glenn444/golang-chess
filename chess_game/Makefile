@@ -36,6 +36,9 @@ run-server:
 build-server:
 	go build ./cmd/server   # builds the server binary
 
+build-linux:
+	GOOS=linux GOARCH=amd64 go build -o chesske ./cmd/server
+
 mock:
 	mockgen -destination internal/db/mock/store.go github.com/Glenn444/golang-chess/internal/db Store
 

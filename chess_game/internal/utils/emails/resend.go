@@ -25,7 +25,7 @@ func (c *EmailClient) SendEmailOTP(to, otp string) error {
 	html := fmt.Sprintf(`
 	    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto;">
 	      <div style="background: #1a1a2e; padding: 20px 24px; border-radius: 8px 8px 0 0;">
-	        <span style="color: white; font-weight: bold; font-size: 16px;">AccountYetu</span>
+	        <span style="color: white; font-weight: bold; font-size: 16px;">ChessKe</span>
 	      </div>
 	      <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px 24px; border-radius: 0 0 8px 8px;">
 	        <p style="font-size: 13px; color: #6b7280; margin: 0 0 24px;">Verify your email address</p>
@@ -45,7 +45,7 @@ func (c *EmailClient) SendEmailOTP(to, otp string) error {
 	        </p>
 	        <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
 	          <p style="font-size: 12px; color: #9ca3af; margin: 0;">
-	            This is an automated message from AccountYetu. Please do not reply to this email.
+	            This is an automated message from ChessKe. Please do not reply to this email.
 	          </p>
 	        </div>
 	      </div>

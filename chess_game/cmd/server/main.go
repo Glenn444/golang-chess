@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Glenn444/golang-chess/config"
-	_ "github.com/Glenn444/golang-chess/docs"
+	"github.com/Glenn444/golang-chess/docs"
 	"github.com/Glenn444/golang-chess/internal/api"
 	"github.com/Glenn444/golang-chess/internal/db"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Fatal("error loading the config, ", err)
 	}
-
+	docs.SwaggerInfo.Host = cfg.PUBLIC_HOST
 	dbConfig, err := pgxpool.ParseConfig(cfg.DB_URL)
 	if err != nil {
 		log.Fatal("cannot parse db config: ", err)

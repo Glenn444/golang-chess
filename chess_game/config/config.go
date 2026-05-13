@@ -15,7 +15,10 @@ type Config struct {
 	AcessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 	TokenSymmetricKey  string        `mapstructure:"TokenSymmetricKey"`
 	RESEND_API_KEY     string        `mapstructure:"RESEND_API_KEY"`
+	CloudflareTURNKeyID    string `mapstructure:"CLOUDFLARE_TURN_KEY_ID"`
+	CloudflareTURNAPIToken string `mapstructure:"CLOUDFLARE_TURN_API_TOKEN"`
 	Environment        string        `mapstructure:"ENVIRONMENT"`
+	PUBLIC_HOST string `mapstructure:"PUBLIC_HOST"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

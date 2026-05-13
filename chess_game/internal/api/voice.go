@@ -1,11 +1,114 @@
 package api
 
 import (
+	"bytes"
+	"io"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/gin-gonic/gin"
+	
+	"encoding/json"
+	"fmt"
 )
+
+
+type cloudflareICEResponse struct {
+	IceServers []ICEServer `json:"iceServers"`
+}
+
+type ICEServer struct {
+	URLs       []string `json:"urls"`
+	Username   string   `json:"username,omitempty"`
+	Credential string   `json:"credential,omitempty"`
+}
+
+// @Summary      Get TURN credentials
+// @Description  Returns short-lived Cloudflare TURN credentials for WebRTC voice calls.
+// @Tags         Voice
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {object}  cloudflareICEResponse
+// @Failure      401  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /turn-credentials [get]
+func (server *Server) getTURNCredentials(ctx *gin.Context) {
+	cfURL := fmt.Sprintf(
+		"https://rtc.live.cloudflare.com/v1/turn/keys/%s/credentials/generate-ice-servers",
+		server.config.CloudflareTURNKeyID,
+	)
+
+	body, err := json.Marshal(map[string]int{"ttl": 86400})
+	if err != nil {
+		slog.Error("getTURNCredentials: failed to marshal request body", "err", err)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfURL, bytes.NewReader(body))
+	if err != nil {
+		slog.Error("getTURNCredentials: failed to build Cloudflare request", "err", err)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+server.config.CloudflareTURNAPIToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error("getTURNCredentials: failed to reach Cloudflare TURN API", "err", err)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error("getTURNCredentials: failed to read Cloudflare response body", "err", err, "status", resp.StatusCode)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+
+	if resp.StatusCode != http.StatusCreated {
+		slog.Error("getTURNCredentials: unexpected Cloudflare response",
+			"status", resp.StatusCode,
+			"body", string(respBody),
+		)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+
+	var iceResp cloudflareICEResponse
+	if err := json.Unmarshal(respBody, &iceResp); err != nil {
+		slog.Error("getTURNCredentials: failed to parse Cloudflare response", "err", err, "body", string(respBody))
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+
+	// Filter out port 53 URLs — blocked by browsers
+	for i, iceServer := range iceResp.IceServers {
+		filtered := make([]string, 0, len(iceServer.URLs))
+		for _, u := range iceServer.URLs {
+			if !strings.Contains(u, ":53?") && !strings.Contains(u, ":53") {
+				filtered = append(filtered, u)
+			}
+		}
+		iceResp.IceServers[i].URLs = filtered
+	}
+
+	ctx.JSON(http.StatusOK, iceResp)
+}
+
+type TURNCredentials struct {
+	Username   string `json:"username"`
+	Credential string `json:"credential"`
+	TTL        int    `json:"ttl"`
+	URLs       []string `json:"urls"`
+}
+
+
 
 // @Summary      Start voice session
 // @Description  Initiates a WebRTC voice call in a game. Signalling travels over WebSocket.

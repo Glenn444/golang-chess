@@ -110,6 +110,7 @@ router.GET("/docs/*any", func(c *gin.Context) {
 
 	//router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker), authLimiter)
 	// ── Welcome ───────────────────────────────────────────────────────────────
 	router.GET("/", server.welcome)
 
@@ -144,6 +145,9 @@ router.GET("/docs/*any", func(c *gin.Context) {
 	authGames.GET("/:id/voice", server.getActiveVoiceSession)
 	authGames.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
 	authGames.DELETE("/:id/voice/:vid", server.endVoiceSession)
+
+	// --- Turn server ------------------------------------------
+	authRoutes.GET("/turn-credentials", server.getTURNCredentials)
 
 	// ── WebSocket ─────────────────────────────────────────────────────────────
 	// No token in query string — client sends an "auth" message as the first

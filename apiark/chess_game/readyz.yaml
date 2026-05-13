@@ -1,0 +1,3 @@
+name: Readyz
+method: GET
+url: https://api.chesske.com/

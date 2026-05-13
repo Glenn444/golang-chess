@@ -52,7 +52,7 @@ func (c *EmailClient) SendEmailOTP(to, otp string) error {
 	    </div>`, otp)
 
 	params := &resend.SendEmailRequest{
-		From:    "AccountYetu <info@accountyetu.com>",
+		From:    "ChessKe <noreply@chesske.com>",
 		To:      []string{to},
 		Subject: "Your Chess Game verification code",
 		Html:    html,

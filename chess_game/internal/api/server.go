@@ -13,13 +13,13 @@ import (
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/Glenn444/golang-chess/internal/utils/emails"
-	"github.com/gin-contrib/cors"
 	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/olahol/melody"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Server struct {
@@ -90,7 +90,25 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	router.GET("/readyz", server.readyz)
 
 	// ── Swagger UI ────────────────────────────────────────────────────────────
-	router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+router.GET("/docs", func(c *gin.Context) {
+	c.Redirect(http.StatusFound, "/docs/index.html")
+})
+
+swaggerHandler := ginSwagger.WrapHandler(
+	swaggerFiles.Handler,
+	ginSwagger.URL("/docs/doc.json"),
+)
+
+router.GET("/docs/*any", func(c *gin.Context) {
+	if c.Param("any") == "/" {
+		c.Redirect(http.StatusFound, "/docs/index.html")
+		return
+	}
+
+	swaggerHandler(c)
+})
+
+	//router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// ── Welcome ───────────────────────────────────────────────────────────────
 	router.GET("/", server.welcome)

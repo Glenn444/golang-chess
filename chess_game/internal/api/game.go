@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 type CreateGameReq struct{
@@ -46,8 +48,18 @@ func (server *Server) createGame(ctx *gin.Context) {
 		return
 	}
 
+	// Reject if the user already has active or waiting games.
+	existing, err := server.store.GetActiveGamesByUser(ctx, user.ID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		handleDBError(ctx, err, WithLogArgs("createGame: GetActiveGamesByUser", "user_id", user.ID))
+		return
+	}
+	if len(existing) > 0 {
+		ctx.JSON(http.StatusConflict, errorMessage("you already have an active or pending game — finish or delete it before creating a new one"))
+		return
+	}
+
 	var game db.Game
-	var err error
 	switch req.PlayerColor {
 	case "w":
 		game,err = server.store.CreateGameAsWhite(ctx,user.ID)

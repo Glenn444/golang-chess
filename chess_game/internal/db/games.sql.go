@@ -72,7 +72,7 @@ func (q *Queries) DeleteGame(ctx context.Context, id pgtype.UUID) error {
 const getActiveGamesByUser = `-- name: GetActiveGamesByUser :many
 SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, created_at, updated_at FROM games 
 WHERE (white_player_id = $1 OR black_player_id = $1)
-AND status IN ('waiting', 'active')
+AND state IN ('waiting', 'active')
 `
 
 func (q *Queries) GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype.UUID) ([]Game, error) {

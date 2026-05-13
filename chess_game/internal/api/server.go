@@ -25,6 +25,15 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+func init() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("username", func(fl validator.FieldLevel) bool {
+			re := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+			return re.MatchString(fl.Field().String())
+		})
+	}
+}
+
 type Server struct {
 	config      config.Config
 	emailClient emails.EmailSender
@@ -58,14 +67,8 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 
 	gin.ForceConsoleColor()
 	router := gin.Default()
-	router.RedirectTrailingSlash = false  // add this
-	// Register custom validators
-	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("username", func(fl validator.FieldLevel) bool {
-			re := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
-			return re.MatchString(fl.Field().String())
-		})
-	}
+	router.RedirectTrailingSlash = false
+
 	// ── Global middleware ─────────────────────────────────────────────────────
 	router.Use(cors.New(cfg.CORSConfig()))
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,6 +17,8 @@ import (
 	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/olahol/melody"
 	swaggerFiles "github.com/swaggo/files"
@@ -56,6 +59,13 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	gin.ForceConsoleColor()
 	router := gin.Default()
 
+	// Register custom validators
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("username", func(fl validator.FieldLevel) bool {
+			re := regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+			return re.MatchString(fl.Field().String())
+		})
+	}
 	// ── Global middleware ─────────────────────────────────────────────────────
 	router.Use(cors.New(cfg.CORSConfig()))
 
@@ -90,23 +100,23 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	router.GET("/readyz", server.readyz)
 
 	// ── Swagger UI ────────────────────────────────────────────────────────────
-router.GET("/docs", func(c *gin.Context) {
-	c.Redirect(http.StatusFound, "/docs/index.html")
-})
-
-swaggerHandler := ginSwagger.WrapHandler(
-	swaggerFiles.Handler,
-	ginSwagger.URL("/docs/doc.json"),
-)
-
-router.GET("/docs/*any", func(c *gin.Context) {
-	if c.Param("any") == "/" {
+	router.GET("/docs", func(c *gin.Context) {
 		c.Redirect(http.StatusFound, "/docs/index.html")
-		return
-	}
+	})
 
-	swaggerHandler(c)
-})
+	swaggerHandler := ginSwagger.WrapHandler(
+		swaggerFiles.Handler,
+		ginSwagger.URL("/docs/doc.json"),
+	)
+
+	router.GET("/docs/*any", func(c *gin.Context) {
+		if c.Param("any") == "/" {
+			c.Redirect(http.StatusFound, "/docs/index.html")
+			return
+		}
+
+		swaggerHandler(c)
+	})
 
 	//router.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

@@ -24,11 +24,19 @@ import (
 // ── mock email sender ────────────────────────────────────────────────────────────
 
 type mockEmailSender struct {
-	sendEmailOTPFn func(to, otp string) error
+	sendEmailOTPFn           func(to, otp string) error
+	sendPasswordResetOTPFn   func(to, otp string) error
 }
 
 func (m *mockEmailSender) SendEmailOTP(to, otp string) error {
 	return m.sendEmailOTPFn(to, otp)
+}
+
+func (m *mockEmailSender) SendPasswordResetOTP(to, otp string) error {
+	if m.sendPasswordResetOTPFn != nil {
+		return m.sendPasswordResetOTPFn(to, otp)
+	}
+	return nil
 }
 
 // ── test server (auth) ───────────────────────────────────────────────────────────

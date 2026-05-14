@@ -138,6 +138,8 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	users.POST("/signup", server.createUser)
 	users.POST("/confirm-email", server.confirmEmail)
 	users.POST("/send-emailotp", server.sendEmailOTP)
+	users.POST("/forgot-password", server.forgotPassword)
+	users.POST("/reset-password", server.resetPassword)
 	users.POST("/signin", server.loginUser)
 	users.POST("/refresh-token", server.refreshToken)
 

@@ -343,6 +343,164 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 
 }
 
+// ── Forgot / Reset Password ─────────────────────────────────────────────────
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
+// @Summary      Forgot password
+// @Description  Sends a 6-digit OTP to the user's email for password reset.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  ForgotPasswordRequest  true  "Email payload"
+// @Success      200   {object}  SendEmailOTPResp
+// @Failure      400   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
+// @Failure      429   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /users/forgot-password [post]
+func (server *Server) forgotPassword(ctx *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	req.Email = strings.ToLower(req.Email)
+
+	user, err := server.store.GetUserByEmail(ctx, req.Email)
+	if handleDBError(ctx, err,
+		WithNotFoundMsg(ErrUserNotFound),
+		WithLogArgs("forgotPassword: GetUserByEmail", "email", req.Email)) {
+		return
+	}
+
+	// Rate-limit: check for an existing valid OTP.
+	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		handleDBError(ctx, err, WithLogArgs("forgotPassword: GetValidOTP", "user_id", user.ID))
+		return
+	}
+	if err == nil && emailOTP.ExpiresAt.Time.After(time.Now()) {
+		ctx.JSON(http.StatusTooManyRequests, errorMessage("a reset code was already sent — check your email or wait before requesting another"))
+		return
+	}
+
+	otpCode, err := auth.GenerateOTP(6)
+	if err != nil {
+		slog.Error("forgotPassword: GenerateOTP", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrGeneratingOTP))
+		return
+	}
+
+	otpHash, err := auth.SignOtpCode(otpCode, server.config.TokenSymmetricKey)
+	if err != nil {
+		slog.Error("forgotPassword: SignOtpCode", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+
+	_, err = server.store.CreateEmailOTP(ctx, db.CreateEmailOTPParams{
+		UserID:   user.ID,
+		CodeHash: otpHash,
+		ExpiresAt: pgtype.Timestamptz{
+			Time:  time.Now().Add(server.config.AcessTokenDuration),
+			Valid: true,
+		},
+	})
+	if handleDBError(ctx, err, WithLogArgs("forgotPassword: CreateEmailOTP", "user_id", user.ID)) {
+		return
+	}
+
+	err = server.emailClient.SendPasswordResetOTP(user.Email, otpCode)
+	if err != nil {
+		slog.Error("forgotPassword: SendPasswordResetOTP", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrSendingOTP))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, SendEmailOTPResp{
+		Message: "password reset code sent to your email",
+		Email:   user.Email,
+	})
+}
+
+type ResetPasswordRequest struct {
+	Email       string `json:"email" binding:"required,email"`
+	OTP         string `json:"otp" binding:"required,numeric,len=6"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+// @Summary      Reset password
+// @Description  Resets the user's password using the OTP code sent to their email.
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        body  body  ResetPasswordRequest  true  "Reset payload"
+// @Success      200   {object}  map[string]string
+// @Failure      400   {object}  map[string]string
+// @Failure      403   {object}  map[string]string
+// @Failure      404   {object}  map[string]string
+// @Failure      500   {object}  map[string]string
+// @Router       /users/reset-password [post]
+func (server *Server) resetPassword(ctx *gin.Context) {
+	var req ResetPasswordRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	req.Email = strings.ToLower(req.Email)
+
+	user, err := server.store.GetUserByEmail(ctx, req.Email)
+	if handleDBError(ctx, err,
+		WithNotFoundMsg(ErrUserNotFound),
+		WithLogArgs("resetPassword: GetUserByEmail", "email", req.Email)) {
+		return
+	}
+
+	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
+	if handleDBError(ctx, err,
+		WithNotFoundMsg(ErrOTPNotFound),
+		WithLogArgs("resetPassword: GetValidOTP", "user_id", user.ID)) {
+		return
+	}
+
+	match, err := auth.ConfirmOTP(req.OTP, emailOTP.CodeHash, server.config.TokenSymmetricKey)
+	if err != nil {
+		slog.Error("resetPassword: ConfirmOTP", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+	if !match {
+		_, _ = server.store.IncrementOTPAttempts(ctx, emailOTP.ID)
+		ctx.JSON(http.StatusForbidden, errorMessage(ErrOTPInvalid))
+		return
+	}
+
+	// OTP valid — update the password.
+	hashedPassword, err := auth.HashPassword(req.NewPassword)
+	if err != nil {
+		slog.Error("resetPassword: HashPassword", "err", err, "user_id", user.ID)
+		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+		return
+	}
+
+	_, err = server.store.UpdateUser(ctx, db.UpdateUserParams{
+		ID:           user.ID,
+		PasswordHash: pgtype.Text{String: hashedPassword, Valid: true},
+	})
+	if handleDBError(ctx, err, WithLogArgs("resetPassword: UpdateUser", "user_id", user.ID)) {
+		return
+	}
+
+	// Mark OTP as used and revoke all existing sessions (security).
+	_, _ = server.store.MarkOTPUsed(ctx, emailOTP.ID)
+	_ = server.store.RevokeAllUserSessions(ctx, user.ID)
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "password reset successfully — please sign in again"})
+}
+
 type LoginUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`

@@ -244,10 +244,12 @@ type SendEmailOTP struct {
 func (r *SendEmailOTP) SanitizeEmailOTP() {
 	r.Email = strings.ToLower(r.Email)
 }
-type SendEmailOTPResp struct{
+
+type SendEmailOTPResp struct {
 	Message string `json:"msg"`
-	Email string `json:"email"`
+	Email   string `json:"email"`
 }
+
 // @Summary      Send OTP
 // @Description  Resends the OTP verification code to the user's email.
 // @Tags         Auth
@@ -311,7 +313,7 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 	if err != nil {
 		slog.Error("sendEmailOTP: failed SignOtpCode",
 			"err", err,
-			"user_ID",user.ID,
+			"user_ID", user.ID,
 		)
 		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
 		return
@@ -324,7 +326,7 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 			Valid: true,
 		},
 	})
-	if handleDBError(ctx, err, WithLogArgs("sendEmailOT: failed CreateEmailOTP","user_id", user.ID)) {
+	if handleDBError(ctx, err, WithLogArgs("sendEmailOT: failed CreateEmailOTP", "user_id", user.ID)) {
 		return
 	}
 	//4. send email otp to user email
@@ -336,7 +338,7 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, SendEmailOTPResp{
 		Message: "OTP sent successfuly to your email",
-		Email: user.Email,
+		Email:   user.Email,
 	})
 
 }
@@ -357,10 +359,11 @@ type LoginUserResponse struct {
 func (r *LoginUserRequest) sanitizeLoginUserReq() {
 	r.Email = strings.ToLower(r.Email)
 }
-type EmailConfirmedResp struct{
-		Message string `json:"msg"`
-		Email string `json:"email"`
-	}
+
+type EmailConfirmedResp struct {
+	Message string `json:"msg"`
+	Email   string `json:"email"`
+}
 
 // login user
 // @Summary      Sign in
@@ -388,15 +391,15 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
 	if handleDBError(ctx, err, WithNotFoundMsg(ErrUserNotFound),
-		WithLogArgs("loginUser: failed GetUserByEmail","user_email", req.Email)) {
+		WithLogArgs("loginUser: failed GetUserByEmail", "user_email", req.Email)) {
 		return
 	}
 
 	//check if user email is verified
-	if !user.EmailConfirmed{
-		ctx.JSON(http.StatusForbidden,EmailConfirmedResp{
+	if !user.EmailConfirmed {
+		ctx.JSON(http.StatusForbidden, EmailConfirmedResp{
 			Message: "email not confirmed!",
-			Email: user.Email,
+			Email:   user.Email,
 		})
 		return
 	}
@@ -444,13 +447,13 @@ func (server *Server) loginUser(ctx *gin.Context) {
 			Valid: true,
 		},
 	})
-	if handleDBError(ctx, err, WithLogArgs("loginUser: failed CreateSession","user_id", user.ID)) {
+	if handleDBError(ctx, err, WithLogArgs("loginUser: failed CreateSession", "user_id", user.ID)) {
 		return
 	}
 
 	last_login := user.LastLoginAt
 	err = server.store.UpdateLastLogin(ctx, user.ID)
-	if handleDBError(ctx, err, WithLogArgs("loginUser: failed UpdateLastLogin","user_id", user.ID)) {
+	if handleDBError(ctx, err, WithLogArgs("loginUser: failed UpdateLastLogin", "user_id", user.ID)) {
 		return
 	}
 
@@ -466,6 +469,8 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		Username:          user.Username,
 		PasswordChangedAt: user.PasswordUpdatedAt.Time,
 		LastLoginAt:       last_login.Time,
+		AccessToken:       access_token,
+		RefreshToken:      savedSession.RefreshToken,
 	}
 
 	ctx.JSON(http.StatusOK, resp)
@@ -537,21 +542,21 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 
 	// check session in DB — this is what JWT alone can't do
 	session, err := server.store.GetSessionByRefreshToken(ctx, refreshToken)
-    if handleDBError(ctx, err, WithNotFoundMsg(ErrSessionNotFound)) {
-        return
-    }
+	if handleDBError(ctx, err, WithNotFoundMsg(ErrSessionNotFound)) {
+		return
+	}
 
-    // 3. check not revoked
-    if session.IsRevoked {
-        ctx.JSON(http.StatusUnauthorized, errorMessage(ErrSessionRevoked))
-        return
-    }
+	// 3. check not revoked
+	if session.IsRevoked {
+		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrSessionRevoked))
+		return
+	}
 
-    // 4. check not expired
-    if session.ExpiresAt.Time.Before(time.Now()) {
-        ctx.JSON(http.StatusUnauthorized, errorMessage(ErrSessionExpired))
-        return
-    }
+	// 4. check not expired
+	if session.ExpiresAt.Time.Before(time.Now()) {
+		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrSessionExpired))
+		return
+	}
 
 	//refreshtoken is valid issue new access token
 	accessToken, err := server.tokenMaker.CreateToken(payload.Subject, token.AccessTokenType, server.config.AcessTokenDuration)

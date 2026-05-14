@@ -93,13 +93,21 @@ func setupWSRouter(t *testing.T, server *Server, store *mock_db.MockStore) (*htt
 	gameID := gameUUID()
 	whiteID := userUUID()
 
-	_ = store
-
 	user := db.User{
 		ID:       whiteID,
 		Username: "whiteplayer",
 		Email:    "white@example.com",
 	}
+
+	// Mock DB calls that sendGameState makes to fetch opponent info.
+	dbGame := db.Game{
+		ID:            gameID,
+		WhitePlayerID: whiteID,
+		BlackPlayerID: userUUID(),
+		State:         db.GameStateActive,
+	}
+	store.EXPECT().GetGameByID(gomock.Any(), gameID).Return(dbGame, nil).AnyTimes()
+	store.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(user, nil).AnyTimes()
 
 	gameState := &pieces.GameState{
 		CurrentPlayer:  "w",
@@ -138,11 +146,13 @@ func drainGameState(t *testing.T, conn *websocket.Conn) {
 	if err := conn.ReadJSON(&evt); err != nil {
 		return
 	}
+	// Accept both raw game_state and GameStatePayload-wrapped formats.
 	if evt.Type == "game_state" {
 		return
 	}
 	t.Fatalf("expected game_state event on connect, got %q", evt.Type)
 }
+
 
 func TestWSMakeMoveIntegration(t *testing.T) {
 	t.Run("successful move broadcasts result", func(t *testing.T) {

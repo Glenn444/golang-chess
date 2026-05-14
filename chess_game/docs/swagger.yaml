@@ -60,6 +60,46 @@ definitions:
       username:
         type: string
     type: object
+  api.GameMoveResponse:
+    properties:
+      created_at:
+        type: string
+      game_id:
+        type: string
+      id:
+        type: string
+      move_notation:
+        type: string
+      move_number:
+        type: integer
+      player_color:
+        type: string
+      player_id:
+        type: string
+    type: object
+  api.GameResponse:
+    properties:
+      black_player_id:
+        type: string
+      board_state:
+        type: string
+      created_at:
+        type: string
+      current_player:
+        type: string
+      id:
+        type: string
+      in_check:
+        type: boolean
+      move_count:
+        type: integer
+      state:
+        type: string
+      updated_at:
+        type: string
+      white_player_id:
+        type: string
+    type: object
   api.ICEServer:
     properties:
       credential:
@@ -99,8 +139,6 @@ definitions:
     properties:
       refresh_token:
         type: string
-    required:
-    - refresh_token
     type: object
   api.RefreshTokenResponse:
     properties:
@@ -189,7 +227,7 @@ paths:
           description: OK
           schema:
             items:
-              type: object
+              $ref: '#/definitions/api.GameResponse'
             type: array
         "401":
           description: Unauthorized
@@ -226,7 +264,7 @@ paths:
         "201":
           description: Created
           schema:
-            type: object
+            $ref: '#/definitions/api.GameResponse'
         "400":
           description: Bad Request
           schema:
@@ -322,7 +360,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/api.GameResponse'
         "400":
           description: Bad Request
           schema:
@@ -465,7 +503,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/api.GameResponse'
         "400":
           description: Bad Request
           schema:
@@ -525,7 +563,7 @@ paths:
           description: OK
           schema:
             items:
-              type: object
+              $ref: '#/definitions/api.GameMoveResponse'
             type: array
         "400":
           description: Bad Request
@@ -567,7 +605,7 @@ paths:
         "200":
           description: OK
           schema:
-            type: object
+            $ref: '#/definitions/api.GameResponse'
         "400":
           description: Bad Request
           schema:
@@ -832,7 +870,7 @@ paths:
           description: OK
           schema:
             items:
-              type: object
+              $ref: '#/definitions/api.GameResponse'
             type: array
         "401":
           description: Unauthorized
@@ -1001,6 +1039,23 @@ paths:
       summary: Confirm email
       tags:
       - Auth
+  /users/logout:
+    post:
+      description: Clears auth cookies and revokes the refresh token session.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - Bearer: []
+      summary: Logout
+      tags:
+      - Auth
   /users/me:
     get:
       consumes:
@@ -1039,7 +1094,6 @@ paths:
       - description: Refresh token payload
         in: body
         name: body
-        required: true
         schema:
           $ref: '#/definitions/api.RefreshTokenRequest'
       produces:
@@ -1049,12 +1103,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.RefreshTokenResponse'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
         "401":
           description: Unauthorized
           schema:

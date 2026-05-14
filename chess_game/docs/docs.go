@@ -62,7 +62,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "$ref": "#/definitions/api.GameResponse"
                             }
                         }
                     },
@@ -118,7 +118,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.GameResponse"
                         }
                     },
                     "400": {
@@ -175,7 +175,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "$ref": "#/definitions/api.GameResponse"
                             }
                         }
                     },
@@ -231,7 +231,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.GameResponse"
                         }
                     },
                     "400": {
@@ -534,7 +534,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.GameResponse"
                         }
                     },
                     "400": {
@@ -627,7 +627,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object"
+                                "$ref": "#/definitions/api.GameMoveResponse"
                             }
                         }
                     },
@@ -692,7 +692,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/api.GameResponse"
                         }
                     },
                     "400": {
@@ -1302,6 +1302,34 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/logout": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Clears auth cookies and revokes the refresh token session.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/me": {
             "get": {
                 "security": [
@@ -1366,7 +1394,6 @@ const docTemplate = `{
                         "description": "Refresh token payload",
                         "name": "body",
                         "in": "body",
-                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/api.RefreshTokenRequest"
                         }
@@ -1377,15 +1404,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/api.RefreshTokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     },
                     "401": {
@@ -1709,6 +1727,67 @@ const docTemplate = `{
                 }
             }
         },
+        "api.GameMoveResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "game_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "move_notation": {
+                    "type": "string"
+                },
+                "move_number": {
+                    "type": "integer"
+                },
+                "player_color": {
+                    "type": "string"
+                },
+                "player_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.GameResponse": {
+            "type": "object",
+            "properties": {
+                "black_player_id": {
+                    "type": "string"
+                },
+                "board_state": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "current_player": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "in_check": {
+                    "type": "boolean"
+                },
+                "move_count": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "white_player_id": {
+                    "type": "string"
+                }
+            }
+        },
         "api.ICEServer": {
             "type": "object",
             "properties": {
@@ -1764,9 +1843,6 @@ const docTemplate = `{
         },
         "api.RefreshTokenRequest": {
             "type": "object",
-            "required": [
-                "refresh_token"
-            ],
             "properties": {
                 "refresh_token": {
                     "type": "string"

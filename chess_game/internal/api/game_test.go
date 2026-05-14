@@ -27,6 +27,7 @@ func newTestGameServer(t *testing.T) (*Server, *mock_db.MockStore) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 	store := mock_db.NewMockStore(ctrl)
+	store.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(db.User{Username: "someuser"}, nil).AnyTimes()
 	tokenMaker, _ := token.NewJWTMaker("12345678901234567890123456789012")
 	server := &Server{
 		config: config.Config{
@@ -107,6 +108,7 @@ func TestCreateGame(t *testing.T) {
 		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{}, nil)
 		store.EXPECT().CreateGameAsWhite(gomock.Any(), user.ID).Return(game, nil)
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
+	store.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(user, nil).AnyTimes()
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
@@ -119,10 +121,10 @@ func TestCreateGame(t *testing.T) {
 
 		require.Equal(t, http.StatusCreated, rec.Code)
 
-		var created db.Game
+		var created GameResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &created))
-		require.Equal(t, game.ID, created.ID)
-		require.Equal(t, db.GameStateWaiting, created.State)
+		require.Equal(t, uidStr(game.ID), created.ID)
+		require.Equal(t, db.GameStateWaiting, db.GameState(created.State))
 
 		// verify in-memory game was created
 		server.activeGamesMu.RLock()
@@ -143,6 +145,7 @@ func TestCreateGame(t *testing.T) {
 		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{}, nil)
 		store.EXPECT().CreateGameAsBlack(gomock.Any(), user.ID).Return(game, nil)
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
+	store.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(user, nil).AnyTimes()
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "b",
@@ -207,7 +210,7 @@ func TestListWaitingGames(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, rec.Code)
 
-		var returned []db.Game
+		var returned []GameResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &returned))
 		require.Len(t, returned, 2)
 	})
@@ -245,7 +248,7 @@ func TestListMyGames(t *testing.T) {
 
 		require.Equal(t, http.StatusOK, rec.Code)
 
-		var returned []db.Game
+		var returned []GameResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &returned))
 		require.Len(t, returned, 1)
 	})
@@ -428,7 +431,7 @@ func TestGetGameMoves(t *testing.T) {
 		server.getGameMoves(ctx)
 
 		require.Equal(t, http.StatusOK, rec.Code)
-		var returned []db.GameMove
+		var returned []GameMoveResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &returned))
 		require.Len(t, returned, 2)
 	})

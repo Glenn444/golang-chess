@@ -29,7 +29,7 @@ func (r *CreateGameReq)sanitizeCreateGameReq(){
 // @Produce      json
 // @Param        body  body  CreateGameReq  true  "Game creation payload"
 // @Security     Bearer
-// @Success      201  {object}  object
+// @Success      201  {object}  api.GameResponse
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
@@ -111,7 +111,7 @@ func (server *Server) createGame(ctx *gin.Context) {
 	server.activeGames[game.ID] = gameState
 	server.activeGamesMu.Unlock()
 
-	ctx.JSON(http.StatusCreated, game)
+	ctx.JSON(http.StatusCreated, server.toGameResponse(ctx, game))
 }
 
 // @Summary      Delete a game
@@ -179,7 +179,7 @@ func (server *Server) deleteGame(ctx *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     Bearer
-// @Success      200  {array}   object
+// @Success      200  {array}   api.GameResponse
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
 // @Router       /games [get]
@@ -188,7 +188,7 @@ func (server *Server) listWaitingGames(ctx *gin.Context) {
 	if handleDBError(ctx, err, WithLogArgs("listWaitingGames: failed")) {
 		return
 	}
-	ctx.JSON(http.StatusOK, games)
+	ctx.JSON(http.StatusOK, server.toGameResponses(ctx, games))
 }
 
 // @Summary      List my games
@@ -197,7 +197,7 @@ func (server *Server) listWaitingGames(ctx *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     Bearer
-// @Success      200  {array}   object
+// @Success      200  {array}   api.GameResponse
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
 // @Router       /games/mine [get]
@@ -211,7 +211,8 @@ func (server *Server) listMyGames(ctx *gin.Context) {
 	if handleDBError(ctx, err, WithLogArgs("listMyGames: failed", "user_id", user.ID)) {
 		return
 	}
-	ctx.JSON(http.StatusOK, games)
+	ctx.JSON(http.StatusOK, server.toGameResponses(ctx, games))
+
 }
 
 // @Summary      Get a game
@@ -221,7 +222,7 @@ func (server *Server) listMyGames(ctx *gin.Context) {
 // @Produce      json
 // @Param        id  path  string  true  "Game UUID"
 // @Security     Bearer
-// @Success      200  {object}  object
+// @Success      200  {object}  api.GameResponse
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      404  {object}  map[string]string
@@ -240,7 +241,7 @@ func (server *Server) getGame(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, game)
+	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, game))
 }
 
 // @Summary      Join a game
@@ -250,7 +251,7 @@ func (server *Server) getGame(ctx *gin.Context) {
 // @Produce      json
 // @Param        id  path  string  true  "Game UUID"
 // @Security     Bearer
-// @Success      200  {object}  object
+// @Success      200  {object}  api.GameResponse
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      403  {object}  map[string]string
@@ -306,7 +307,7 @@ func (server *Server) joinGame(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, updated)
+	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
 }
 
 // @Summary      Resign from a game
@@ -316,7 +317,7 @@ func (server *Server) joinGame(ctx *gin.Context) {
 // @Produce      json
 // @Param        id  path  string  true  "Game UUID"
 // @Security     Bearer
-// @Success      200  {object}  object
+// @Success      200  {object}  api.GameResponse
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      403  {object}  map[string]string
@@ -360,7 +361,7 @@ func (server *Server) resignGame(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, updated)
+	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
 }
 
 // @Summary      Get game moves
@@ -370,7 +371,7 @@ func (server *Server) resignGame(ctx *gin.Context) {
 // @Produce      json
 // @Param        id  path  string  true  "Game UUID"
 // @Security     Bearer
-// @Success      200  {array}   object
+// @Success      200  {array}   api.GameMoveResponse
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
 // @Failure      500  {object}  map[string]string
@@ -388,5 +389,5 @@ func (server *Server) getGameMoves(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, moves)
+	ctx.JSON(http.StatusOK, toGameMoveResponses(moves))
 }

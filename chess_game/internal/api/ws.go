@@ -103,10 +103,9 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 		gameID := wsGameID(s)
 
 		server.activeGamesMu.Lock()
-		if gameState, exists := server.activeGames[gameID]; exists {
+		if _, exists := server.activeGames[gameID]; exists {
 			server.activeGamesMu.Unlock()
-			out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: wsMarshal(gameState)})
-			s.Write(out)
+			server.sendGameState(s, gameID, u)
 			slog.Info("ws: reconnected", "username", u.Username)
 			return
 		}
@@ -121,6 +120,9 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 		server.activeGamesMu.Lock()
 		server.activeGames[gameID] = restoreGameState(game)
 		server.activeGamesMu.Unlock()
+
+		// Send game_state with opponent info.
+		server.sendGameState(s, gameID, u)
 		slog.Info("ws: game loaded into memory", "game_id", gameID)
 		slog.Info("ws: connected", "username", u.Username)
 		return
@@ -251,13 +253,9 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 
 	// Load or restore game state.
 	server.activeGamesMu.Lock()
-	if gameState, exists := server.activeGames[gameID]; exists {
+	if _, exists := server.activeGames[gameID]; exists {
 		server.activeGamesMu.Unlock()
-		out, _ := json.Marshal(WSEvent{
-			Type:    "game_state",
-			Payload: wsMarshal(gameState),
-		})
-		s.Write(out)
+		server.sendGameState(s, gameID, user)
 		slog.Info("ws: reconnected", "username", user.Username)
 		return
 	}
@@ -274,6 +272,7 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 	server.activeGames[gameID] = restoreGameState(game)
 	server.activeGamesMu.Unlock()
 
+	server.sendGameState(s, gameID, user)
 	slog.Info("ws: game loaded into memory", "game_id", gameID)
 	slog.Info("ws: connected", "username", user.Username)
 }
@@ -414,6 +413,39 @@ func (server *Server) wsBroadcastToGame(gameID pgtype.UUID, msg []byte) {
 	server.melody.BroadcastFilter(msg, func(s *melody.Session) bool {
 		return uuidEq(wsGameID(s), gameID)
 	})
+}
+
+// sendGameState builds the game_state payload with opponent info and sends it
+// to the given session.
+func (server *Server) sendGameState(s *melody.Session, gameID pgtype.UUID, user db.User) {
+	server.activeGamesMu.RLock()
+	gs, ok := server.activeGames[gameID]
+	server.activeGamesMu.RUnlock()
+	if !ok {
+		return
+	}
+
+	// Determine opponent username.
+	game, err := server.store.GetGameByID(s.Request.Context(), gameID)
+	if err != nil {
+		// Fallback: send without opponent info.
+		out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: wsMarshal(gs)})
+		s.Write(out)
+		return
+	}
+
+	opponentID := game.WhitePlayerID
+	if uuidEq(opponentID, user.ID) {
+		opponentID = game.BlackPlayerID
+	}
+	opponentName := server.lookupUsername(s.Request.Context(), opponentID)
+
+	payload := GameStatePayload{
+		Game:             gs,
+		OpponentUsername: opponentName,
+	}
+	out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: wsMarshal(payload)})
+	s.Write(out)
 }
 
 // ── Session key helpers ───────────────────────────────────────────────────────

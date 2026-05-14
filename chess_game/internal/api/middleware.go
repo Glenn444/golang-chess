@@ -8,39 +8,36 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const(
+const (
 	authorizationPayloadKey = "authorization_payload"
 	authorizationTypeBearer = "Bearer"
 )
 
-type authHeader struct {
-	Authorization string `header:"Authorization" binding:"required"`
-}
-
 func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var h authHeader
-
-		if err := ctx.ShouldBindHeader(&h); err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
-			return
+		// Try cookie first (browser clients), then Bearer header (CLI/mobile/desktop).
+		accessToken, err := ctx.Cookie("access_token")
+		if err != nil || accessToken == "" {
+			authHeader := ctx.GetHeader("Authorization")
+			if authHeader == "" {
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorMessage("missing authorization"))
+				return
+			}
+			fields := strings.Fields(authHeader)
+			if len(fields) != 2 || fields[0] != authorizationTypeBearer {
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorMessage("invalid authorization header"))
+				return
+			}
+			accessToken = fields[1]
 		}
-		authParts := strings.Split(h.Authorization, " ")
 
-		if len(authParts) != 2 || authParts[0] != "Bearer" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorMessage("invalid or missing authorization header"))
-			return
-		}
-		authorizationBearerToken := authParts[1]
-		//verify that the token is valid and it's not a refreshToken
-		payload, err := tokenMaker.VerifyToken(authorizationBearerToken, token.AccessTokenType)
+		payload, err := tokenMaker.VerifyToken(accessToken, token.AccessTokenType)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
 			return
 		}
 
-		ctx.Set(authorizationPayloadKey,payload)
-
+		ctx.Set(authorizationPayloadKey, payload)
 		ctx.Next()
 	}
 }

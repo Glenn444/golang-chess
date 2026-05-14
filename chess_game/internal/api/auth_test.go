@@ -293,8 +293,20 @@ func TestLoginUser(t *testing.T) {
 		var resp LoginUserResponse
 		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
 		require.Equal(t, user.Username, resp.Username)
-		require.NotEmpty(t, resp.AccessToken)
-		require.NotEmpty(t, resp.RefreshToken)
+	
+	// Tokens are now set as HttpOnly cookies, not in the body.
+	cookies := rec.Result().Cookies()
+	var accessCookie, refreshCookie bool
+	for _, c := range cookies {
+		if c.Name == "access_token" && c.Value != "" {
+			accessCookie = true
+		}
+		if c.Name == "refresh_token" && c.Value != "" {
+			refreshCookie = true
+		}
+	}
+	require.True(t, accessCookie, "access_token cookie not set")
+	require.True(t, refreshCookie, "refresh_token cookie not set")
 	})
 
 	t.Run("wrong password", func(t *testing.T) {

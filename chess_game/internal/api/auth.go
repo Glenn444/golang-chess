@@ -454,26 +454,56 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
+	// Set HttpOnly cookies so the browser handles auth automatically.
+	maxAgeAccess := int(server.config.AcessTokenDuration.Seconds())
+	maxAgeRefresh := int(week.Seconds())
+	domain, secure := server.cookieConfig()
+
+	ctx.SetCookie("access_token", access_token, maxAgeAccess, "/", domain, secure, true)
+	ctx.SetCookie("refresh_token", savedSession.RefreshToken, maxAgeRefresh, "/", domain, secure, true)
+
 	resp := LoginUserResponse{
 		Username:          user.Username,
 		PasswordChangedAt: user.PasswordUpdatedAt.Time,
 		LastLoginAt:       last_login.Time,
-		AccessToken:       access_token,
-		RefreshToken:      savedSession.RefreshToken,
 	}
 
 	ctx.JSON(http.StatusOK, resp)
 
 }
 
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+// @Summary      Logout
+// @Description  Clears auth cookies and revokes the refresh token session.
+// @Tags         Auth
+// @Produce      json
+// @Security     Bearer
+// @Success      200  {object}  map[string]string
+// @Router       /users/logout [post]
+func (server *Server) logoutUser(ctx *gin.Context) {
+	domain, secure := server.cookieConfig()
+
+	// Try to revoke the session if we can read the refresh token.
+	if refreshToken, err := ctx.Cookie("refresh_token"); err == nil && refreshToken != "" {
+		if err := server.store.RevokeSession(ctx, refreshToken); err != nil {
+			slog.Error("logoutUser: RevokeSession failed", "err", err)
+		}
+	}
+
+	// Clear cookies.
+	ctx.SetCookie("access_token", "", -1, "/", domain, secure, true)
+	ctx.SetCookie("refresh_token", "", -1, "/", domain, secure, true)
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }
 
+// RefreshTokenRequest accepts the token via cookie or JSON body.
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
 
 type RefreshTokenResponse struct {
-	Message string `json:"message"`
-	AccessToken   string `json:"access_token"`
+	Message     string `json:"message"`
+	AccessToken string `json:"access_token"`
 }
 
 // @Summary      Refresh token
@@ -481,31 +511,32 @@ type RefreshTokenResponse struct {
 // @Tags         Auth
 // @Accept       json
 // @Produce      json
-// @Param        body  body  RefreshTokenRequest  true  "Refresh token payload"
+// @Param        body  body  RefreshTokenRequest  false  "Refresh token payload"
 // @Success      200   {object}  RefreshTokenResponse
-// @Failure      400   {object}  map[string]string
 // @Failure      401   {object}  map[string]string
 // @Failure      500   {object}  map[string]string
 // @Router       /users/refresh-token [post]
 func (server *Server) refreshToken(ctx *gin.Context) {
-	var req RefreshTokenRequest
-
-	err := ctx.ShouldBindJSON(&req)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
+	// Read refresh token from cookie first, fall back to JSON body.
+	refreshToken, err := ctx.Cookie("refresh_token")
+	if err != nil || refreshToken == "" {
+		var req RefreshTokenRequest
+		if err := ctx.ShouldBindJSON(&req); err != nil || req.RefreshToken == "" {
+			ctx.JSON(http.StatusUnauthorized, errorMessage(ErrInvalidToken))
+			return
+		}
+		refreshToken = req.RefreshToken
 	}
 
 	//verify the refresh token and get the payload
-	payload, err := server.tokenMaker.VerifyToken(req.RefreshToken, token.RefreshTokenType)
+	payload, err := server.tokenMaker.VerifyToken(refreshToken, token.RefreshTokenType)
 	if err != nil {
 		ctx.JSON(http.StatusUnauthorized, errorMessage(ErrInvalidToken))
 		return
 	}
 
-
-    // 2. check session in DB — this is what JWT alone can't do
-    session, err := server.store.GetSessionByRefreshToken(ctx, req.RefreshToken)
+	// check session in DB — this is what JWT alone can't do
+	session, err := server.store.GetSessionByRefreshToken(ctx, refreshToken)
     if handleDBError(ctx, err, WithNotFoundMsg(ErrSessionNotFound)) {
         return
     }
@@ -525,13 +556,18 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 	//refreshtoken is valid issue new access token
 	accessToken, err := server.tokenMaker.CreateToken(payload.Subject, token.AccessTokenType, server.config.AcessTokenDuration)
 	if err != nil {
-		slog.Error("refreshToken: failed CreateToken - accessToken","user_id",payload.ID)
+		slog.Error("refreshToken: failed CreateToken - accessToken", "user_id", payload.ID)
 		ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInvalidToken))
 		return
 	}
 
+	// Set new access token cookie.
+	maxAge := int(server.config.AcessTokenDuration.Seconds())
+	domain, secure := server.cookieConfig()
+	ctx.SetCookie("access_token", accessToken, maxAge, "/", domain, secure, true)
+
 	resp := RefreshTokenResponse{
-		Message: "successfully created accessToken",
+		Message:     "successfully created accessToken",
 		AccessToken: accessToken,
 	}
 

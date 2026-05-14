@@ -144,6 +144,7 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	// ── Protected (Bearer JWT + rate-limited) ─────────────────────────────────
 	authUsers := router.Group("/users").Use(authMiddleware(server.tokenMaker), authLimiter)
 	authUsers.GET("/me", server.getMe)
+	authUsers.POST("/logout", server.logoutUser)
 
 	authGames := router.Group("/games").Use(authMiddleware(server.tokenMaker), authLimiter)
 	authGames.POST("", server.createGame)
@@ -229,4 +230,14 @@ func (server *Server) readyz(c *gin.Context) {
 // @Router       / [get]
 func (server *Server) welcome(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Welcome to the Chess Game Server"})
+}
+
+// cookieConfig returns the domain and secure flag for SetCookie calls.
+// In development (localhost) we use empty domain + Secure=false so cookies
+// work over plain HTTP. In production we use the real domain + Secure=true.
+func (server *Server) cookieConfig() (domain string, secure bool) {
+	if server.config.Environment == "production" {
+		return server.config.PUBLIC_HOST, true
+	}
+	return "", false
 }

@@ -28,6 +28,11 @@ SELECT * FROM games
 WHERE state = 'waiting'
 ORDER BY created_at ASC;
 
+-- name: ListPublicGames :many
+SELECT * FROM games
+WHERE state = 'waiting' AND visibility = 'public'
+ORDER BY created_at ASC;
+
 -- name: JoinGameAsBlack :one
 UPDATE games
 SET

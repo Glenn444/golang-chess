@@ -148,6 +148,9 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	authUsers.GET("/me", server.getMe)
 	authUsers.POST("/logout", server.logoutUser)
 
+	// Public — no auth required, just returns visible games.
+	router.GET("/games/public", server.listPublicGames)
+
 	authGames := router.Group("/games").Use(authMiddleware(server.tokenMaker), authLimiter)
 	authGames.POST("", server.createGame)
 	authGames.GET("", server.listWaitingGames)

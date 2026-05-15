@@ -58,6 +58,7 @@ type Querier interface {
 	InvalidateUserOTPs(ctx context.Context, userID pgtype.UUID) error
 	JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams) (Game, error)
 	JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams) (Game, error)
+	ListPublicGames(ctx context.Context) ([]Game, error)
 	ListWaitingGames(ctx context.Context) ([]Game, error)
 	// Call this immediately after a successful match to prevent replay.
 	MarkOTPUsed(ctx context.Context, id pgtype.UUID) (EmailOtp, error)

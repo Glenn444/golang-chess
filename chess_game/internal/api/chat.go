@@ -1,6 +1,7 @@
 package api
 
 import (
+	"log/slog"
 	"net/http"
 
 	db "github.com/Glenn444/golang-chess/internal/db"
@@ -51,6 +52,15 @@ func (server *Server) sendChatMessage(ctx *gin.Context) {
 
 	if !uuidEq(game.WhitePlayerID, user.ID) && !uuidEq(game.BlackPlayerID, user.ID) {
 		ctx.JSON(http.StatusForbidden, errorMessage(ErrNotAPlayer))
+		return
+	}
+
+	// Cap at 200 messages per game.
+	count, err := server.store.CountChatMessagesByGameID(ctx, gameID)
+	if err != nil {
+		slog.Error("sendChatMessage: CountChatMessagesByGameID", "game_id", ctx.Param("id"), "err", err)
+	} else if count >= 200 {
+		ctx.JSON(http.StatusConflict, errorMessage("chat limit reached (200 messages per game)"))
 		return
 	}
 

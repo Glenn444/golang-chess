@@ -648,6 +648,21 @@ func (mr *MockStoreMockRecorder) JoinGameAsWhite(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "JoinGameAsWhite", reflect.TypeOf((*MockStore)(nil).JoinGameAsWhite), ctx, arg)
 }
 
+// ListPublicGames mocks base method.
+func (m *MockStore) ListPublicGames(ctx context.Context) ([]db.Game, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPublicGames", ctx)
+	ret0, _ := ret[0].([]db.Game)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPublicGames indicates an expected call of ListPublicGames.
+func (mr *MockStoreMockRecorder) ListPublicGames(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPublicGames", reflect.TypeOf((*MockStore)(nil).ListPublicGames), ctx)
+}
+
 // ListWaitingGames mocks base method.
 func (m *MockStore) ListWaitingGames(ctx context.Context) ([]db.Game, error) {
 	m.ctrl.T.Helper()

@@ -113,6 +113,7 @@ func TestCreateGame(t *testing.T) {
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
 			Opponent:    "person",
+				Visibility: "public",
 				TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)
@@ -151,6 +152,7 @@ func TestCreateGame(t *testing.T) {
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "b",
 			Opponent:    "person",
+				Visibility: "public",
 				TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)
@@ -160,12 +162,12 @@ func TestCreateGame(t *testing.T) {
 		require.Equal(t, http.StatusCreated, rec.Code)
 	})
 
-	t.Run("max 3 pending games — allowed with 2 existing", func(t *testing.T) {
+	t.Run("allowed with 1 pending game", func(t *testing.T) {
 		server, store := newTestGameServer(t)
 
 		user := testUser()
 		game := testGame()
-		existingGames := []db.Game{testGame(), testGame()} // 2 existing waiting
+		existingGames := []db.Game{testGame()} // 1 existing waiting
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
 		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return(existingGames, nil)
@@ -175,6 +177,7 @@ func TestCreateGame(t *testing.T) {
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
 			Opponent:    "person",
+				Visibility: "public",
 			TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)
@@ -184,18 +187,42 @@ func TestCreateGame(t *testing.T) {
 		require.Equal(t, http.StatusCreated, rec.Code)
 	})
 
-	t.Run("already has 3 active games", func(t *testing.T) {
+	t.Run("rejected with 1 active game", func(t *testing.T) {
 		server, store := newTestGameServer(t)
 
 		user := testUser()
-		threeGames := []db.Game{testGame(), testGame(), testGame()}
+		activeGame := testGame()
+		activeGame.State = db.GameStateActive
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
-		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return(threeGames, nil)
+		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{activeGame}, nil)
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
 			Opponent:    "person",
+				Visibility: "public",
+			TimeControl: 5,
+		})
+		setAuth(ctx, user.Username)
+
+		server.createGame(ctx)
+
+		require.Equal(t, http.StatusConflict, rec.Code)
+	})
+
+	t.Run("rejected with 2 pending games", func(t *testing.T) {
+		server, store := newTestGameServer(t)
+
+		user := testUser()
+		twoPending := []db.Game{testGame(), testGame()}
+
+		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
+		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return(twoPending, nil)
+
+		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
+			PlayerColor: "w",
+			Opponent:    "person",
+				Visibility: "public",
 			TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)

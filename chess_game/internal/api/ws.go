@@ -350,21 +350,23 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		return
 	}
 
-	// Deduct elapsed time from the player who just moved.
-	now := time.Now()
-	elapsed := now.Sub(gamestate.LastMoveAt).Milliseconds()
-	if previousPlayer == "w" {
-		gamestate.WhiteTimeRemainingMs -= elapsed
-		if gamestate.WhiteTimeRemainingMs <= 0 {
-			gamestate.WhiteTimeRemainingMs = 0
+	// Deduct elapsed time from the player who just moved (skip if unlimited).
+	if gamestate.WhiteTimeRemainingMs > 0 || gamestate.BlackTimeRemainingMs > 0 {
+		now := time.Now()
+		elapsed := now.Sub(gamestate.LastMoveAt).Milliseconds()
+		if previousPlayer == "w" {
+			gamestate.WhiteTimeRemainingMs -= elapsed
+			if gamestate.WhiteTimeRemainingMs <= 0 {
+				gamestate.WhiteTimeRemainingMs = 0
+			}
+		} else {
+			gamestate.BlackTimeRemainingMs -= elapsed
+			if gamestate.BlackTimeRemainingMs <= 0 {
+				gamestate.BlackTimeRemainingMs = 0
+			}
 		}
-	} else {
-		gamestate.BlackTimeRemainingMs -= elapsed
-		if gamestate.BlackTimeRemainingMs <= 0 {
-			gamestate.BlackTimeRemainingMs = 0
-		}
+		gamestate.LastMoveAt = now
 	}
-	gamestate.LastMoveAt = now
 
 	check := board.IsKinginCheck(gamestate)
 	isCheckmate := board.IsCheckmate(gamestate)
@@ -374,11 +376,17 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	timedOut := gamestate.WhiteTimeRemainingMs <= 0 || gamestate.BlackTimeRemainingMs <= 0
 
 	gameStatus := db.GameStateActive
+	var endReason string
 	switch {
-	case isCheckmate || timedOut:
+	case isCheckmate:
 		gameStatus = db.GameStateCheckmate
+		endReason = "checkmate"
+	case timedOut:
+		gameStatus = db.GameStateCheckmate
+		endReason = "timeout"
 	case isStalemate:
 		gameStatus = db.GameStateStalemate
+		endReason = "stalemate"
 	}
 
 	gamestate.MoveNumber++
@@ -392,6 +400,8 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		BoardState:           board.SerializeGameState(gamestate),
 		WhiteTimeRemainingMs: gamestate.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: gamestate.BlackTimeRemainingMs,
+		EndedByPlayerID:      user.ID,
+		EndReason:            endReason,
 	})
 	if err != nil {
 		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)

@@ -16,7 +16,8 @@ import (
 type CreateGameReq struct{
 	PlayerColor string `json:"player_color" binding:"required,len=1,oneof=w b"`
 	Opponent    string `json:"opponent" binding:"required,oneof=person stockfish"`
-	TimeControl int    `json:"time_control" binding:"required,oneof=5 10 15 30 45 60"`
+	TimeControl int    `json:"time_control" binding:"oneof=0 5 10 15 30 45 60"`
+	Visibility  string `json:"visibility" binding:"required,oneof=public private"`
 }
 
 func (r *CreateGameReq)sanitizeCreateGameReq(){
@@ -61,20 +62,27 @@ func (server *Server) createGame(ctx *gin.Context) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Users can have up to 3 pending/active games.
+	// Users can have at most 1 active + 2 pending games.
 	allGames, err := server.store.GetGamesByPlayerID(ctx, user.ID)
 	if err != nil {
 		handleDBError(ctx, err, WithLogArgs("createGame: GetGamesByPlayerID", "user_id", user.ID))
 		return
 	}
-	active := 0
+	var pending, active int
 	for _, g := range allGames {
-		if g.State == db.GameStateWaiting || g.State == db.GameStateActive {
+		switch g.State {
+		case db.GameStateWaiting:
+			pending++
+		case db.GameStateActive:
 			active++
 		}
 	}
-	if active >= 3 {
-		ctx.JSON(http.StatusConflict, errorMessage("you already have 3 active or pending games — finish or delete one before creating a new game"))
+	if active >= 1 {
+		ctx.JSON(http.StatusConflict, errorMessage("you already have an active game — finish it before creating a new one"))
+		return
+	}
+	if pending >= 2 {
+		ctx.JSON(http.StatusConflict, errorMessage("you already have 2 pending games — delete one or wait for them to fill before creating a new one"))
 		return
 	}
 
@@ -91,7 +99,7 @@ func (server *Server) createGame(ctx *gin.Context) {
 	}
 
 	//initialise a game state in memory
-	timeMs := int64(req.TimeControl) * 60 * 1000
+	timeMs := int64(req.TimeControl) * 60 * 1000 // 0 = unlimited
 	gameState := &pieces.GameState{
 		CurrentPlayer:        "w",
 		Board:                board.Initialise_board(board.Create_board()),
@@ -165,6 +173,13 @@ func (server *Server) deleteGame(ctx *gin.Context) {
 		return
 	}
 
+	// Only pending (waiting) games can be deleted. Active games must be
+	// completed, and past games are kept for history.
+	if game.State != db.GameStateWaiting {
+		ctx.JSON(http.StatusConflict, errorMessage("only pending games can be deleted — active games must be completed, and finished games are kept for history"))
+		return
+	}
+
 	// Clean up associated data.
 	if err := server.store.DeleteMovesByGameID(ctx, gameID); err != nil {
 		slog.Error("deleteGame: DeleteMovesByGameID", "game_id", ctx.Param("id"), "err", err)
@@ -184,6 +199,22 @@ func (server *Server) deleteGame(ctx *gin.Context) {
 	server.activeGamesMu.Unlock()
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "game deleted"})
+}
+
+// @Summary      List public games
+// @Description  Returns all public games waiting for a second player. Any authenticated user can join these.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   api.GameResponse
+// @Failure      500  {object}  map[string]string
+// @Router       /games/public [get]
+func (server *Server) listPublicGames(ctx *gin.Context) {
+	games, err := server.store.ListPublicGames(ctx)
+	if handleDBError(ctx, err, WithLogArgs("listPublicGames: failed")) {
+		return
+	}
+	ctx.JSON(http.StatusOK, server.toGameResponses(ctx, games))
 }
 
 // @Summary      List waiting games
@@ -366,9 +397,11 @@ func (server *Server) resignGame(ctx *gin.Context) {
 	}
 
 	updated, err := server.store.UpdateGameState(ctx, db.UpdateGameStateParams{
-		ID:      gameID,
-		State:   db.GameStateResign,
-		InCheck: false,
+		ID:              gameID,
+		State:           db.GameStateResign,
+		InCheck:         false,
+		EndedByPlayerID: user.ID,
+		EndReason:       "resign",
 	})
 	if handleDBError(ctx, err, WithLogArgs("resignGame: UpdateGameState", "game_id", ctx.Param("id"))) {
 		return

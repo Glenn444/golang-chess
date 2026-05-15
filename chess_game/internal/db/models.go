@@ -173,6 +173,9 @@ type Game struct {
 	WhiteTimeRemainingMs int64              `json:"white_time_remaining_ms"`
 	BlackTimeRemainingMs int64              `json:"black_time_remaining_ms"`
 	LastMoveAt           pgtype.Timestamptz `json:"last_move_at"`
+	EndedByPlayerID      pgtype.UUID        `json:"ended_by_player_id"`
+	EndReason            string             `json:"end_reason"`
+	Visibility           string             `json:"visibility"`
 	CreatedAt            pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
 }

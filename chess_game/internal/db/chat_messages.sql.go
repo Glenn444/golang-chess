@@ -36,6 +36,17 @@ func (q *Queries) CreateChatMessage(ctx context.Context, arg CreateChatMessagePa
 	return i, err
 }
 
+const countChatMessagesByGameID = `-- name: CountChatMessagesByGameID :one
+SELECT COUNT(*) FROM chat_messages WHERE game_id = $1
+`
+
+func (q *Queries) CountChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countChatMessagesByGameID, gameID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteChatMessagesByGameID = `-- name: DeleteChatMessagesByGameID :exec
 DELETE FROM chat_messages
 WHERE game_id = $1

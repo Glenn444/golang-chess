@@ -101,6 +101,21 @@ func (mr *MockStoreMockRecorder) CountMovesByGameID(ctx, gameID any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountMovesByGameID", reflect.TypeOf((*MockStore)(nil).CountMovesByGameID), ctx, gameID)
 }
 
+// CountChatMessagesByGameID mocks base method.
+func (m *MockStore) CountChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountChatMessagesByGameID", ctx, gameID)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountChatMessagesByGameID indicates an expected call of CountChatMessagesByGameID.
+func (mr *MockStoreMockRecorder) CountChatMessagesByGameID(ctx, gameID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountChatMessagesByGameID", reflect.TypeOf((*MockStore)(nil).CountChatMessagesByGameID), ctx, gameID)
+}
+
 // CountRecentOTPsForUser mocks base method.
 func (m *MockStore) CountRecentOTPsForUser(ctx context.Context, userID pgtype.UUID) (int64, error) {
 	m.ctrl.T.Helper()

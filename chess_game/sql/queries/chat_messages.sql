@@ -15,6 +15,9 @@ WHERE game_id = $1
 ORDER BY created_at DESC
 LIMIT sqlc.arg(page_size)::int;
 
+-- name: CountChatMessagesByGameID :one
+SELECT COUNT(*) FROM chat_messages WHERE game_id = $1;
+
 -- name: DeleteChatMessagesByGameID :exec
 DELETE FROM chat_messages
 WHERE game_id = $1;

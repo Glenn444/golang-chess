@@ -26,6 +26,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateVoiceSession(ctx context.Context, arg CreateVoiceSessionParams) (VoiceSession, error)
 	DeactivateUser(ctx context.Context, id pgtype.UUID) error
+	CountChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error)
 	DeleteChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) error
 	// Run periodically (e.g. a cron job) to keep the table small.
 	DeleteExpiredOTPs(ctx context.Context) error

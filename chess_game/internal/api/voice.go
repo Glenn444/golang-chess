@@ -35,6 +35,7 @@ type ICEServer struct {
 // @Failure      500  {object}  map[string]string
 // @Router       /turn-credentials [get]
 func (server *Server) getTURNCredentials(ctx *gin.Context) {
+	
 	cfURL := fmt.Sprintf(
 		"https://rtc.live.cloudflare.com/v1/turn/keys/%s/credentials/generate-ice-servers",
 		server.config.CloudflareTURNKeyID,

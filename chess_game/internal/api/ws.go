@@ -313,7 +313,11 @@ type MoveResult struct {
 	CurrentPlayer string `json:"current_player"`
 	InCheck       bool   `json:"in_check"`
 	IsCheckmate   bool   `json:"is_checkmate"`
-	IsStalemate   bool   `json:"is_stalemate"`
+	IsStalemate           bool   `json:"is_stalemate"`
+	EndReason             string `json:"end_reason"`
+	EndedByPlayerID       string `json:"ended_by_player_id"`
+	WhiteTimeRemainingMs  int64  `json:"white_time_remaining_ms"`
+	BlackTimeRemainingMs  int64  `json:"black_time_remaining_ms"`
 }
 
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
@@ -425,11 +429,15 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	}
 
 	result := MoveResult{
-		Move:          body.Move,
-		CurrentPlayer: gamestate.CurrentPlayer,
-		InCheck:       check,
-		IsCheckmate:   isCheckmate,
-		IsStalemate:   isStalemate,
+		Move:                 body.Move,
+		CurrentPlayer:        gamestate.CurrentPlayer,
+		InCheck:              check,
+		IsCheckmate:          isCheckmate,
+		IsStalemate:          isStalemate,
+		EndReason:            endReason,
+		EndedByPlayerID:      uidStr(user.ID),
+		WhiteTimeRemainingMs: gamestate.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: gamestate.BlackTimeRemainingMs,
 	}
 
 	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
@@ -487,14 +495,17 @@ func (server *Server) sendGameState(s *melody.Session, gameID pgtype.UUID, user 
 	server.activeGamesMu.RLock()
 	gs, ok := server.activeGames[gameID]
 	server.activeGamesMu.RUnlock()
-	if !ok {
+	if !ok || gs == nil {
+		slog.Error("ws: sendGameState — game not found in memory", "game_id", gameID)
+		wsWriteError(s, "game state not available")
 		return
 	}
 
 	// Determine opponent username.
 	game, err := server.store.GetGameByID(s.Request.Context(), gameID)
 	if err != nil {
-		// Fallback: send without opponent info.
+		slog.Warn("ws: sendGameState — DB lookup failed, sending without opponent info",
+			"game_id", gameID, "err", err)
 		out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: wsMarshal(gs)})
 		s.Write(out)
 		return

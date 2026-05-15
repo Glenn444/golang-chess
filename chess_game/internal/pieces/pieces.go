@@ -23,23 +23,23 @@ type Castling struct {
 	BlackRookKingsideMoved  bool
 	BlackRookQueensideMoved bool
 }
-
 type GameState struct {
-	CurrentPlayer        string
-	Board                [][]Square
-	CapturedPieces       map[string][]PieceInterface
-	StockfishGame        []string
-	PlayAgainst          string //person or stockfish
-	UserColor            string
-	Castle               Castling
-	MoveNumber           int32
-	Status               db.GameState
-	InCheck              bool
-	WhiteTimeRemainingMs int64
-	BlackTimeRemainingMs int64
-	LastMoveAt           time.Time
-	GameStateMu          sync.RWMutex
-	TimeoutCh            chan struct{} // closed when game times out; stops the watcher
+    CurrentPlayer        string
+    Board                [][]Square
+    CapturedPieces       map[string][]PieceInterface
+    StockfishGame        []string
+    PlayAgainst          string
+    UserColor            string
+    Castle               Castling
+    MoveNumber           int32
+    Status               db.GameState
+    InCheck              bool
+    WhiteTimeRemainingMs int64
+    BlackTimeRemainingMs int64
+    LastMoveAt           time.Time
+
+    GameStateMu sync.RWMutex `json:"-"`
+    TimeoutCh   chan struct{} `json:"-"`
 }
 
 type PieceInterface interface {

@@ -47,28 +47,30 @@ const (
 	EventPlayerReconnected   = "player_reconnected"
 	EventPing                = "ping"
 	EventPong                = "pong"
+	EventVoiceStats          = "voice_stats"
 )
 
 // setupMelody wires lifecycle hooks and keepalive. Called once in NewServer.
 func (server *Server) setupMelody() {
-	m := server.melody
-	m.Upgrader.ReadBufferSize = 1024
-	m.Upgrader.WriteBufferSize = 1024
+    m := server.melody
+    m.Upgrader.ReadBufferSize = 4096
+    m.Upgrader.WriteBufferSize = 4096
 
-	m.HandleConnect(server.wsOnConnect)
-	m.HandleDisconnect(server.wsOnDisconnect)
-	m.HandleMessage(server.wsOnMessage)
+    // This is what actually controls max WS message size
+    m.Config.MaxMessageSize = 64 * 1024 // 64KB — SDP offers can be ~8-16KB
 
-	// Application-level keepalive: send a ping every pingInterval.
-	// Clients should reply with {"type":"pong"}.
-	go func() {
-		ticker := time.NewTicker(pingInterval)
-		defer ticker.Stop()
-		for range ticker.C {
-			pingMsg, _ := json.Marshal(WSEvent{Type: EventPing})
-			server.melody.Broadcast(pingMsg)
-		}
-	}()
+    m.HandleConnect(server.wsOnConnect)
+    m.HandleDisconnect(server.wsOnDisconnect)
+    m.HandleMessage(server.wsOnMessage)
+
+    go func() {
+        ticker := time.NewTicker(pingInterval)
+        defer ticker.Stop()
+        for range ticker.C {
+            pingMsg, _ := json.Marshal(WSEvent{Type: EventPing})
+            server.melody.Broadcast(pingMsg)
+        }
+    }()
 }
 
 // handleWebSocket upgrades to WebSocket. No auth token in query string —
@@ -198,6 +200,8 @@ func (server *Server) wsOnMessage(s *melody.Session, raw []byte) {
 		server.wsHandleMove(s, gameID, event.Payload)
 	case EventVoiceOffer, EventVoiceAnswer, EventVoiceICE, EventVoiceEnd:
 		server.wsRelayToOthers(s, gameID, raw)
+	case EventVoiceStats:
+		server.wsHandleVoiceStats(s, gameID, event.Payload)
 	default:
 		wsWriteError(s, "unknown event type: "+event.Type)
 	}
@@ -346,13 +350,32 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		return
 	}
 
+	// Deduct elapsed time from the player who just moved.
+	now := time.Now()
+	elapsed := now.Sub(gamestate.LastMoveAt).Milliseconds()
+	if previousPlayer == "w" {
+		gamestate.WhiteTimeRemainingMs -= elapsed
+		if gamestate.WhiteTimeRemainingMs <= 0 {
+			gamestate.WhiteTimeRemainingMs = 0
+		}
+	} else {
+		gamestate.BlackTimeRemainingMs -= elapsed
+		if gamestate.BlackTimeRemainingMs <= 0 {
+			gamestate.BlackTimeRemainingMs = 0
+		}
+	}
+	gamestate.LastMoveAt = now
+
 	check := board.IsKinginCheck(gamestate)
 	isCheckmate := board.IsCheckmate(gamestate)
 	isStalemate := board.IsStalemate(gamestate)
 
+	// Check for timeout.
+	timedOut := gamestate.WhiteTimeRemainingMs <= 0 || gamestate.BlackTimeRemainingMs <= 0
+
 	gameStatus := db.GameStateActive
 	switch {
-	case isCheckmate:
+	case isCheckmate || timedOut:
 		gameStatus = db.GameStateCheckmate
 	case isStalemate:
 		gameStatus = db.GameStateStalemate
@@ -361,12 +384,14 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	gamestate.MoveNumber++
 
 	_, err = server.store.UpdateGameState(s.Request.Context(), db.UpdateGameStateParams{
-		ID:            gameID,
-		State:         gameStatus,
-		InCheck:       check,
-		CurrentPlayer: db.PlayerColor(gamestate.CurrentPlayer),
-		MoveCount:     gamestate.MoveNumber,
-		BoardState:    board.SerializeGameState(gamestate),
+		ID:                   gameID,
+		State:                gameStatus,
+		InCheck:              check,
+		CurrentPlayer:        db.PlayerColor(gamestate.CurrentPlayer),
+		MoveCount:            gamestate.MoveNumber,
+		BoardState:           board.SerializeGameState(gamestate),
+		WhiteTimeRemainingMs: gamestate.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: gamestate.BlackTimeRemainingMs,
 	})
 	if err != nil {
 		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
@@ -406,6 +431,37 @@ func (server *Server) wsRelayToOthers(s *melody.Session, gameID pgtype.UUID, msg
 	server.melody.BroadcastFilter(msg, func(other *melody.Session) bool {
 		return other != s && uuidEq(wsGameID(other), gameID)
 	})
+}
+
+// wsHandleVoiceStats logs the ICE candidate pair that the client selected.
+// This tells us whether the connection is direct P2P (free) or relayed via TURN (cost).
+// The client sends this after the WebRTC connection is established.
+type voiceStatsPayload struct {
+	LocalType       string `json:"localType"`
+	RemoteType      string `json:"remoteType"`
+	RelayProtocol   string `json:"relayProtocol"`
+	SelectedPair    string `json:"selectedPair"`
+	LocalCandidate  string `json:"localCandidate"`
+	RemoteCandidate string `json:"remoteCandidate"`
+}
+
+func (server *Server) wsHandleVoiceStats(s *melody.Session, gameID pgtype.UUID, raw json.RawMessage) {
+	var p voiceStatsPayload
+	if err := json.Unmarshal(raw, &p); err != nil {
+		slog.Warn("ws: voice_stats parse failed", "err", err)
+		return
+	}
+	user := wsUser(s)
+	slog.Info("ws: voice_stats",
+		"game_id", gameID,
+		"username", user.Username,
+		"local_type", p.LocalType,
+		"remote_type", p.RemoteType,
+		"relay_protocol", p.RelayProtocol,
+		"selected_pair", p.SelectedPair,
+		"local_candidate", p.LocalCandidate,
+		"remote_candidate", p.RemoteCandidate,
+	)
 }
 
 // wsBroadcastToGame sends a message to ALL sessions in the game room.
@@ -495,12 +551,16 @@ func wsPlayerColor(s *melody.Session) string {
 func restoreGameState(game db.Game) *pieces.GameState {
 	boardState, stockfishHistory := board.DeserializeGameState(game.BoardState)
 	return &pieces.GameState{
-		CurrentPlayer:  string(game.CurrentPlayer),
-		Board:          boardState,
-		MoveNumber:     game.MoveCount,
-		Status:         game.State,
-		InCheck:        game.InCheck,
-		StockfishGame:  stockfishHistory,
-		CapturedPieces: make(map[string][]pieces.PieceInterface),
+		CurrentPlayer:        string(game.CurrentPlayer),
+		Board:                boardState,
+		MoveNumber:           game.MoveCount,
+		Status:               game.State,
+		InCheck:              game.InCheck,
+		WhiteTimeRemainingMs: game.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: game.BlackTimeRemainingMs,
+		LastMoveAt:           game.LastMoveAt.Time,
+		StockfishGame:        stockfishHistory,
+		CapturedPieces:       make(map[string][]pieces.PieceInterface),
+		TimeoutCh:            make(chan struct{}),
 	}
 }

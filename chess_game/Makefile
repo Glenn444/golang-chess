@@ -1,4 +1,7 @@
-DB_URL ?= postgres://postgres:secret@localhost:5432/simple_bank?sslmode=disable
+-include app.env
+export
+
+DB_URL ?= postgres://postgres:secret@localhost:5432/chess_game?sslmode=disable
 
 postgres:
 	docker run --name postgres18 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:18-alpine
@@ -7,10 +10,10 @@ postgrescontainer:
 	docker run --name postgres18 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:18
 
 createdb:
-	docker exec -it postgres18 createdb --username=root --owner=root simple_bank
+	docker exec -it postgres18 createdb --username=root --owner=root chess_game
 
 dropdb:
-	docker exec -it postgres18 dropdb simple_bank
+	docker exec -it postgres18 dropdb chess_game
 
 migrateup:
 	goose -dir sql/schema postgres "$(DB_URL)" up

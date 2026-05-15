@@ -12,18 +12,20 @@ import (
 // ── Shared response types ──────────────────────────────────────────
 
 type GameResponse struct {
-	ID              string    `json:"id"`
-	WhitePlayerID   string    `json:"white_player_id"`
-	BlackPlayerID   string    `json:"black_player_id"`
-	WhitePlayerName string    `json:"white_player_name"`
-	BlackPlayerName string    `json:"black_player_name"`
-	State           string    `json:"state"`
-	InCheck         bool      `json:"in_check"`
-	CurrentPlayer   string    `json:"current_player"`
-	MoveCount       int32     `json:"move_count"`
-	BoardState      string    `json:"board_state"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID                   string    `json:"id"`
+	WhitePlayerID        string    `json:"white_player_id"`
+	BlackPlayerID        string    `json:"black_player_id"`
+	WhitePlayerName      string    `json:"white_player_name"`
+	BlackPlayerName      string    `json:"black_player_name"`
+	State                string    `json:"state"`
+	InCheck              bool      `json:"in_check"`
+	CurrentPlayer        string    `json:"current_player"`
+	MoveCount            int32     `json:"move_count"`
+	BoardState           string    `json:"board_state"`
+	WhiteTimeRemainingMs int64     `json:"white_time_remaining_ms"`
+	BlackTimeRemainingMs int64     `json:"black_time_remaining_ms"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
 }
 
 type GameMoveResponse struct {
@@ -45,18 +47,20 @@ type GameStatePayload struct {
 
 func (server *Server) toGameResponse(ctx context.Context, g db.Game) GameResponse {
 	return GameResponse{
-		ID:              uidStr(g.ID),
-		WhitePlayerID:   uidStr(g.WhitePlayerID),
-		BlackPlayerID:   uidStr(g.BlackPlayerID),
-		WhitePlayerName: server.lookupUsername(ctx, g.WhitePlayerID),
-		BlackPlayerName: server.lookupUsername(ctx, g.BlackPlayerID),
-		State:           string(g.State),
-		InCheck:         g.InCheck,
-		CurrentPlayer:   string(g.CurrentPlayer),
-		MoveCount:       g.MoveCount,
-		BoardState:      g.BoardState,
-		CreatedAt:       g.CreatedAt.Time,
-		UpdatedAt:       g.UpdatedAt.Time,
+		ID:                   uidStr(g.ID),
+		WhitePlayerID:        uidStr(g.WhitePlayerID),
+		BlackPlayerID:        uidStr(g.BlackPlayerID),
+		WhitePlayerName:      server.lookupUsername(ctx, g.WhitePlayerID),
+		BlackPlayerName:      server.lookupUsername(ctx, g.BlackPlayerID),
+		State:                string(g.State),
+		InCheck:              g.InCheck,
+		CurrentPlayer:        string(g.CurrentPlayer),
+		MoveCount:            g.MoveCount,
+		BoardState:           g.BoardState,
+		WhiteTimeRemainingMs: g.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: g.BlackTimeRemainingMs,
+		CreatedAt:            g.CreatedAt.Time,
+		UpdatedAt:            g.UpdatedAt.Time,
 	}
 }
 

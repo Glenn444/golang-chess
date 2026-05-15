@@ -113,6 +113,7 @@ func TestCreateGame(t *testing.T) {
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
 			Opponent:    "person",
+				TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)
 		ctx.Params = gin.Params{} // under /games group
@@ -150,6 +151,7 @@ func TestCreateGame(t *testing.T) {
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "b",
 			Opponent:    "person",
+				TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)
 
@@ -170,6 +172,7 @@ func TestCreateGame(t *testing.T) {
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
 			Opponent:    "person",
+				TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)
 

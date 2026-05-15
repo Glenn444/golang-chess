@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/utils/chess"
@@ -24,17 +25,21 @@ type Castling struct {
 }
 
 type GameState struct {
-	CurrentPlayer  string
-	Board          [][]Square
-	CapturedPieces map[string][]PieceInterface
-	StockfishGame  []string
-	PlayAgainst    string //person or stockfish
-	UserColor      string
-	Castle         Castling
-	MoveNumber     int32
-	Status         db.GameState
-	InCheck        bool
-	GameStateMu    sync.RWMutex
+	CurrentPlayer        string
+	Board                [][]Square
+	CapturedPieces       map[string][]PieceInterface
+	StockfishGame        []string
+	PlayAgainst          string //person or stockfish
+	UserColor            string
+	Castle               Castling
+	MoveNumber           int32
+	Status               db.GameState
+	InCheck              bool
+	WhiteTimeRemainingMs int64
+	BlackTimeRemainingMs int64
+	LastMoveAt           time.Time
+	GameStateMu          sync.RWMutex
+	TimeoutCh            chan struct{} // closed when game times out; stops the watcher
 }
 
 type PieceInterface interface {

@@ -162,16 +162,19 @@ type EmailOtp struct {
 }
 
 type Game struct {
-	ID            pgtype.UUID        `json:"id"`
-	WhitePlayerID pgtype.UUID        `json:"white_player_id"`
-	BlackPlayerID pgtype.UUID        `json:"black_player_id"`
-	State         GameState          `json:"state"`
-	InCheck       bool               `json:"in_check"`
-	CurrentPlayer PlayerColor        `json:"current_player"`
-	MoveCount     int32              `json:"move_count"`
-	BoardState    string             `json:"board_state"`
-	CreatedAt     pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+	ID                   pgtype.UUID        `json:"id"`
+	WhitePlayerID        pgtype.UUID        `json:"white_player_id"`
+	BlackPlayerID        pgtype.UUID        `json:"black_player_id"`
+	State                GameState          `json:"state"`
+	InCheck              bool               `json:"in_check"`
+	CurrentPlayer        PlayerColor        `json:"current_player"`
+	MoveCount            int32              `json:"move_count"`
+	BoardState           string             `json:"board_state"`
+	WhiteTimeRemainingMs int64              `json:"white_time_remaining_ms"`
+	BlackTimeRemainingMs int64              `json:"black_time_remaining_ms"`
+	LastMoveAt           pgtype.Timestamptz `json:"last_move_at"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
 }
 
 type GameMove struct {

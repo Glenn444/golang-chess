@@ -2,6 +2,7 @@ package api
 
 import (
 	"log/slog"
+	"time"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,7 +15,8 @@ import (
 
 type CreateGameReq struct{
 	PlayerColor string `json:"player_color" binding:"required,len=1,oneof=w b"`
-	Opponent string `json:"opponent" binding:"required,oneof=person stockfish"`
+	Opponent    string `json:"opponent" binding:"required,oneof=person stockfish"`
+	TimeControl int    `json:"time_control" binding:"required,oneof=5 10 15 30 45 60"`
 }
 
 func (r *CreateGameReq)sanitizeCreateGameReq(){
@@ -85,22 +87,29 @@ func (server *Server) createGame(ctx *gin.Context) {
 	}
 
 	//initialise a game state in memory
+	timeMs := int64(req.TimeControl) * 60 * 1000
 	gameState := &pieces.GameState{
-		CurrentPlayer: "w",
-		Board: board.Initialise_board(board.Create_board()),
-		CapturedPieces: make(map[string][]pieces.PieceInterface),
-		UserColor: req.PlayerColor,
-		PlayAgainst: req.Opponent,
+		CurrentPlayer:        "w",
+		Board:                board.Initialise_board(board.Create_board()),
+		CapturedPieces:       make(map[string][]pieces.PieceInterface),
+		UserColor:            req.PlayerColor,
+		PlayAgainst:          req.Opponent,
+		WhiteTimeRemainingMs: timeMs,
+		BlackTimeRemainingMs: timeMs,
+		LastMoveAt:           time.Now(),
+		TimeoutCh:            make(chan struct{}),
 	}
 
-	// persist the initial board state
+	// persist the initial board state with timer columns
 	_, err = server.store.UpdateGameState(ctx, db.UpdateGameStateParams{
-		ID:            game.ID,
-		State:         db.GameStateWaiting,
-		InCheck:       false,
-		CurrentPlayer: db.PlayerColorW,
-		MoveCount:     0,
-		BoardState:    board.SerializeGameState(gameState),
+		ID:                   game.ID,
+		State:                db.GameStateWaiting,
+		InCheck:              false,
+		CurrentPlayer:        db.PlayerColorW,
+		MoveCount:            0,
+		BoardState:           board.SerializeGameState(gameState),
+		WhiteTimeRemainingMs: timeMs,
+		BlackTimeRemainingMs: timeMs,
 	})
 	if handleDBError(ctx, err, WithLogArgs("createGame: failed to persist board state", "game_id", game.ID)) {
 		return

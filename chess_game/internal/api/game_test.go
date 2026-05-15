@@ -160,19 +160,43 @@ func TestCreateGame(t *testing.T) {
 		require.Equal(t, http.StatusCreated, rec.Code)
 	})
 
-	t.Run("already has active games", func(t *testing.T) {
+	t.Run("max 3 pending games — allowed with 2 existing", func(t *testing.T) {
 		server, store := newTestGameServer(t)
 
 		user := testUser()
-		activeGame := testGame()
+		game := testGame()
+		existingGames := []db.Game{testGame(), testGame()} // 2 existing waiting
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
-		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{activeGame}, nil)
+		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return(existingGames, nil)
+		store.EXPECT().CreateGameAsWhite(gomock.Any(), user.ID).Return(game, nil)
+		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
 			Opponent:    "person",
-				TimeControl: 5,
+			TimeControl: 5,
+		})
+		setAuth(ctx, user.Username)
+
+		server.createGame(ctx)
+
+		require.Equal(t, http.StatusCreated, rec.Code)
+	})
+
+	t.Run("already has 3 active games", func(t *testing.T) {
+		server, store := newTestGameServer(t)
+
+		user := testUser()
+		threeGames := []db.Game{testGame(), testGame(), testGame()}
+
+		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
+		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return(threeGames, nil)
+
+		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
+			PlayerColor: "w",
+			Opponent:    "person",
+			TimeControl: 5,
 		})
 		setAuth(ctx, user.Username)
 

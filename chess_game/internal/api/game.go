@@ -61,17 +61,21 @@ func (server *Server) createGame(ctx *gin.Context) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Fetch all games for this user and reject if any are active or waiting.
+	// Users can have up to 3 pending/active games.
 	allGames, err := server.store.GetGamesByPlayerID(ctx, user.ID)
 	if err != nil {
 		handleDBError(ctx, err, WithLogArgs("createGame: GetGamesByPlayerID", "user_id", user.ID))
 		return
 	}
+	active := 0
 	for _, g := range allGames {
 		if g.State == db.GameStateWaiting || g.State == db.GameStateActive {
-			ctx.JSON(http.StatusConflict, errorMessage("you already have an active or pending game — finish or delete it before creating a new one"))
-			return
+			active++
 		}
+	}
+	if active >= 3 {
+		ctx.JSON(http.StatusConflict, errorMessage("you already have 3 active or pending games — finish or delete one before creating a new game"))
+		return
 	}
 
 	var game db.Game

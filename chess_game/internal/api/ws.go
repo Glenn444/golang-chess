@@ -260,6 +260,11 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 	if _, exists := server.activeGames[gameID]; exists {
 		server.activeGamesMu.Unlock()
 		server.sendGameState(s, gameID, user)
+		out, _ := json.Marshal(WSEvent{Type: EventPlayerReconnected, Payload: wsMarshal(gin.H{
+			"username": user.Username,
+			"color":    playerColor,
+		})})
+		server.wsRelayToOthers(s, gameID, out)
 		slog.Info("ws: reconnected", "username", user.Username)
 		return
 	}
@@ -277,6 +282,11 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 	server.activeGamesMu.Unlock()
 
 	server.sendGameState(s, gameID, user)
+	out, _ := json.Marshal(WSEvent{Type: EventPlayerReconnected, Payload: wsMarshal(gin.H{
+		"username": user.Username,
+		"color":    playerColor,
+	})})
+	server.wsRelayToOthers(s, gameID, out)
 	slog.Info("ws: game loaded into memory", "game_id", gameID)
 	slog.Info("ws: connected", "username", user.Username)
 }

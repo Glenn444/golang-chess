@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -297,7 +298,15 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 
 	// valid OTP exists — enforce cooldown
 	if err == nil && emailOTP.ExpiresAt.Time.After(time.Now()) {
-		ctx.JSON(http.StatusForbidden, errorMessage(ErrOTPCooldown))
+		// This is expected behaviour, not an error — use Warn
+		slog.Warn("sendEmailOTP: cooldown active",
+			"user_id", user.ID,
+			"expires_at", emailOTP.ExpiresAt.Time,
+		)
+		remaining := time.Until(emailOTP.ExpiresAt.Time).Round(time.Second)
+		ctx.JSON(http.StatusTooManyRequests, errorMessage(
+			fmt.Sprintf("please wait %s before requesting a new OTP", remaining),
+		))
 		return
 	}
 	//3. generate otp
@@ -652,9 +661,11 @@ func (server *Server) logoutUser(ctx *gin.Context) {
 		}
 	}
 
-	// Clear cookies.
+	// Clear cookies on both old and new domain.
 	ctx.SetCookie("access_token", "", -1, "/", domain, secure, true)
 	ctx.SetCookie("refresh_token", "", -1, "/", domain, secure, true)
+	ctx.SetCookie("access_token", "", -1, "/", "api.chesske.com", true, true)
+	ctx.SetCookie("refresh_token", "", -1, "/", "api.chesske.com", true, true)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "logged out"})
 }
@@ -690,7 +701,19 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		}
 		refreshToken = req.RefreshToken
 	}
-
+	// TEMP DEBUG
+	slog.Info("refreshToken: debug",
+		"cookie_err", err,
+		"cookie_empty", refreshToken == "",
+		"cookie_prefix", func() string {
+			if len(refreshToken) > 20 {
+				return refreshToken[:20]
+			}
+			return refreshToken
+		}(),
+		"domain", server.config.PUBLIC_HOST,
+		"environment", server.config.Environment,
+	)
 	//verify the refresh token and get the payload
 	payload, err := server.tokenMaker.VerifyToken(refreshToken, token.RefreshTokenType)
 	if err != nil {
@@ -700,7 +723,20 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 
 	// check session in DB — this is what JWT alone can't do
 	session, err := server.store.GetSessionByRefreshToken(ctx, refreshToken)
+	slog.Info("refreshToken: session lookup",
+		"err", err,
+		"found", err == nil,
+		"token_prefix", refreshToken[:20],
+	)
+	slog.Info("refreshToken: full token check",
+    "cookie_len", len(refreshToken),
+    "cookie_suffix", refreshToken[len(refreshToken)-10:],
+)
 	if handleDBError(ctx, err, WithNotFoundMsg(ErrSessionNotFound)) {
+		ctx.SetCookie("refresh_token", "", -1, "/", "api.chesske.com", true, true)
+		ctx.SetCookie("refresh_token", "", -1, "/", ".chesske.com", true, true)
+		ctx.SetCookie("access_token", "", -1, "/", "api.chesske.com", true, true)
+		ctx.SetCookie("access_token", "", -1, "/", ".chesske.com", true, true)
 		return
 	}
 

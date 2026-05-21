@@ -14,6 +14,7 @@ type Querier interface {
 	ActivateUser(ctx context.Context, id pgtype.UUID) error
 	ActivateVoiceSession(ctx context.Context, id pgtype.UUID) (VoiceSession, error)
 	ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error)
+	CountChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error)
 	CountMovesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error)
 	// Rate-limit OTP generation: reject if a code was issued in the last 5 minutes.
 	CountRecentOTPsForUser(ctx context.Context, userID pgtype.UUID) (int64, error)
@@ -26,13 +27,13 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateVoiceSession(ctx context.Context, arg CreateVoiceSessionParams) (VoiceSession, error)
 	DeactivateUser(ctx context.Context, id pgtype.UUID) error
-	CountChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error)
 	DeleteChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) error
 	// Run periodically (e.g. a cron job) to keep the table small.
 	DeleteExpiredOTPs(ctx context.Context) error
 	DeleteExpiredSessions(ctx context.Context) error
 	DeleteGame(ctx context.Context, id pgtype.UUID) error
 	DeleteMovesByGameID(ctx context.Context, gameID pgtype.UUID) error
+	DeletePushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) error
 	DeleteUser(ctx context.Context, id pgtype.UUID) error
 	EndVoiceSession(ctx context.Context, id pgtype.UUID) (VoiceSession, error)
 	GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype.UUID) ([]Game, error)
@@ -43,6 +44,8 @@ type Querier interface {
 	GetGamesByPlayerID(ctx context.Context, whitePlayerID pgtype.UUID) ([]Game, error)
 	GetLastMoveByGameID(ctx context.Context, gameID pgtype.UUID) (GameMove, error)
 	GetMovesByGameID(ctx context.Context, gameID pgtype.UUID) ([]GameMove, error)
+	GetPushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) (GetPushSubscriptionByUserRow, error)
+	GetPushSubscriptionExists(ctx context.Context, userID pgtype.UUID) (pgtype.UUID, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
@@ -64,6 +67,7 @@ type Querier interface {
 	MarkOTPUsed(ctx context.Context, id pgtype.UUID) (EmailOtp, error)
 	RevokeAllUserSessions(ctx context.Context, userID pgtype.UUID) error
 	RevokeSession(ctx context.Context, refreshToken string) error
+	SavePushSubscription(ctx context.Context, arg SavePushSubscriptionParams) error
 	UpdateGameState(ctx context.Context, arg UpdateGameStateParams) (Game, error)
 	UpdateLastLogin(ctx context.Context, id pgtype.UUID) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)

@@ -58,12 +58,16 @@ RETURNING *;
 -- name: UpdateGameState :one
 UPDATE games
 SET
-    state          = $2,
-    in_check       = $3,
-    current_player = $4,
-    move_count     = $5,
-    board_state    = $6,
-    updated_at     = NOW()
+    state                  = $2,
+    in_check               = $3,
+    current_player         = $4,
+    move_count             = $5,
+    board_state            = $6,
+    white_time_remaining_ms = $7,
+    black_time_remaining_ms = $8,
+    ended_by_player_id     = $9,
+    end_reason             = $10,
+    updated_at             = NOW()
 WHERE id = $1
 RETURNING *;
 

@@ -86,21 +86,6 @@ func (mr *MockStoreMockRecorder) ConfirmEmail(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmEmail", reflect.TypeOf((*MockStore)(nil).ConfirmEmail), ctx, id)
 }
 
-// CountMovesByGameID mocks base method.
-func (m *MockStore) CountMovesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CountMovesByGameID", ctx, gameID)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CountMovesByGameID indicates an expected call of CountMovesByGameID.
-func (mr *MockStoreMockRecorder) CountMovesByGameID(ctx, gameID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountMovesByGameID", reflect.TypeOf((*MockStore)(nil).CountMovesByGameID), ctx, gameID)
-}
-
 // CountChatMessagesByGameID mocks base method.
 func (m *MockStore) CountChatMessagesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error) {
 	m.ctrl.T.Helper()
@@ -114,6 +99,21 @@ func (m *MockStore) CountChatMessagesByGameID(ctx context.Context, gameID pgtype
 func (mr *MockStoreMockRecorder) CountChatMessagesByGameID(ctx, gameID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountChatMessagesByGameID", reflect.TypeOf((*MockStore)(nil).CountChatMessagesByGameID), ctx, gameID)
+}
+
+// CountMovesByGameID mocks base method.
+func (m *MockStore) CountMovesByGameID(ctx context.Context, gameID pgtype.UUID) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountMovesByGameID", ctx, gameID)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountMovesByGameID indicates an expected call of CountMovesByGameID.
+func (mr *MockStoreMockRecorder) CountMovesByGameID(ctx, gameID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountMovesByGameID", reflect.TypeOf((*MockStore)(nil).CountMovesByGameID), ctx, gameID)
 }
 
 // CountRecentOTPsForUser mocks base method.
@@ -333,6 +333,20 @@ func (m *MockStore) DeleteMovesByGameID(ctx context.Context, gameID pgtype.UUID)
 func (mr *MockStoreMockRecorder) DeleteMovesByGameID(ctx, gameID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMovesByGameID", reflect.TypeOf((*MockStore)(nil).DeleteMovesByGameID), ctx, gameID)
+}
+
+// DeletePushSubscriptionByUser mocks base method.
+func (m *MockStore) DeletePushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePushSubscriptionByUser", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePushSubscriptionByUser indicates an expected call of DeletePushSubscriptionByUser.
+func (mr *MockStoreMockRecorder) DeletePushSubscriptionByUser(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePushSubscriptionByUser", reflect.TypeOf((*MockStore)(nil).DeletePushSubscriptionByUser), ctx, userID)
 }
 
 // DeleteUser mocks base method.
@@ -589,6 +603,36 @@ func (mr *MockStoreMockRecorder) GetVoiceSessionsByGameID(ctx, gameID any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVoiceSessionsByGameID", reflect.TypeOf((*MockStore)(nil).GetVoiceSessionsByGameID), ctx, gameID)
 }
 
+// GetPushSubscriptionByUser mocks base method.
+func (m *MockStore) GetPushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) (db.GetPushSubscriptionByUserRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPushSubscriptionByUser", ctx, userID)
+	ret0, _ := ret[0].(db.GetPushSubscriptionByUserRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPushSubscriptionByUser indicates an expected call of GetPushSubscriptionByUser.
+func (mr *MockStoreMockRecorder) GetPushSubscriptionByUser(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPushSubscriptionByUser", reflect.TypeOf((*MockStore)(nil).GetPushSubscriptionByUser), ctx, userID)
+}
+
+// GetPushSubscriptionExists mocks base method.
+func (m *MockStore) GetPushSubscriptionExists(ctx context.Context, userID pgtype.UUID) (pgtype.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPushSubscriptionExists", ctx, userID)
+	ret0, _ := ret[0].(pgtype.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPushSubscriptionExists indicates an expected call of GetPushSubscriptionExists.
+func (mr *MockStoreMockRecorder) GetPushSubscriptionExists(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPushSubscriptionExists", reflect.TypeOf((*MockStore)(nil).GetPushSubscriptionExists), ctx, userID)
+}
+
 // IncrementOTPAttempts mocks base method.
 func (m *MockStore) IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) (db.EmailOtp, error) {
 	m.ctrl.T.Helper()
@@ -693,6 +737,20 @@ func (mr *MockStoreMockRecorder) MarkOTPUsed(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkOTPUsed", reflect.TypeOf((*MockStore)(nil).MarkOTPUsed), ctx, id)
 }
 
+// Ping mocks base method.
+func (m *MockStore) Ping(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Ping", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Ping indicates an expected call of Ping.
+func (mr *MockStoreMockRecorder) Ping(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStore)(nil).Ping), ctx)
+}
+
 // RevokeAllUserSessions mocks base method.
 func (m *MockStore) RevokeAllUserSessions(ctx context.Context, userID pgtype.UUID) error {
 	m.ctrl.T.Helper()
@@ -719,6 +777,20 @@ func (m *MockStore) RevokeSession(ctx context.Context, refreshToken string) erro
 func (mr *MockStoreMockRecorder) RevokeSession(ctx, refreshToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeSession", reflect.TypeOf((*MockStore)(nil).RevokeSession), ctx, refreshToken)
+}
+
+// SavePushSubscription mocks base method.
+func (m *MockStore) SavePushSubscription(ctx context.Context, arg db.SavePushSubscriptionParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SavePushSubscription", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SavePushSubscription indicates an expected call of SavePushSubscription.
+func (mr *MockStoreMockRecorder) SavePushSubscription(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SavePushSubscription", reflect.TypeOf((*MockStore)(nil).SavePushSubscription), ctx, arg)
 }
 
 // UpdateGameState mocks base method.
@@ -778,18 +850,4 @@ func (m *MockStore) UsernameExists(ctx context.Context, username string) (bool, 
 func (mr *MockStoreMockRecorder) UsernameExists(ctx, username any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsernameExists", reflect.TypeOf((*MockStore)(nil).UsernameExists), ctx, username)
-}
-
-// Ping mocks base method.
-func (m *MockStore) Ping(ctx context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Ping", ctx)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Ping indicates an expected call of Ping.
-func (mr *MockStoreMockRecorder) Ping(ctx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockStore)(nil).Ping), ctx)
 }

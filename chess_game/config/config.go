@@ -18,7 +18,10 @@ type Config struct {
 	CloudflareTURNKeyID    string `mapstructure:"CLOUDFLARE_TURN_KEY_ID"`
 	CloudflareTURNAPIToken string `mapstructure:"CLOUDFLARE_TURN_API_TOKEN"`
 	Environment        string        `mapstructure:"ENVIRONMENT"`
-	PUBLIC_HOST string `mapstructure:"PUBLIC_HOST"`
+	PUBLIC_HOST         string `mapstructure:"PUBLIC_HOST"`
+	VAPIDPublicKey      string `mapstructure:"VAPID_PUBLIC_KEY"`
+	VAPIDPrivateKey     string `mapstructure:"VAPID_PRIVATE_KEY"`
+	VAPIDSubject        string `mapstructure:"VAPID_SUBJECT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

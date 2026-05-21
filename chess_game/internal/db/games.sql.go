@@ -14,7 +14,7 @@ import (
 const createGameAsBlack = `-- name: CreateGameAsBlack :one
 INSERT INTO games (black_player_id)
 VALUES ($1)
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
 `
 
 func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UUID) (Game, error) {
@@ -28,15 +28,15 @@ func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UU
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
-			&i.BoardState,
-			&i.WhiteTimeRemainingMs,
-			&i.BlackTimeRemainingMs,
-			&i.LastMoveAt,
-			&i.EndedByPlayerID,
-			&i.EndReason,
-			&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.BoardState,
+		&i.WhiteTimeRemainingMs,
+		&i.BlackTimeRemainingMs,
+		&i.LastMoveAt,
+		&i.EndedByPlayerID,
+		&i.EndReason,
+		&i.Visibility,
 	)
 	return i, err
 }
@@ -44,7 +44,7 @@ func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UU
 const createGameAsWhite = `-- name: CreateGameAsWhite :one
 INSERT INTO games (white_player_id)
 VALUES ($1)
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
 `
 
 func (q *Queries) CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error) {
@@ -58,15 +58,15 @@ func (q *Queries) CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UU
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
-			&i.BoardState,
-			&i.WhiteTimeRemainingMs,
-			&i.BlackTimeRemainingMs,
-			&i.LastMoveAt,
-			&i.EndedByPlayerID,
-			&i.EndReason,
-			&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.BoardState,
+		&i.WhiteTimeRemainingMs,
+		&i.BlackTimeRemainingMs,
+		&i.LastMoveAt,
+		&i.EndedByPlayerID,
+		&i.EndReason,
+		&i.Visibility,
 	)
 	return i, err
 }
@@ -82,7 +82,7 @@ func (q *Queries) DeleteGame(ctx context.Context, id pgtype.UUID) error {
 }
 
 const getActiveGamesByUser = `-- name: GetActiveGamesByUser :many
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at FROM games 
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility FROM games 
 WHERE (white_player_id = $1 OR black_player_id = $1)
 AND state IN ('waiting', 'active')
 `
@@ -104,6 +104,8 @@ func (q *Queries) GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype
 			&i.InCheck,
 			&i.CurrentPlayer,
 			&i.MoveCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.BoardState,
 			&i.WhiteTimeRemainingMs,
 			&i.BlackTimeRemainingMs,
@@ -111,8 +113,6 @@ func (q *Queries) GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype
 			&i.EndedByPlayerID,
 			&i.EndReason,
 			&i.Visibility,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -125,7 +125,7 @@ func (q *Queries) GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype
 }
 
 const getGameByID = `-- name: GetGameByID :one
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at FROM games
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility FROM games
 WHERE id = $1
 `
 
@@ -140,21 +140,21 @@ func (q *Queries) GetGameByID(ctx context.Context, id pgtype.UUID) (Game, error)
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
-			&i.BoardState,
-			&i.WhiteTimeRemainingMs,
-			&i.BlackTimeRemainingMs,
-			&i.LastMoveAt,
-			&i.EndedByPlayerID,
-			&i.EndReason,
-			&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.BoardState,
+		&i.WhiteTimeRemainingMs,
+		&i.BlackTimeRemainingMs,
+		&i.LastMoveAt,
+		&i.EndedByPlayerID,
+		&i.EndReason,
+		&i.Visibility,
 	)
 	return i, err
 }
 
 const getGamesByPlayerID = `-- name: GetGamesByPlayerID :many
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at FROM games
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility FROM games
 WHERE white_player_id = $1
    OR black_player_id = $1
 ORDER BY created_at DESC
@@ -177,6 +177,8 @@ func (q *Queries) GetGamesByPlayerID(ctx context.Context, whitePlayerID pgtype.U
 			&i.InCheck,
 			&i.CurrentPlayer,
 			&i.MoveCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.BoardState,
 			&i.WhiteTimeRemainingMs,
 			&i.BlackTimeRemainingMs,
@@ -184,8 +186,6 @@ func (q *Queries) GetGamesByPlayerID(ctx context.Context, whitePlayerID pgtype.U
 			&i.EndedByPlayerID,
 			&i.EndReason,
 			&i.Visibility,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -197,8 +197,90 @@ func (q *Queries) GetGamesByPlayerID(ctx context.Context, whitePlayerID pgtype.U
 	return items, nil
 }
 
+const joinGameAsBlack = `-- name: JoinGameAsBlack :one
+UPDATE games
+SET
+    black_player_id = $2,
+    state           = 'active',
+    updated_at      = NOW()
+WHERE id = $1
+  AND state = 'waiting'
+  AND black_player_id IS NULL
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
+`
+
+type JoinGameAsBlackParams struct {
+	ID            pgtype.UUID `json:"id"`
+	BlackPlayerID pgtype.UUID `json:"black_player_id"`
+}
+
+func (q *Queries) JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams) (Game, error) {
+	row := q.db.QueryRow(ctx, joinGameAsBlack, arg.ID, arg.BlackPlayerID)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.WhitePlayerID,
+		&i.BlackPlayerID,
+		&i.State,
+		&i.InCheck,
+		&i.CurrentPlayer,
+		&i.MoveCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.BoardState,
+		&i.WhiteTimeRemainingMs,
+		&i.BlackTimeRemainingMs,
+		&i.LastMoveAt,
+		&i.EndedByPlayerID,
+		&i.EndReason,
+		&i.Visibility,
+	)
+	return i, err
+}
+
+const joinGameAsWhite = `-- name: JoinGameAsWhite :one
+UPDATE games
+SET
+    white_player_id = $2,
+    state           = 'active',
+    updated_at      = NOW()
+WHERE id = $1
+  AND state = 'waiting'
+  AND white_player_id IS NULL
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
+`
+
+type JoinGameAsWhiteParams struct {
+	ID            pgtype.UUID `json:"id"`
+	WhitePlayerID pgtype.UUID `json:"white_player_id"`
+}
+
+func (q *Queries) JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams) (Game, error) {
+	row := q.db.QueryRow(ctx, joinGameAsWhite, arg.ID, arg.WhitePlayerID)
+	var i Game
+	err := row.Scan(
+		&i.ID,
+		&i.WhitePlayerID,
+		&i.BlackPlayerID,
+		&i.State,
+		&i.InCheck,
+		&i.CurrentPlayer,
+		&i.MoveCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.BoardState,
+		&i.WhiteTimeRemainingMs,
+		&i.BlackTimeRemainingMs,
+		&i.LastMoveAt,
+		&i.EndedByPlayerID,
+		&i.EndReason,
+		&i.Visibility,
+	)
+	return i, err
+}
+
 const listPublicGames = `-- name: ListPublicGames :many
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at FROM games
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility FROM games
 WHERE state = 'waiting' AND visibility = 'public'
 ORDER BY created_at ASC
 `
@@ -220,6 +302,8 @@ func (q *Queries) ListPublicGames(ctx context.Context) ([]Game, error) {
 			&i.InCheck,
 			&i.CurrentPlayer,
 			&i.MoveCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.BoardState,
 			&i.WhiteTimeRemainingMs,
 			&i.BlackTimeRemainingMs,
@@ -227,8 +311,6 @@ func (q *Queries) ListPublicGames(ctx context.Context) ([]Game, error) {
 			&i.EndedByPlayerID,
 			&i.EndReason,
 			&i.Visibility,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -240,90 +322,8 @@ func (q *Queries) ListPublicGames(ctx context.Context) ([]Game, error) {
 	return items, nil
 }
 
-const joinGameAsBlack = `-- name: JoinGameAsBlack :one
-UPDATE games
-SET
-    black_player_id = $2,
-    state           = 'active',
-    updated_at      = NOW()
-WHERE id = $1
-  AND state = 'waiting'
-  AND black_player_id IS NULL
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at
-`
-
-type JoinGameAsBlackParams struct {
-	ID            pgtype.UUID `json:"id"`
-	BlackPlayerID pgtype.UUID `json:"black_player_id"`
-}
-
-func (q *Queries) JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams) (Game, error) {
-	row := q.db.QueryRow(ctx, joinGameAsBlack, arg.ID, arg.BlackPlayerID)
-	var i Game
-	err := row.Scan(
-		&i.ID,
-		&i.WhitePlayerID,
-		&i.BlackPlayerID,
-		&i.State,
-		&i.InCheck,
-		&i.CurrentPlayer,
-		&i.MoveCount,
-			&i.BoardState,
-			&i.WhiteTimeRemainingMs,
-			&i.BlackTimeRemainingMs,
-			&i.LastMoveAt,
-			&i.EndedByPlayerID,
-			&i.EndReason,
-			&i.Visibility,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const joinGameAsWhite = `-- name: JoinGameAsWhite :one
-UPDATE games
-SET
-    white_player_id = $2,
-    state           = 'active',
-    updated_at      = NOW()
-WHERE id = $1
-  AND state = 'waiting'
-  AND white_player_id IS NULL
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at
-`
-
-type JoinGameAsWhiteParams struct {
-	ID            pgtype.UUID `json:"id"`
-	WhitePlayerID pgtype.UUID `json:"white_player_id"`
-}
-
-func (q *Queries) JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams) (Game, error) {
-	row := q.db.QueryRow(ctx, joinGameAsWhite, arg.ID, arg.WhitePlayerID)
-	var i Game
-	err := row.Scan(
-		&i.ID,
-		&i.WhitePlayerID,
-		&i.BlackPlayerID,
-		&i.State,
-		&i.InCheck,
-		&i.CurrentPlayer,
-		&i.MoveCount,
-			&i.BoardState,
-			&i.WhiteTimeRemainingMs,
-			&i.BlackTimeRemainingMs,
-			&i.LastMoveAt,
-			&i.EndedByPlayerID,
-			&i.EndReason,
-			&i.Visibility,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const listWaitingGames = `-- name: ListWaitingGames :many
-SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at FROM games
+SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility FROM games
 WHERE state = 'waiting'
 ORDER BY created_at ASC
 `
@@ -345,6 +345,8 @@ func (q *Queries) ListWaitingGames(ctx context.Context) ([]Game, error) {
 			&i.InCheck,
 			&i.CurrentPlayer,
 			&i.MoveCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.BoardState,
 			&i.WhiteTimeRemainingMs,
 			&i.BlackTimeRemainingMs,
@@ -352,8 +354,6 @@ func (q *Queries) ListWaitingGames(ctx context.Context) ([]Game, error) {
 			&i.EndedByPlayerID,
 			&i.EndReason,
 			&i.Visibility,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -368,19 +368,18 @@ func (q *Queries) ListWaitingGames(ctx context.Context) ([]Game, error) {
 const updateGameState = `-- name: UpdateGameState :one
 UPDATE games
 SET
-    state          = $2,
-    in_check       = $3,
-    current_player = $4,
-    move_count     = $5,
-    board_state    = $6,
+    state                  = $2,
+    in_check               = $3,
+    current_player         = $4,
+    move_count             = $5,
+    board_state            = $6,
     white_time_remaining_ms = $7,
     black_time_remaining_ms = $8,
-    ended_by_player_id = $9,
-    end_reason         = $10,
-    last_move_at   = NOW(),
-    updated_at     = NOW()
+    ended_by_player_id     = $9,
+    end_reason             = $10,
+    updated_at             = NOW()
 WHERE id = $1
-RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, created_at, updated_at
+RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
 `
 
 type UpdateGameStateParams struct {
@@ -418,15 +417,15 @@ func (q *Queries) UpdateGameState(ctx context.Context, arg UpdateGameStateParams
 		&i.InCheck,
 		&i.CurrentPlayer,
 		&i.MoveCount,
-			&i.BoardState,
-			&i.WhiteTimeRemainingMs,
-			&i.BlackTimeRemainingMs,
-			&i.LastMoveAt,
-			&i.EndedByPlayerID,
-			&i.EndReason,
-			&i.Visibility,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.BoardState,
+		&i.WhiteTimeRemainingMs,
+		&i.BlackTimeRemainingMs,
+		&i.LastMoveAt,
+		&i.EndedByPlayerID,
+		&i.EndReason,
+		&i.Visibility,
 	)
 	return i, err
 }

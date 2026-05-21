@@ -351,6 +351,9 @@ func (server *Server) joinGame(ctx *gin.Context) {
 		return
 	}
 
+	// Send push notification to the player who was waiting.
+	server.notifyOpponent(ctx, gameID, user.ID, user.Username)
+
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
 }
 
@@ -397,15 +400,29 @@ func (server *Server) resignGame(ctx *gin.Context) {
 	}
 
 	updated, err := server.store.UpdateGameState(ctx, db.UpdateGameStateParams{
-		ID:              gameID,
-		State:           db.GameStateResign,
-		InCheck:         false,
-		EndedByPlayerID: user.ID,
-		EndReason:       "resign",
+		ID:                   gameID,
+		State:                db.GameStateResign,
+		InCheck:              game.InCheck,
+		CurrentPlayer:        game.CurrentPlayer,
+		MoveCount:            game.MoveCount,
+		BoardState:           game.BoardState,
+		WhiteTimeRemainingMs: game.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: game.BlackTimeRemainingMs,
+		EndedByPlayerID:      user.ID,
+		EndReason:            "resign",
 	})
 	if handleDBError(ctx, err, WithLogArgs("resignGame: UpdateGameState", "game_id", ctx.Param("id"))) {
 		return
 	}
+
+	// Cancel timeout watcher and evict from memory on resign.
+	server.activeGamesMu.Lock()
+	if gs, ok := server.activeGames[gameID]; ok {
+		close(gs.TimeoutCh)
+		gs.TimeoutCh = make(chan struct{})
+		delete(server.activeGames, gameID)
+	}
+	server.activeGamesMu.Unlock()
 
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
 }

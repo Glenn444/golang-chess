@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // checkUsernameExists
@@ -46,17 +47,17 @@ func (server *Server) checkUsernameExists(ctx *gin.Context) {
 	if handleDBError(ctx, err, WithLogArgs("checkUsernameExists: failed UsernameExists", req.Username)) {
 		return
 	}
-ctx.JSON(http.StatusOK, gin.H{"username": req.Username, "exists": exists})
+	ctx.JSON(http.StatusOK, gin.H{"username": req.Username, "exists": exists})
 }
 
-
 type getMeResponse struct {
-	Username       string    `json:"username"`
-	Email          string    `json:"email"`
-	EmailConfirmed bool      `json:"email_confirmed"`
-	IsActive       bool      `json:"is_active"`
-	LastLoginAt    time.Time `json:"last_login_at,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID             pgtype.UUID `json:"user_id"`
+	Username       string      `json:"username"`
+	Email          string      `json:"email"`
+	EmailConfirmed bool        `json:"email_confirmed"`
+	IsActive       bool        `json:"is_active"`
+	LastLoginAt    time.Time   `json:"last_login_at,omitempty"`
+	CreatedAt      time.Time   `json:"created_at"`
 }
 
 // @Summary      Get current user
@@ -75,6 +76,7 @@ func (server *Server) getMe(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, getMeResponse{
+		ID:             user.ID,
 		Username:       user.Username,
 		Email:          user.Email,
 		EmailConfirmed: user.EmailConfirmed,

@@ -169,6 +169,8 @@ type Game struct {
 	InCheck              bool               `json:"in_check"`
 	CurrentPlayer        PlayerColor        `json:"current_player"`
 	MoveCount            int32              `json:"move_count"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
 	BoardState           string             `json:"board_state"`
 	WhiteTimeRemainingMs int64              `json:"white_time_remaining_ms"`
 	BlackTimeRemainingMs int64              `json:"black_time_remaining_ms"`
@@ -176,8 +178,6 @@ type Game struct {
 	EndedByPlayerID      pgtype.UUID        `json:"ended_by_player_id"`
 	EndReason            string             `json:"end_reason"`
 	Visibility           string             `json:"visibility"`
-	CreatedAt            pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
 }
 
 type GameMove struct {
@@ -188,6 +188,15 @@ type GameMove struct {
 	MoveNotation string             `json:"move_notation"`
 	MoveNumber   int32              `json:"move_number"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type PushSubscription struct {
+	ID        pgtype.UUID        `json:"id"`
+	UserID    pgtype.UUID        `json:"user_id"`
+	Endpoint  string             `json:"endpoint"`
+	P256dh    string             `json:"p256dh"`
+	Auth      string             `json:"auth"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type Session struct {

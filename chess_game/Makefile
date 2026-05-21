@@ -1,7 +1,5 @@
--include app.env
-export
 
-DB_URL ?= postgres://postgres:secret@localhost:5432/chess_game?sslmode=disable
+DB_URL ?= postgres://postgres:1234@localhost:5432/chess_game?sslmode=disable
 
 postgres:
 	docker run --name postgres18 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:18-alpine

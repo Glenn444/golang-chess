@@ -169,6 +169,11 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	authGames.PATCH("/:id/voice/:vid/activate", server.activateVoiceSession)
 	authGames.DELETE("/:id/voice/:vid", server.endVoiceSession)
 
+	// --- Push notifications -----------------------------------
+	pushRoutes := router.Group("/api/push").Use(authMiddleware(server.tokenMaker), authLimiter)
+	pushRoutes.POST("/subscribe", server.subscribePush)
+	pushRoutes.GET("/subscription", server.getPushSubscription)
+
 	// --- Turn server ------------------------------------------
 	authRoutes.GET("/turn-credentials", server.getTURNCredentials)
 

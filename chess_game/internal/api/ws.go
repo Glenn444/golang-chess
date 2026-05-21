@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -266,6 +267,7 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 		})})
 		server.wsRelayToOthers(s, gameID, out)
 		slog.Info("ws: reconnected", "username", user.Username)
+		server.maybeStartWatcher(gameID, dbGame.State)
 		return
 	}
 	server.activeGamesMu.Unlock()
@@ -289,6 +291,7 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 	server.wsRelayToOthers(s, gameID, out)
 	slog.Info("ws: game loaded into memory", "game_id", gameID)
 	slog.Info("ws: connected", "username", user.Username)
+	server.maybeStartWatcher(gameID, dbGame.State)
 }
 
 // wsHandleChat persists the message then broadcasts it to the game room.
@@ -421,10 +424,15 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
 	}
 
-	if isCheckmate || isStalemate {
+	// Cancel the current timeout watcher; start a new one for the next player if the game continues.
+	close(gamestate.TimeoutCh)
+	gamestate.TimeoutCh = make(chan struct{})
+	if isCheckmate || isStalemate || timedOut {
 		server.activeGamesMu.Lock()
 		delete(server.activeGames, gameID)
 		server.activeGamesMu.Unlock()
+	} else if gamestate.WhiteTimeRemainingMs > 0 || gamestate.BlackTimeRemainingMs > 0 {
+		server.startTimeoutWatcher(gameID, gamestate.TimeoutCh)
 	}
 
 	_, err = server.store.CreateMove(s.Request.Context(), db.CreateMoveParams{
@@ -490,6 +498,22 @@ func (server *Server) wsHandleVoiceStats(s *melody.Session, gameID pgtype.UUID, 
 		"local_candidate", p.LocalCandidate,
 		"remote_candidate", p.RemoteCandidate,
 	)
+}
+
+// wsUserInGame returns true if the given user has an active WebSocket session
+// in the specified game room.
+func (server *Server) wsUserInGame(userID pgtype.UUID, gameID pgtype.UUID) bool {
+	found := false
+	server.melody.BroadcastFilter([]byte{}, func(s *melody.Session) bool {
+		if uuidEq(wsGameID(s), gameID) {
+			u, ok := wsUserSafe(s)
+			if ok && uuidEq(u.ID, userID) {
+				found = true
+			}
+		}
+		return false
+	})
+	return found
 }
 
 // wsBroadcastToGame sends a message to ALL sessions in the game room.
@@ -577,6 +601,126 @@ func wsMarshal(v any) json.RawMessage {
 func wsPlayerColor(s *melody.Session) string {
 	v, _ := s.Get(wsKeyPlayerColor)
 	return v.(string)
+}
+
+// countConnectedPlayers returns the number of authenticated WebSocket sessions in the game room.
+func (server *Server) countConnectedPlayers(gameID pgtype.UUID) int {
+	count := 0
+	server.melody.BroadcastFilter([]byte{}, func(s *melody.Session) bool {
+		if uuidEq(wsGameID(s), gameID) && wsIsAuthenticated(s) {
+			count++
+		}
+		return false
+	})
+	return count
+}
+
+// maybeStartWatcher starts (or restarts) a timeout watcher when both players are
+// connected and the game is a timed, active game. Must NOT be called while
+// holding activeGamesMu.
+func (server *Server) maybeStartWatcher(gameID pgtype.UUID, gameState db.GameState) {
+	if gameState != db.GameStateActive {
+		return
+	}
+	if server.countConnectedPlayers(gameID) < 2 {
+		return
+	}
+	server.activeGamesMu.Lock()
+	defer server.activeGamesMu.Unlock()
+	gs, ok := server.activeGames[gameID]
+	if !ok {
+		return
+	}
+	if gs.WhiteTimeRemainingMs == 0 && gs.BlackTimeRemainingMs == 0 {
+		return // unlimited time game
+	}
+	close(gs.TimeoutCh)
+	gs.TimeoutCh = make(chan struct{})
+	server.startTimeoutWatcher(gameID, gs.TimeoutCh)
+}
+
+// startTimeoutWatcher launches a goroutine that fires handleTimeout when the
+// active player's clock reaches zero. It exits early if timeoutCh is closed
+// (move was made or game ended).
+func (server *Server) startTimeoutWatcher(gameID pgtype.UUID, timeoutCh <-chan struct{}) {
+	go func() {
+		server.activeGamesMu.RLock()
+		gs, ok := server.activeGames[gameID]
+		server.activeGamesMu.RUnlock()
+		if !ok {
+			return
+		}
+
+		gs.GameStateMu.RLock()
+		currentPlayer := gs.CurrentPlayer
+		var remaining int64
+		if currentPlayer == "w" {
+			remaining = gs.WhiteTimeRemainingMs
+		} else {
+			remaining = gs.BlackTimeRemainingMs
+		}
+		timeLeft := remaining - time.Since(gs.LastMoveAt).Milliseconds()
+		gs.GameStateMu.RUnlock()
+
+		if timeLeft <= 0 {
+			server.handleTimeout(gameID, currentPlayer)
+			return
+		}
+
+		select {
+		case <-timeoutCh:
+			return
+		case <-time.After(time.Duration(timeLeft) * time.Millisecond):
+			server.handleTimeout(gameID, currentPlayer)
+		}
+	}()
+}
+
+// handleTimeout fires when a player's clock expires with no move. Idempotent:
+// does nothing if the game is no longer in activeGames.
+func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
+	server.activeGamesMu.Lock()
+	gs, ok := server.activeGames[gameID]
+	if !ok {
+		server.activeGamesMu.Unlock()
+		return
+	}
+	delete(server.activeGames, gameID)
+	server.activeGamesMu.Unlock()
+
+	gs.GameStateMu.Lock()
+	if timedOutColor == "w" {
+		gs.WhiteTimeRemainingMs = 0
+	} else {
+		gs.BlackTimeRemainingMs = 0
+	}
+	params := db.UpdateGameStateParams{
+		ID:                   gameID,
+		State:                db.GameStateCheckmate,
+		InCheck:              gs.InCheck,
+		CurrentPlayer:        db.PlayerColor(gs.CurrentPlayer),
+		MoveCount:            gs.MoveNumber,
+		BoardState:           board.SerializeGameState(gs),
+		WhiteTimeRemainingMs: gs.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: gs.BlackTimeRemainingMs,
+		EndReason:            "timeout",
+	}
+	result := MoveResult{
+		CurrentPlayer:        gs.CurrentPlayer,
+		EndReason:            "timeout",
+		WhiteTimeRemainingMs: gs.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: gs.BlackTimeRemainingMs,
+	}
+	gs.GameStateMu.Unlock()
+
+	ctx := context.Background()
+	if _, err := server.store.UpdateGameState(ctx, params); err != nil {
+		slog.Error("handleTimeout: UpdateGameState failed", "game_id", uidStr(gameID), "err", err)
+	}
+
+	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
+	server.wsBroadcastToGame(gameID, out)
+	slog.Info("handleTimeout: game ended by clock", "game_id", uidStr(gameID), "timed_out_color", timedOutColor)
 }
 
 func restoreGameState(game db.Game) *pieces.GameState {

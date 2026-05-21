@@ -117,6 +117,16 @@ func parseUUIDParam(ctx *gin.Context, param string) (pgtype.UUID, bool) {
 	return pgtype.UUID{Bytes: parsed, Valid: true}, true
 }
 
+// parseUUIDParamField parses a UUID string from a JSON field. Writes 400 on invalid input.
+func parseUUIDParamField(ctx *gin.Context, raw string, fieldName string) (pgtype.UUID, bool) {
+	parsed, err := uuid.Parse(raw)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorMessage("invalid "+fieldName))
+		return pgtype.UUID{}, false
+	}
+	return pgtype.UUID{Bytes: parsed, Valid: true}, true
+}
+
 // uuidEq compares two pgtype.UUID values. Returns false if either is NULL.
 func uuidEq(a, b pgtype.UUID) bool {
 	return a.Valid && b.Valid && a.Bytes == b.Bytes

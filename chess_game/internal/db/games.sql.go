@@ -12,13 +12,25 @@ import (
 )
 
 const createGameAsBlack = `-- name: CreateGameAsBlack :one
-INSERT INTO games (black_player_id)
-VALUES ($1)
+INSERT INTO games (black_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at)
+VALUES ($1, $2, $3, $4, $4, NOW())
 RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
 `
 
-func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UUID) (Game, error) {
-	row := q.db.QueryRow(ctx, createGameAsBlack, blackPlayerID)
+type CreateGameAsBlackParams struct {
+	BlackPlayerID        pgtype.UUID `json:"black_player_id"`
+	Visibility           string      `json:"visibility"`
+	BoardState           string      `json:"board_state"`
+	WhiteTimeRemainingMs int64       `json:"white_time_remaining_ms"`
+}
+
+func (q *Queries) CreateGameAsBlack(ctx context.Context, arg CreateGameAsBlackParams) (Game, error) {
+	row := q.db.QueryRow(ctx, createGameAsBlack,
+		arg.BlackPlayerID,
+		arg.Visibility,
+		arg.BoardState,
+		arg.WhiteTimeRemainingMs,
+	)
 	var i Game
 	err := row.Scan(
 		&i.ID,
@@ -42,13 +54,25 @@ func (q *Queries) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UU
 }
 
 const createGameAsWhite = `-- name: CreateGameAsWhite :one
-INSERT INTO games (white_player_id)
-VALUES ($1)
+INSERT INTO games (white_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at)
+VALUES ($1, $2, $3, $4, $4, NOW())
 RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
 `
 
-func (q *Queries) CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UUID) (Game, error) {
-	row := q.db.QueryRow(ctx, createGameAsWhite, whitePlayerID)
+type CreateGameAsWhiteParams struct {
+	WhitePlayerID        pgtype.UUID `json:"white_player_id"`
+	Visibility           string      `json:"visibility"`
+	BoardState           string      `json:"board_state"`
+	WhiteTimeRemainingMs int64       `json:"white_time_remaining_ms"`
+}
+
+func (q *Queries) CreateGameAsWhite(ctx context.Context, arg CreateGameAsWhiteParams) (Game, error) {
+	row := q.db.QueryRow(ctx, createGameAsWhite,
+		arg.WhitePlayerID,
+		arg.Visibility,
+		arg.BoardState,
+		arg.WhiteTimeRemainingMs,
+	)
 	var i Game
 	err := row.Scan(
 		&i.ID,

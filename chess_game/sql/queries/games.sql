@@ -1,11 +1,11 @@
 -- name: CreateGameAsWhite :one
-INSERT INTO games (white_player_id)
-VALUES ($1)
+INSERT INTO games (white_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at)
+VALUES ($1, $2, $3, $4, $4, NOW())
 RETURNING *;
 
 -- name: CreateGameAsBlack :one
-INSERT INTO games (black_player_id)
-VALUES ($1)
+INSERT INTO games (black_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at)
+VALUES ($1, $2, $3, $4, $4, NOW())
 RETURNING *;
 
 -- name: GetGameByID :one

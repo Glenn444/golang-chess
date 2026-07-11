@@ -3,6 +3,7 @@ package push
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	webpush "github.com/SherClockHolmes/webpush-go"
 )
@@ -44,8 +45,13 @@ func Send(endpoint, p256dh, auth string, p Payload, cfg Config) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 410 {
+	switch {
+	case resp.StatusCode == 404 || resp.StatusCode == 410:
+		// Both mean the subscription no longer exists — purge it.
 		return ErrSubscriptionGone
+	case resp.StatusCode < 200 || resp.StatusCode >= 300:
+		// e.g. 401/403 for bad VAPID keys — must not be silently swallowed.
+		return fmt.Errorf("push service returned %d", resp.StatusCode)
 	}
 	return nil
 }

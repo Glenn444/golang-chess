@@ -1,17 +1,15 @@
 package api
 
 import (
-	"log/slog"
-	"time"
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Glenn444/golang-chess/internal/board"
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CreateGameReq struct{
@@ -61,7 +59,14 @@ func (server *Server) createGame(ctx *gin.Context) {
 	server.createGameMUsMu.Unlock()
 
 	mu.Lock()
-	defer mu.Unlock()
+	defer func() {
+		mu.Unlock()
+		// Drop the entry so the map doesn't grow with every user who ever
+		// created a game over the server's lifetime.
+		server.createGameMUsMu.Lock()
+		delete(server.createGameMUs, user.ID)
+		server.createGameMUsMu.Unlock()
+	}()
 
 	// Users can have at most 1 active + 2 pending games.
 	allGames, err := server.store.GetGamesByPlayerID(ctx, user.ID)
@@ -87,20 +92,7 @@ func (server *Server) createGame(ctx *gin.Context) {
 		return
 	}
 
-	var game db.Game
-	switch req.PlayerColor {
-	case "w":
-		game,err = server.store.CreateGameAsWhite(ctx,user.ID)
-	case "b":
-		game,err = server.store.CreateGameAsBlack(ctx,user.ID)
-	}
-	
-	if handleDBError(ctx, err, WithLogArgs("createGame: failed", "user_id", user.ID)) {
-		return
-	}
-
 	//initialise a game state in memory
-	now := time.Now()
 	timeMs := int64(req.TimeControl) * 60 * 1000 // 0 = unlimited
 	gameState := &pieces.GameState{
 		CurrentPlayer:        "w",
@@ -110,23 +102,38 @@ func (server *Server) createGame(ctx *gin.Context) {
 		PlayAgainst:          req.Opponent,
 		WhiteTimeRemainingMs: timeMs,
 		BlackTimeRemainingMs: timeMs,
-		LastMoveAt:           now,
+		LastMoveAt:           time.Now(),
 		TimeoutCh:            make(chan struct{}),
 	}
 
-	// persist the initial board state with timer columns
-	_, err = server.store.UpdateGameState(ctx, db.UpdateGameStateParams{
-		ID:                   game.ID,
-		State:                db.GameStateWaiting,
-		InCheck:              false,
-		CurrentPlayer:        db.PlayerColorW,
-		MoveCount:            0,
-		BoardState:           board.SerializeGameState(gameState),
-		WhiteTimeRemainingMs: timeMs,
-		BlackTimeRemainingMs: timeMs,
-		LastMoveAt:           pgtype.Timestamptz{Time: now, Valid: true},
-	})
-	if handleDBError(ctx, err, WithLogArgs("createGame: failed to persist board state", "game_id", game.ID)) {
+	// Engine games never wait for a human opponent — keep them out of the
+	// public lobby regardless of the requested visibility.
+	visibility := req.Visibility
+	if req.Opponent == "stockfish" {
+		visibility = "private"
+	}
+
+	// Single insert: game row, visibility, board state and clocks together.
+	var game db.Game
+	boardState := board.SerializeGameState(gameState)
+	switch req.PlayerColor {
+	case "w":
+		game, err = server.store.CreateGameAsWhite(ctx, db.CreateGameAsWhiteParams{
+			WhitePlayerID:        user.ID,
+			Visibility:           visibility,
+			BoardState:           boardState,
+			WhiteTimeRemainingMs: timeMs,
+		})
+	case "b":
+		game, err = server.store.CreateGameAsBlack(ctx, db.CreateGameAsBlackParams{
+			BlackPlayerID:        user.ID,
+			Visibility:           visibility,
+			BoardState:           boardState,
+			WhiteTimeRemainingMs: timeMs,
+		})
+	}
+
+	if handleDBError(ctx, err, WithLogArgs("createGame: failed", "user_id", user.ID)) {
 		return
 	}
 
@@ -183,14 +190,8 @@ func (server *Server) deleteGame(ctx *gin.Context) {
 		return
 	}
 
-	// Clean up associated data.
-	if err := server.store.DeleteMovesByGameID(ctx, gameID); err != nil {
-		slog.Error("deleteGame: DeleteMovesByGameID", "game_id", ctx.Param("id"), "err", err)
-	}
-	if err := server.store.DeleteChatMessagesByGameID(ctx, gameID); err != nil {
-		slog.Error("deleteGame: DeleteChatMessagesByGameID", "game_id", ctx.Param("id"), "err", err)
-	}
-
+	// Moves, chat messages and voice sessions reference games with
+	// ON DELETE CASCADE, so a single delete cleans everything atomically.
 	if err := server.store.DeleteGame(ctx, gameID); err != nil {
 		handleDBError(ctx, err, WithLogArgs("deleteGame: DeleteGame", "game_id", ctx.Param("id")))
 		return
@@ -288,7 +289,28 @@ func (server *Server) getGame(ctx *gin.Context) {
 		return
 	}
 
+	if !server.canViewGame(ctx, game) {
+		return
+	}
+
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, game))
+}
+
+// canViewGame allows participants always, and anyone for public games.
+// Private games answer 404 to non-participants so their existence isn't leaked.
+func (server *Server) canViewGame(ctx *gin.Context, game db.Game) bool {
+	if game.Visibility == "public" {
+		return true
+	}
+	user, ok := server.getCurrentUser(ctx)
+	if !ok {
+		return false
+	}
+	if uuidEq(game.WhitePlayerID, user.ID) || uuidEq(game.BlackPlayerID, user.ID) {
+		return true
+	}
+	ctx.JSON(http.StatusNotFound, errorMessage(ErrGameNotFound))
+	return false
 }
 
 // @Summary      Join a game
@@ -452,6 +474,16 @@ func (server *Server) resignGame(ctx *gin.Context) {
 func (server *Server) getGameMoves(ctx *gin.Context) {
 	gameID, ok := parseUUIDParam(ctx, "id")
 	if !ok {
+		return
+	}
+
+	game, err := server.store.GetGameByID(ctx, gameID)
+	if handleDBError(ctx, err,
+		WithNotFoundMsg(ErrGameNotFound),
+		WithLogArgs("getGameMoves: GetGameByID", "game_id", ctx.Param("id"))) {
+		return
+	}
+	if !server.canViewGame(ctx, game) {
 		return
 	}
 

@@ -21,6 +21,7 @@ const (
 	GameStateResign    GameState = "resign"
 	GameStateDraw      GameState = "draw"
 	GameStateAbandoned GameState = "abandoned"
+	GameStateTimeout   GameState = "timeout"
 )
 
 func (e *GameState) Scan(src interface{}) error {

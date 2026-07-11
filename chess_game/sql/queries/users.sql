@@ -36,6 +36,7 @@ SET
     username      = COALESCE(sqlc.narg(username), username),
     email         = COALESCE(sqlc.narg(email), email),
     password_hash = COALESCE(sqlc.narg(password_hash), password_hash),
+    password_updated_at = CASE WHEN sqlc.narg(password_hash)::text IS NOT NULL THEN NOW() ELSE password_updated_at END,
     updated_at    = NOW()
 WHERE id = $1
 RETURNING *;

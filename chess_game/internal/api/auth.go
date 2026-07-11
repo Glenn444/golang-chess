@@ -142,7 +142,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 	}
 	resp := CreateUserResponse{
 		Username:          user.Username,
-		PasswordChangedAt: user.UpdatedAt.Time,
+		Email:             user.Email,
+		PasswordChangedAt: user.PasswordUpdatedAt.Time,
 		CreatedAt:         user.CreatedAt.Time,
 	}
 	ctx.JSON(http.StatusOK, resp)

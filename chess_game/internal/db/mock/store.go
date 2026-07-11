@@ -162,33 +162,33 @@ func (mr *MockStoreMockRecorder) CreateEmailOTP(ctx, arg any) *gomock.Call {
 }
 
 // CreateGameAsBlack mocks base method.
-func (m *MockStore) CreateGameAsBlack(ctx context.Context, blackPlayerID pgtype.UUID) (db.Game, error) {
+func (m *MockStore) CreateGameAsBlack(ctx context.Context, arg db.CreateGameAsBlackParams) (db.Game, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateGameAsBlack", ctx, blackPlayerID)
+	ret := m.ctrl.Call(m, "CreateGameAsBlack", ctx, arg)
 	ret0, _ := ret[0].(db.Game)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateGameAsBlack indicates an expected call of CreateGameAsBlack.
-func (mr *MockStoreMockRecorder) CreateGameAsBlack(ctx, blackPlayerID any) *gomock.Call {
+func (mr *MockStoreMockRecorder) CreateGameAsBlack(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGameAsBlack", reflect.TypeOf((*MockStore)(nil).CreateGameAsBlack), ctx, blackPlayerID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGameAsBlack", reflect.TypeOf((*MockStore)(nil).CreateGameAsBlack), ctx, arg)
 }
 
 // CreateGameAsWhite mocks base method.
-func (m *MockStore) CreateGameAsWhite(ctx context.Context, whitePlayerID pgtype.UUID) (db.Game, error) {
+func (m *MockStore) CreateGameAsWhite(ctx context.Context, arg db.CreateGameAsWhiteParams) (db.Game, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateGameAsWhite", ctx, whitePlayerID)
+	ret := m.ctrl.Call(m, "CreateGameAsWhite", ctx, arg)
 	ret0, _ := ret[0].(db.Game)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateGameAsWhite indicates an expected call of CreateGameAsWhite.
-func (mr *MockStoreMockRecorder) CreateGameAsWhite(ctx, whitePlayerID any) *gomock.Call {
+func (mr *MockStoreMockRecorder) CreateGameAsWhite(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGameAsWhite", reflect.TypeOf((*MockStore)(nil).CreateGameAsWhite), ctx, whitePlayerID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGameAsWhite", reflect.TypeOf((*MockStore)(nil).CreateGameAsWhite), ctx, arg)
 }
 
 // CreateMove mocks base method.

@@ -97,6 +97,7 @@ func testGame() db.Game {
 		WhitePlayerID: userUUID(),
 		BlackPlayerID: pgtype.UUID{Valid: false},
 		State:         db.GameStateWaiting,
+		Visibility:    "public",
 	}
 }
 
@@ -111,8 +112,7 @@ func TestCreateGame(t *testing.T) {
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
 		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{}, nil)
-		store.EXPECT().CreateGameAsWhite(gomock.Any(), user.ID).Return(game, nil)
-		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
+		store.EXPECT().CreateGameAsWhite(gomock.Any(), gomock.Any()).Return(game, nil)
 	store.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(user, nil).AnyTimes()
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
@@ -150,8 +150,7 @@ func TestCreateGame(t *testing.T) {
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
 		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return([]db.Game{}, nil)
-		store.EXPECT().CreateGameAsBlack(gomock.Any(), user.ID).Return(game, nil)
-		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
+		store.EXPECT().CreateGameAsBlack(gomock.Any(), gomock.Any()).Return(game, nil)
 	store.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(user, nil).AnyTimes()
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
@@ -176,8 +175,7 @@ func TestCreateGame(t *testing.T) {
 
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
 		store.EXPECT().GetGamesByPlayerID(gomock.Any(), user.ID).Return(existingGames, nil)
-		store.EXPECT().CreateGameAsWhite(gomock.Any(), user.ID).Return(game, nil)
-		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil)
+		store.EXPECT().CreateGameAsWhite(gomock.Any(), gomock.Any()).Return(game, nil)
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games", CreateGameReq{
 			PlayerColor: "w",
@@ -481,6 +479,9 @@ func TestGetGameMoves(t *testing.T) {
 			{ID: userUUID(), GameID: id, MoveNotation: "e5", MoveNumber: 2},
 		}
 
+		g := testGame()
+		g.ID = id
+		store.EXPECT().GetGameByID(gomock.Any(), id).Return(g, nil)
 		store.EXPECT().GetMovesByGameID(gomock.Any(), id).Return(moves, nil)
 
 		ctx, rec := newGameCtx(http.MethodGet, "/games/"+uuid.UUID(id.Bytes).String()+"/moves", nil)

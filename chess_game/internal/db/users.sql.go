@@ -289,6 +289,7 @@ SET
     username      = COALESCE($2, username),
     email         = COALESCE($3, email),
     password_hash = COALESCE($4, password_hash),
+    password_updated_at = CASE WHEN $4::text IS NOT NULL THEN NOW() ELSE password_updated_at END,
     updated_at    = NOW()
 WHERE id = $1
 RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at

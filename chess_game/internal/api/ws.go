@@ -403,8 +403,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		gameStatus = db.GameStateCheckmate
 		endReason = "checkmate"
 	case timedOut:
-		// The game_state enum has no timeout value; end_reason disambiguates.
-		gameStatus = db.GameStateCheckmate
+		gameStatus = db.GameStateTimeout
 		endReason = "timeout"
 	case isStalemate:
 		gameStatus = db.GameStateStalemate
@@ -482,7 +481,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 func wsGameIsOver(status db.GameState) bool {
 	switch status {
 	case db.GameStateCheckmate, db.GameStateStalemate, db.GameStateResign,
-		db.GameStateDraw, db.GameStateAbandoned:
+		db.GameStateDraw, db.GameStateAbandoned, db.GameStateTimeout:
 		return true
 	}
 	return false
@@ -741,10 +740,10 @@ func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
 	} else {
 		gs.BlackTimeRemainingMs = 0
 	}
-	gs.Status = db.GameStateCheckmate
+	gs.Status = db.GameStateTimeout
 	params := db.UpdateGameStateParams{
 		ID:                   gameID,
-		State:                db.GameStateCheckmate,
+		State:                db.GameStateTimeout,
 		InCheck:              gs.InCheck,
 		CurrentPlayer:        db.PlayerColor(gs.CurrentPlayer),
 		MoveCount:            gs.MoveNumber,

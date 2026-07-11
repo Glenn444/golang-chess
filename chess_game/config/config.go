@@ -13,7 +13,7 @@ type Config struct {
 	DB_URL             string        `mapstructure:"DB_URL"`
 	ServerAddress      string        `mapstructure:"SERVER_ADDRESS"`
 	AcessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
-	TokenSymmetricKey  string        `mapstructure:"TokenSymmetricKey"`
+	TokenSymmetricKey  string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
 	RESEND_API_KEY     string        `mapstructure:"RESEND_API_KEY"`
 	CloudflareTURNKeyID    string `mapstructure:"CLOUDFLARE_TURN_KEY_ID"`
 	CloudflareTURNAPIToken string `mapstructure:"CLOUDFLARE_TURN_API_TOKEN"`
@@ -24,6 +24,17 @@ type Config struct {
 	VAPIDSubject        string `mapstructure:"VAPID_SUBJECT"`
 }
 
+// configKeys lists every mapstructure key above. viper.Unmarshal only sees
+// environment variables for keys it already knows about, so with no config
+// file (Docker: env-only) each key must be bound explicitly — AutomaticEnv
+// alone is NOT enough for Unmarshal.
+var configKeys = []string{
+	"DB_DRIVER", "DB_URL", "SERVER_ADDRESS", "ACCESS_TOKEN_DURATION",
+	"TOKEN_SYMMETRIC_KEY", "RESEND_API_KEY", "CLOUDFLARE_TURN_KEY_ID",
+	"CLOUDFLARE_TURN_API_TOKEN", "ENVIRONMENT", "PUBLIC_HOST",
+	"VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
+}
+
 func LoadConfig(path string) (config Config, err error) {
 	viper.AddConfigPath(path)
 	viper.SetConfigName("app")
@@ -31,6 +42,11 @@ func LoadConfig(path string) (config Config, err error) {
 
 	// Environment variables take precedence over config file.
 	viper.AutomaticEnv()
+	for _, key := range configKeys {
+		if bindErr := viper.BindEnv(key); bindErr != nil {
+			return config, bindErr
+		}
+	}
 
 	// ReadInConfig is optional — in production (Docker), all values
 	// come from environment variables and no config file is mounted.

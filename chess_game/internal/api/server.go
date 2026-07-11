@@ -144,10 +144,13 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	users.POST("/signin", server.loginUser)
 	users.POST("/refresh-token", server.refreshToken)
 
+	// Logout must work even with an expired access token — it only clears
+	// cookies and revokes the refresh-token session it can read.
+	users.POST("/logout", server.logoutUser)
+
 	// ── Protected (Bearer JWT + rate-limited) ─────────────────────────────────
 	authUsers := router.Group("/users").Use(authMiddleware(server.tokenMaker), authLimiter)
 	authUsers.GET("/me", server.getMe)
-	authUsers.POST("/logout", server.logoutUser)
 
 	// Public — no auth required, just returns visible games.
 	router.GET("/games/public", server.listPublicGames)

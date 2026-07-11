@@ -90,3 +90,7 @@ WHERE user_id = $1;
 -- name: DeleteExpiredSessions :exec
 DELETE FROM sessions
 WHERE expires_at < NOW();
+-- name: UpdateUserRating :exec
+UPDATE users
+SET rating = $2, updated_at = NOW()
+WHERE id = $1;

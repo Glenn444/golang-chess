@@ -17,6 +17,8 @@ type CreateGameReq struct{
 	Opponent    string `json:"opponent" binding:"required,oneof=person stockfish"`
 	TimeControl int    `json:"time_control" binding:"oneof=0 5 10 15 30 45 60"`
 	Visibility  string `json:"visibility" binding:"required,oneof=public private"`
+	// UCI Skill Level for engine games: 0 (weakest) to 20 (full strength).
+	StockfishLevel int `json:"stockfish_level" binding:"omitempty,min=0,max=20"`
 }
 
 func (r *CreateGameReq)sanitizeCreateGameReq(){
@@ -92,6 +94,11 @@ func (server *Server) createGame(ctx *gin.Context) {
 		return
 	}
 
+	if req.Opponent == "stockfish" && !server.engineAvailable() {
+		ctx.JSON(http.StatusServiceUnavailable, errorMessage("stockfish is not available on this server"))
+		return
+	}
+
 	//initialise a game state in memory
 	timeMs := int64(req.TimeControl) * 60 * 1000 // 0 = unlimited
 	gameState := &pieces.GameState{
@@ -100,20 +107,23 @@ func (server *Server) createGame(ctx *gin.Context) {
 		CapturedPieces:       make(map[string][]pieces.PieceInterface),
 		UserColor:            req.PlayerColor,
 		PlayAgainst:          req.Opponent,
+		StockfishLevel:       int32(req.StockfishLevel),
 		WhiteTimeRemainingMs: timeMs,
 		BlackTimeRemainingMs: timeMs,
 		LastMoveAt:           time.Now(),
 		TimeoutCh:            make(chan struct{}),
 	}
 
-	// Engine games never wait for a human opponent — keep them out of the
-	// public lobby regardless of the requested visibility.
+	// Engine games never wait for a human opponent — they start active and
+	// stay out of the public lobby regardless of the requested visibility.
 	visibility := req.Visibility
+	state := db.GameStateWaiting
 	if req.Opponent == "stockfish" {
 		visibility = "private"
+		state = db.GameStateActive
 	}
 
-	// Single insert: game row, visibility, board state and clocks together.
+	// Single insert: game row, visibility, opponent, board state and clocks.
 	var game db.Game
 	boardState := board.SerializeGameState(gameState)
 	switch req.PlayerColor {
@@ -123,6 +133,9 @@ func (server *Server) createGame(ctx *gin.Context) {
 			Visibility:           visibility,
 			BoardState:           boardState,
 			WhiteTimeRemainingMs: timeMs,
+			Opponent:             req.Opponent,
+			StockfishLevel:       int16(req.StockfishLevel),
+			State:                state,
 		})
 	case "b":
 		game, err = server.store.CreateGameAsBlack(ctx, db.CreateGameAsBlackParams{
@@ -130,6 +143,9 @@ func (server *Server) createGame(ctx *gin.Context) {
 			Visibility:           visibility,
 			BoardState:           boardState,
 			WhiteTimeRemainingMs: timeMs,
+			Opponent:             req.Opponent,
+			StockfishLevel:       int16(req.StockfishLevel),
+			State:                state,
 		})
 	}
 
@@ -141,6 +157,9 @@ func (server *Server) createGame(ctx *gin.Context) {
 	server.activeGamesMu.Lock()
 	server.activeGames[game.ID] = gameState
 	server.activeGamesMu.Unlock()
+
+	// If the user plays black against the engine, white (the engine) opens.
+	server.maybeTriggerEngine(game.ID, gameState)
 
 	ctx.JSON(http.StatusCreated, server.toGameResponse(ctx, game))
 }
@@ -346,6 +365,12 @@ func (server *Server) joinGame(ctx *gin.Context) {
 		return
 	}
 
+	// engine games have no open seat for humans
+	if game.Opponent != "person" {
+		ctx.JSON(http.StatusForbidden, errorMessage("cannot join an engine game"))
+		return
+	}
+
 	// prevent joining own game (check both slots)
 	if uuidEq(game.WhitePlayerID, user.ID) || uuidEq(game.BlackPlayerID,user.ID){
 		ctx.JSON(http.StatusForbidden, errorMessage(ErrCannotJoinOwnGame))
@@ -456,7 +481,82 @@ func (server *Server) resignGame(ctx *gin.Context) {
 		gs.GameStateMu.Unlock()
 	}
 
+	// The resigner's opponent wins.
+	winner := "w"
+	if uuidEq(game.WhitePlayerID, user.ID) {
+		winner = "b"
+	}
+	server.finishGame(ctx, gameID, winner)
+
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
+}
+
+// GameReplayResponse carries everything a client needs to replay a finished
+// (or ongoing) game: the ordered UCI move list plus result metadata.
+type GameReplayResponse struct {
+	GameID          string    `json:"game_id"`
+	WhitePlayerName string    `json:"white_player_name"`
+	BlackPlayerName string    `json:"black_player_name"`
+	Opponent        string    `json:"opponent"`
+	StockfishLevel  int16     `json:"stockfish_level"`
+	State           string    `json:"state"`
+	EndReason       string    `json:"end_reason"`
+	EndedByPlayerID string    `json:"ended_by_player_id"`
+	Moves           []string  `json:"moves"` // UCI, in play order
+	MoveCount       int32     `json:"move_count"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+// @Summary      Replay a game
+// @Description  Returns the ordered move list (UCI) and result metadata so the client can step through the game.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Param        id  path  string  true  "Game UUID"
+// @Security     Bearer
+// @Success      200  {object}  api.GameReplayResponse
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Failure      404  {object}  map[string]string
+// @Failure      500  {object}  map[string]string
+// @Router       /games/{id}/replay [get]
+func (server *Server) getGameReplay(ctx *gin.Context) {
+	gameID, ok := parseUUIDParam(ctx, "id")
+	if !ok {
+		return
+	}
+
+	game, err := server.store.GetGameByID(ctx, gameID)
+	if handleDBError(ctx, err,
+		WithNotFoundMsg(ErrGameNotFound),
+		WithLogArgs("getGameReplay: GetGameByID", "game_id", ctx.Param("id"))) {
+		return
+	}
+	if !server.canViewGame(ctx, game) {
+		return
+	}
+
+	snap := board.DeserializeGameState(game.BoardState)
+	moves := snap.StockfishGame
+	if moves == nil {
+		moves = []string{}
+	}
+
+	ctx.JSON(http.StatusOK, GameReplayResponse{
+		GameID:          uidStr(game.ID),
+		WhitePlayerName: server.lookupUsername(ctx, game.WhitePlayerID),
+		BlackPlayerName: server.lookupUsername(ctx, game.BlackPlayerID),
+		Opponent:        game.Opponent,
+		StockfishLevel:  game.StockfishLevel,
+		State:           string(game.State),
+		EndReason:       game.EndReason,
+		EndedByPlayerID: uidStr(game.EndedByPlayerID),
+		Moves:           moves,
+		MoveCount:       game.MoveCount,
+		CreatedAt:       game.CreatedAt.Time,
+		UpdatedAt:       game.UpdatedAt.Time,
+	})
 }
 
 // @Summary      Get game moves

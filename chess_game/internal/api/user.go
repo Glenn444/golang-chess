@@ -56,6 +56,7 @@ type getMeResponse struct {
 	Email          string      `json:"email"`
 	EmailConfirmed bool        `json:"email_confirmed"`
 	IsActive       bool        `json:"is_active"`
+	Rating         int32       `json:"rating"`
 	LastLoginAt    time.Time   `json:"last_login_at,omitempty"`
 	CreatedAt      time.Time   `json:"created_at"`
 }
@@ -81,6 +82,7 @@ func (server *Server) getMe(ctx *gin.Context) {
 		Email:          user.Email,
 		EmailConfirmed: user.EmailConfirmed,
 		IsActive:       user.IsActive,
+		Rating:         user.Rating,
 		LastLoginAt:    user.LastLoginAt.Time,
 		CreatedAt:      user.CreatedAt.Time,
 	})

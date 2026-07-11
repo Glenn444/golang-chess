@@ -1,11 +1,11 @@
 -- name: CreateGameAsWhite :one
-INSERT INTO games (white_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at)
-VALUES ($1, $2, $3, $4, $4, NOW())
+INSERT INTO games (white_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, opponent, stockfish_level, state, last_move_at)
+VALUES ($1, $2, $3, $4, $4, $5, $6, $7, NOW())
 RETURNING *;
 
 -- name: CreateGameAsBlack :one
-INSERT INTO games (black_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at)
-VALUES ($1, $2, $3, $4, $4, NOW())
+INSERT INTO games (black_player_id, visibility, board_state, white_time_remaining_ms, black_time_remaining_ms, opponent, stockfish_level, state, last_move_at)
+VALUES ($1, $2, $3, $4, $4, $5, $6, $7, NOW())
 RETURNING *;
 
 -- name: GetGameByID :one
@@ -25,12 +25,12 @@ AND state IN ('waiting', 'active');
 
 -- name: ListWaitingGames :many
 SELECT * FROM games
-WHERE state = 'waiting'
+WHERE state = 'waiting' AND opponent = 'person'
 ORDER BY created_at ASC;
 
 -- name: ListPublicGames :many
 SELECT * FROM games
-WHERE state = 'waiting' AND visibility = 'public'
+WHERE state = 'waiting' AND visibility = 'public' AND opponent = 'person'
 ORDER BY created_at ASC;
 
 -- name: JoinGameAsBlack :one

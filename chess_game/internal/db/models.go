@@ -180,6 +180,8 @@ type Game struct {
 	EndedByPlayerID      pgtype.UUID        `json:"ended_by_player_id"`
 	EndReason            string             `json:"end_reason"`
 	Visibility           string             `json:"visibility"`
+	Opponent             string             `json:"opponent"`
+	StockfishLevel       int16              `json:"stockfish_level"`
 }
 
 type GameMove struct {
@@ -224,6 +226,7 @@ type User struct {
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 	PasswordUpdatedAt pgtype.Timestamptz `json:"password_updated_at"`
+	Rating            int32              `json:"rating"`
 }
 
 type VoiceSession struct {

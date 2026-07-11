@@ -71,6 +71,7 @@ type Querier interface {
 	UpdateGameState(ctx context.Context, arg UpdateGameStateParams) (Game, error)
 	UpdateLastLogin(ctx context.Context, id pgtype.UUID) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserRating(ctx context.Context, arg UpdateUserRatingParams) error
 	UsernameExists(ctx context.Context, username string) (bool, error)
 }
 

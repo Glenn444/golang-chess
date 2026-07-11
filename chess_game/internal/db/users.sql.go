@@ -30,7 +30,7 @@ SET
     updated_at      = NOW()
 WHERE id = $1
   AND email_confirmed = FALSE
-RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at, rating
 `
 
 func (q *Queries) ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error) {
@@ -48,6 +48,7 @@ func (q *Queries) ConfirmEmail(ctx context.Context, id pgtype.UUID) (User, error
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PasswordUpdatedAt,
+		&i.Rating,
 	)
 	return i, err
 }
@@ -97,7 +98,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash)
 VALUES ($1, $2, $3)
-RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at, rating
 `
 
 type CreateUserParams struct {
@@ -121,6 +122,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PasswordUpdatedAt,
+		&i.Rating,
 	)
 	return i, err
 }
@@ -179,7 +181,7 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at, rating FROM users
 WHERE email = $1
 `
 
@@ -198,12 +200,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PasswordUpdatedAt,
+		&i.Rating,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at, rating FROM users
 WHERE id = $1
 `
 
@@ -222,12 +225,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PasswordUpdatedAt,
+		&i.Rating,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at FROM users
+SELECT id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at, rating FROM users
 WHERE username = $1
 `
 
@@ -246,6 +250,7 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PasswordUpdatedAt,
+		&i.Rating,
 	)
 	return i, err
 }
@@ -292,7 +297,7 @@ SET
     password_updated_at = CASE WHEN $4::text IS NOT NULL THEN NOW() ELSE password_updated_at END,
     updated_at    = NOW()
 WHERE id = $1
-RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at
+RETURNING id, username, email, password_hash, email_confirmed, confirmed_at, is_active, last_login_at, created_at, updated_at, password_updated_at, rating
 `
 
 type UpdateUserParams struct {
@@ -322,8 +327,25 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PasswordUpdatedAt,
+		&i.Rating,
 	)
 	return i, err
+}
+
+const updateUserRating = `-- name: UpdateUserRating :exec
+UPDATE users
+SET rating = $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserRatingParams struct {
+	ID     pgtype.UUID `json:"id"`
+	Rating int32       `json:"rating"`
+}
+
+func (q *Queries) UpdateUserRating(ctx context.Context, arg UpdateUserRatingParams) error {
+	_, err := q.db.Exec(ctx, updateUserRating, arg.ID, arg.Rating)
+	return err
 }
 
 const usernameExists = `-- name: UsernameExists :one

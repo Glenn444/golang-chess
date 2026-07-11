@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Glenn444/golang-chess/config"
+	"github.com/Glenn444/golang-chess/internal/board"
 	db "github.com/Glenn444/golang-chess/internal/db"
 	mock_db "github.com/Glenn444/golang-chess/internal/db/mock"
 	"github.com/Glenn444/golang-chess/internal/pieces"
@@ -98,6 +99,7 @@ func testGame() db.Game {
 		BlackPlayerID: pgtype.UUID{Valid: false},
 		State:         db.GameStateWaiting,
 		Visibility:    "public",
+		Opponent:      "person",
 	}
 }
 
@@ -437,6 +439,9 @@ func TestResignGame(t *testing.T) {
 		store.EXPECT().GetUserByUsername(gomock.Any(), user.Username).Return(user, nil)
 		store.EXPECT().GetGameByID(gomock.Any(), g.ID).Return(g, nil)
 		store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(resigned, nil)
+		// finishGame: chat cleanup + re-fetch (no black player -> unrated)
+		store.EXPECT().DeleteChatMessagesByGameID(gomock.Any(), g.ID).Return(nil)
+		store.EXPECT().GetGameByID(gomock.Any(), g.ID).Return(resigned, nil)
 
 		ctx, rec := newGameCtx(http.MethodPost, "/games/"+uuid.UUID(g.ID.Bytes).String()+"/resign", nil)
 		setAuth(ctx, user.Username)
@@ -498,3 +503,58 @@ func TestGetGameMoves(t *testing.T) {
 }
 
 func pgxNoRows() error { return pgx.ErrNoRows }
+
+// ── getGameReplay tests ────────────────────────────────────────────────────────────
+
+func TestGetGameReplay(t *testing.T) {
+	t.Run("success returns ordered UCI moves", func(t *testing.T) {
+		server, store := newTestGameServer(t)
+		id := gameUUID()
+
+		gs := &pieces.GameState{
+			CurrentPlayer:  "w",
+			Board:          board.Initialise_board(board.Create_board()),
+			StockfishGame:  []string{"e2e4", "e7e5", "g1f3"},
+			CapturedPieces: make(map[string][]pieces.PieceInterface),
+		}
+		g := testGame()
+		g.ID = id
+		g.State = db.GameStateCheckmate
+		g.EndReason = "checkmate"
+		g.BoardState = board.SerializeGameState(gs)
+
+		store.EXPECT().GetGameByID(gomock.Any(), id).Return(g, nil)
+
+		ctx, rec := newGameCtx(http.MethodGet, "/games/"+uuid.UUID(id.Bytes).String()+"/replay", nil)
+		setAuth(ctx, "testuser")
+		ctx.Params = gin.Params{{Key: "id", Value: uuid.UUID(id.Bytes).String()}}
+
+		server.getGameReplay(ctx)
+
+		require.Equal(t, http.StatusOK, rec.Code)
+		var resp GameReplayResponse
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+		require.Equal(t, []string{"e2e4", "e7e5", "g1f3"}, resp.Moves)
+		require.Equal(t, "checkmate", resp.EndReason)
+	})
+
+	t.Run("private game hidden from non-participants", func(t *testing.T) {
+		server, store := newTestGameServer(t)
+		id := gameUUID()
+
+		g := testGame()
+		g.ID = id
+		g.Visibility = "private"
+
+		store.EXPECT().GetGameByID(gomock.Any(), id).Return(g, nil)
+		store.EXPECT().GetUserByUsername(gomock.Any(), "stranger").Return(db.User{ID: userUUID(), Username: "stranger"}, nil)
+
+		ctx, rec := newGameCtx(http.MethodGet, "/games/"+uuid.UUID(id.Bytes).String()+"/replay", nil)
+		setAuth(ctx, "stranger")
+		ctx.Params = gin.Params{{Key: "id", Value: uuid.UUID(id.Bytes).String()}}
+
+		server.getGameReplay(ctx)
+
+		require.Equal(t, http.StatusNotFound, rec.Code)
+	})
+}

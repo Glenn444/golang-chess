@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"regexp"
 	"sync"
 	"sync/atomic"
@@ -13,6 +14,7 @@ import (
 	"github.com/Glenn444/golang-chess/config"
 	"github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/pieces"
+	"github.com/Glenn444/golang-chess/internal/stockfish"
 	"github.com/Glenn444/golang-chess/internal/token"
 	"github.com/Glenn444/golang-chess/internal/utils/emails"
 	ratelimit "github.com/JGLTechnologies/gin-rate-limit"
@@ -50,6 +52,52 @@ type Server struct {
 	activeGamesMu  sync.RWMutex
 	createGameMUs  map[pgtype.UUID]*sync.Mutex // per-user mutex to prevent duplicate games
 	createGameMUsMu sync.Mutex                  // protects the createGameMUs map
+
+	// Shared Stockfish engine for online engine games. Lazily started; the
+	// mutex serializes UCI dialogue (the engine is stateless per query since
+	// the full move history is sent each time).
+	engine     *stockfish.Stockfish
+	engineInit bool
+	engineMu   sync.Mutex
+}
+
+// engineAvailable reports whether server-side Stockfish games can be played.
+func (server *Server) engineAvailable() bool {
+	return os.Getenv("STOCKFISH_ENGINE_PATH") != ""
+}
+
+// engineBestMove computes the engine reply for the given UCI history at the
+// given skill level. A wedged/dead engine is discarded so the next call
+// respawns a fresh one.
+func (server *Server) engineBestMove(moves []string, level int32) (string, error) {
+	server.engineMu.Lock()
+	defer server.engineMu.Unlock()
+
+	if !server.engineInit {
+		sf, err := stockfish.NewStockfish()
+		if err != nil {
+			return "", err
+		}
+		server.engine = sf
+		server.engineInit = true
+	}
+	if server.engine == nil {
+		return "", fmt.Errorf("stockfish engine not configured")
+	}
+
+	move, err := func() (string, error) {
+		if err := server.engine.SetSkillLevel(int(level)); err != nil {
+			return "", err
+		}
+		return server.engine.GetBestMove(moves)
+	}()
+	if err != nil {
+		server.engine.Close()
+		server.engine = nil
+		server.engineInit = false
+		return "", err
+	}
+	return move, nil
 }
 
 func NewServer(cfg config.Config, store db.Store) (*Server, error) {
@@ -164,6 +212,7 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	authGames.POST("/:id/resign", server.resignGame)
 	authGames.DELETE("/:id", server.deleteGame)
 	authGames.GET("/:id/moves", server.getGameMoves)
+	authGames.GET("/:id/replay", server.getGameReplay)
 
 	// chat + voice (scoped under games)
 	authGames.POST("/:id/chat", server.sendChatMessage)

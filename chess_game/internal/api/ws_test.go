@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -350,4 +352,74 @@ func TestWSHandleChatIntegration(t *testing.T) {
 
 func wsURL(httpURL string) string {
 	return "ws" + strings.TrimPrefix(httpURL, "http")
+}
+
+// TestWSStockfishGameIntegration plays a human move over the WebSocket in an
+// engine game and expects the engine's reply to be broadcast as a second
+// make_move event. Runs against the real Stockfish binary; skipped when it
+// isn't available.
+func TestWSStockfishGameIntegration(t *testing.T) {
+	enginePath, err := filepath.Abs("../stockfish/stockfish-engine")
+	if err != nil {
+		t.Skip("cannot resolve engine path")
+	}
+	if _, err := os.Stat(enginePath); err != nil {
+		t.Skip("stockfish binary not available")
+	}
+	t.Setenv("STOCKFISH_ENGINE_PATH", enginePath)
+
+	server, store, _ := newTestWSServer(t)
+	srv, _, gameID := setupWSRouter(t, server, store)
+
+	// Human + engine each persist their move.
+	store.EXPECT().UpdateGameState(gomock.Any(), gomock.Any()).Return(db.Game{}, nil).Times(2)
+	store.EXPECT().CreateMove(gomock.Any(), gomock.Any()).Return(db.GameMove{}, nil).Times(2)
+
+	// Turn the pre-registered game into an engine game (human plays white).
+	server.activeGamesMu.Lock()
+	gs := server.activeGames[gameID]
+	gs.PlayAgainst = "stockfish"
+	gs.UserColor = "w"
+	gs.StockfishLevel = 1
+	server.activeGamesMu.Unlock()
+
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL(srv.URL)+"/ws?dummy=1", nil)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	drainGameState(t, conn)
+
+	require.NoError(t, conn.WriteJSON(WSEvent{
+		Type:    EventMakeMove,
+		Payload: json.RawMessage(`{"move":"e2e4"}`),
+	}))
+
+	readMove := func() MoveResult {
+		t.Helper()
+		conn.SetReadDeadline(time.Now().Add(20 * time.Second))
+		for {
+			var evt WSEvent
+			require.NoError(t, conn.ReadJSON(&evt))
+			if evt.Type == EventPing {
+				continue // keepalive
+			}
+			require.Equal(t, EventMakeMove, evt.Type)
+			var mr MoveResult
+			require.NoError(t, json.Unmarshal(evt.Payload, &mr))
+			return mr
+		}
+	}
+
+	human := readMove()
+	require.Equal(t, "e2e4", human.Move)
+	require.Equal(t, "b", human.CurrentPlayer)
+
+	engine := readMove()
+	require.Regexp(t, `^[a-h][1-8][a-h][1-8][qrbn]?$`, engine.Move)
+	require.Equal(t, "w", engine.CurrentPlayer) // back to the human
+
+	// Board state must reflect both moves.
+	gs.GameStateMu.RLock()
+	require.Len(t, gs.StockfishGame, 2)
+	gs.GameStateMu.RUnlock()
 }

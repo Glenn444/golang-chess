@@ -142,6 +142,28 @@ func (sf *Stockfish) waitFor(expected string) (string, error) {
 	}
 }
 
+// SetSkillLevel sets the UCI "Skill Level" option (0 weakest — 20 strongest)
+// and waits for the engine to acknowledge readiness.
+func (sf *Stockfish) SetSkillLevel(level int) error {
+	if sf == nil {
+		return nil
+	}
+	if level < 0 {
+		level = 0
+	}
+	if level > 20 {
+		level = 20
+	}
+	if err := sf.send(fmt.Sprintf("setoption name Skill Level value %d", level)); err != nil {
+		return err
+	}
+	if err := sf.send("isready"); err != nil {
+		return err
+	}
+	_, err := sf.waitFor("readyok")
+	return err
+}
+
 // GetBestMove sends the full move history and waits for Stockfish's move.
 // Returns an empty string if Stockfish is not available.
 func (sf *Stockfish) GetBestMove(moves []string) (string, error) {

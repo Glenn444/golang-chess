@@ -30,6 +30,7 @@ type GameState struct {
     StockfishGame        []string
     PlayAgainst          string
     UserColor            string
+    StockfishLevel       int32
     Castle               Castling
     EnPassantTarget      string
     MoveNumber           int32

@@ -11,6 +11,7 @@ import (
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/Glenn444/golang-chess/internal/token"
+	"github.com/Glenn444/golang-chess/internal/utils/elo"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -108,7 +109,8 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 		u := wsUser(s)
 		gameID := wsGameID(s)
 
-		if _, err := server.getOrRestoreGame(s.Request.Context(), gameID); err != nil {
+		gs, err := server.getOrRestoreGame(s.Request.Context(), gameID)
+		if err != nil {
 			slog.Error("ws: failed to load game on connect", "game_id", gameID, "err", err)
 			s.CloseWithMsg(melody.FormatCloseMessage(1011, "failed to load game"))
 			return
@@ -117,6 +119,8 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 		// Send game_state with opponent info.
 		server.sendGameState(s, gameID, u)
 		slog.Info("ws: connected", "username", u.Username)
+		// The engine may be on turn (user plays black, or reconnect mid-turn).
+		server.maybeTriggerEngine(gameID, gs)
 		return
 	}
 
@@ -259,7 +263,8 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 	slog.Info("ws: authenticated", "username", user.Username, "game_id", gameID)
 
 	// Load or restore game state.
-	if _, err := server.getOrRestoreGame(s.Request.Context(), gameID); err != nil {
+	gs, err := server.getOrRestoreGame(s.Request.Context(), gameID)
+	if err != nil {
 		wsWriteError(s, "failed to load game")
 		return
 	}
@@ -271,6 +276,8 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 	})})
 	server.wsRelayToOthers(s, gameID, out)
 	server.maybeStartWatcher(gameID, dbGame.State)
+	// The engine may be on turn (user plays black, or reconnect mid-turn).
+	server.maybeTriggerEngine(gameID, gs)
 }
 
 // getOrRestoreGame returns the in-memory game state, restoring it from the DB
@@ -354,29 +361,53 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	}
 
 	gamestate.GameStateMu.Lock()
-	defer gamestate.GameStateMu.Unlock()
 
 	if wsGameIsOver(gamestate.Status) {
+		gamestate.GameStateMu.Unlock()
 		wsWriteError(s, "game is already over")
 		return
 	}
 
-	previousPlayer := gamestate.CurrentPlayer
 	user := wsUser(s)
-
 	playerColor := wsPlayerColor(s)
 	if playerColor != gamestate.CurrentPlayer {
+		gamestate.GameStateMu.Unlock()
 		wsWriteError(s, "not your turn")
 		return
 	}
+
+	result, winner, gameOver, err := server.applyMoveLocked(s.Request.Context(), gameID, gamestate, body.Move, user.ID)
+	gamestate.GameStateMu.Unlock()
+	if err != nil {
+		wsWriteError(s, err.Error())
+		return
+	}
+
+	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
+	server.wsBroadcastToGame(gameID, out)
+
+	if gameOver {
+		server.finishGame(context.Background(), gameID, winner)
+		return
+	}
+	server.maybeTriggerEngine(gameID, gamestate)
+}
+
+// applyMoveLocked applies a move for whoever is on turn, updates clocks and
+// status, persists the game, manages the timeout watcher and records the
+// move. Turn/authorization checks are the caller's job. moverID may be the
+// zero UUID for engine moves. Returns the broadcastable result, the winner
+// color ("" = draw or game continues) and whether the game just ended.
+// Caller must hold gamestate.GameStateMu.
+func (server *Server) applyMoveLocked(ctx context.Context, gameID pgtype.UUID, gamestate *pieces.GameState, move string, moverID pgtype.UUID) (MoveResult, string, bool, error) {
+	previousPlayer := gamestate.CurrentPlayer
 
 	// Unlimited games carry zero on both clocks from creation. Evaluate before
 	// deducting: in a timed game at most one clock can reach zero.
 	unlimited := gamestate.WhiteTimeRemainingMs == 0 && gamestate.BlackTimeRemainingMs == 0
 
-	if err := board.Move(gamestate, body.Move); err != nil {
-		wsWriteError(s, err.Error())
-		return
+	if err := board.Move(gamestate, move); err != nil {
+		return MoveResult{}, "", false, err
 	}
 
 	// Deduct elapsed time from the player who just moved (skip if unlimited).
@@ -397,14 +428,16 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	timedOut := !unlimited && (gamestate.WhiteTimeRemainingMs <= 0 || gamestate.BlackTimeRemainingMs <= 0)
 
 	gameStatus := db.GameStateActive
-	var endReason string
+	var endReason, winner string
 	switch {
 	case isCheckmate:
 		gameStatus = db.GameStateCheckmate
 		endReason = "checkmate"
+		winner = previousPlayer // the mover delivered mate
 	case timedOut:
 		gameStatus = db.GameStateTimeout
 		endReason = "timeout"
+		winner = gamestate.CurrentPlayer // the mover's own flag fell
 	case isStalemate:
 		gameStatus = db.GameStateStalemate
 		endReason = "stalemate"
@@ -418,10 +451,10 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	// Only stamp who ended the game when it actually ended.
 	var endedBy pgtype.UUID
 	if gameOver {
-		endedBy = user.ID
+		endedBy = moverID
 	}
 
-	_, err = server.store.UpdateGameState(s.Request.Context(), db.UpdateGameStateParams{
+	_, err := server.store.UpdateGameState(ctx, db.UpdateGameStateParams{
 		ID:                   gameID,
 		State:                gameStatus,
 		InCheck:              check,
@@ -435,7 +468,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		LastMoveAt:           pgtype.Timestamptz{Time: now, Valid: true},
 	})
 	if err != nil {
-		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
+		slog.Error("ws: applyMoveLocked, failed UpdateGameState", "err", err)
 	}
 
 	// Cancel the current timeout watcher; start a new one for the next player if the game continues.
@@ -448,11 +481,11 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		server.startTimeoutWatcher(gameID, gamestate.TimeoutCh)
 	}
 
-	_, err = server.store.CreateMove(s.Request.Context(), db.CreateMoveParams{
+	_, err = server.store.CreateMove(ctx, db.CreateMoveParams{
 		GameID:       gameID,
-		PlayerID:     user.ID,
+		PlayerID:     moverID, // zero UUID → NULL for engine moves
 		PlayerColor:  db.PlayerColor(previousPlayer),
-		MoveNotation: body.Move,
+		MoveNotation: move,
 		MoveNumber:   gamestate.MoveNumber,
 	})
 	if err != nil {
@@ -460,19 +493,123 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	}
 
 	result := MoveResult{
-		Move:                 body.Move,
+		Move:                 move,
 		CurrentPlayer:        gamestate.CurrentPlayer,
 		InCheck:              check,
 		IsCheckmate:          isCheckmate,
 		IsStalemate:          isStalemate,
 		EndReason:            endReason,
-		EndedByPlayerID:      uidStr(user.ID),
+		EndedByPlayerID:      uidStr(moverID),
 		WhiteTimeRemainingMs: gamestate.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: gamestate.BlackTimeRemainingMs,
 	}
+	return result, winner, gameOver, nil
+}
 
-	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
-	server.wsBroadcastToGame(gameID, out)
+// maybeTriggerEngine computes and plays the Stockfish reply when it is the
+// engine's turn in an engine game. The search runs off the lock; the result
+// is applied only if the position is unchanged when it completes.
+func (server *Server) maybeTriggerEngine(gameID pgtype.UUID, gamestate *pieces.GameState) {
+	gamestate.GameStateMu.RLock()
+	engineGame := gamestate.PlayAgainst == "stockfish"
+	engineTurn := gamestate.UserColor != "" && gamestate.CurrentPlayer != gamestate.UserColor
+	over := wsGameIsOver(gamestate.Status)
+	moves := append([]string(nil), gamestate.StockfishGame...)
+	level := gamestate.StockfishLevel
+	gamestate.GameStateMu.RUnlock()
+
+	if !engineGame || !engineTurn || over {
+		return
+	}
+
+	go func() {
+		best, err := server.engineBestMove(moves, level)
+		if err != nil {
+			slog.Error("ws: engine move failed", "game_id", uidStr(gameID), "err", err)
+			server.wsBroadcastToGame(gameID, mustMarshalEvent(EventError, gin.H{"error": "engine unavailable — try again"}))
+			return
+		}
+		if best == "" {
+			return // engine has no move (already mated/stalemated)
+		}
+
+		gamestate.GameStateMu.Lock()
+		// Re-validate: the game may have ended or the position changed while
+		// the engine was thinking.
+		if wsGameIsOver(gamestate.Status) ||
+			len(gamestate.StockfishGame) != len(moves) ||
+			gamestate.CurrentPlayer == gamestate.UserColor {
+			gamestate.GameStateMu.Unlock()
+			return
+		}
+		result, winner, gameOver, err := server.applyMoveLocked(context.Background(), gameID, gamestate, best, pgtype.UUID{})
+		gamestate.GameStateMu.Unlock()
+		if err != nil {
+			slog.Error("ws: engine move rejected by board", "game_id", uidStr(gameID), "move", best, "err", err)
+			return
+		}
+
+		server.wsBroadcastToGame(gameID, mustMarshalEvent(EventMakeMove, result))
+		if gameOver {
+			server.finishGame(context.Background(), gameID, winner)
+		}
+	}()
+}
+
+// finishGame runs post-game bookkeeping once a game reaches a terminal state:
+// chat messages are transient and deleted, and Elo ratings are updated for
+// rated (person vs person) games. winnerColor "" means a draw.
+func (server *Server) finishGame(ctx context.Context, gameID pgtype.UUID, winnerColor string) {
+	if err := server.store.DeleteChatMessagesByGameID(ctx, gameID); err != nil {
+		slog.Error("finishGame: DeleteChatMessagesByGameID failed", "game_id", uidStr(gameID), "err", err)
+	}
+
+	game, err := server.store.GetGameByID(ctx, gameID)
+	if err != nil {
+		slog.Error("finishGame: GetGameByID failed", "game_id", uidStr(gameID), "err", err)
+		return
+	}
+
+	// Engine games and games without both players are unrated.
+	if game.Opponent != "person" || !game.WhitePlayerID.Valid || !game.BlackPlayerID.Valid {
+		return
+	}
+
+	white, err := server.store.GetUserByID(ctx, game.WhitePlayerID)
+	if err != nil {
+		slog.Error("finishGame: GetUserByID (white) failed", "game_id", uidStr(gameID), "err", err)
+		return
+	}
+	black, err := server.store.GetUserByID(ctx, game.BlackPlayerID)
+	if err != nil {
+		slog.Error("finishGame: GetUserByID (black) failed", "game_id", uidStr(gameID), "err", err)
+		return
+	}
+
+	whiteScore := elo.Draw
+	switch winnerColor {
+	case "w":
+		whiteScore = elo.Win
+	case "b":
+		whiteScore = elo.Loss
+	}
+	newWhite, newBlack := elo.NewRatings(white.Rating, black.Rating, whiteScore)
+
+	if err := server.store.UpdateUserRating(ctx, db.UpdateUserRatingParams{ID: white.ID, Rating: newWhite}); err != nil {
+		slog.Error("finishGame: UpdateUserRating (white) failed", "user_id", uidStr(white.ID), "err", err)
+	}
+	if err := server.store.UpdateUserRating(ctx, db.UpdateUserRatingParams{ID: black.ID, Rating: newBlack}); err != nil {
+		slog.Error("finishGame: UpdateUserRating (black) failed", "user_id", uidStr(black.ID), "err", err)
+	}
+	slog.Info("finishGame: ratings updated",
+		"game_id", uidStr(gameID), "winner", winnerColor,
+		"white", white.Username, "white_rating", newWhite,
+		"black", black.Username, "black_rating", newBlack)
+}
+
+func mustMarshalEvent(eventType string, payload any) []byte {
+	out, _ := json.Marshal(WSEvent{Type: eventType, Payload: wsMarshal(payload)})
+	return out
 }
 
 // wsGameIsOver reports whether the game has reached a terminal state. The
@@ -769,15 +906,35 @@ func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
 	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
 	server.wsBroadcastToGame(gameID, out)
 	slog.Info("handleTimeout: game ended by clock", "game_id", uidStr(gameID), "timed_out_color", timedOutColor)
+
+	winner := "w"
+	if timedOutColor == "w" {
+		winner = "b"
+	}
+	server.finishGame(ctx, gameID, winner)
 }
 
 func restoreGameState(game db.Game) *pieces.GameState {
 	snap := board.DeserializeGameState(game.BoardState)
+
+	// In an engine game the human occupies whichever seat is filled.
+	userColor := ""
+	if game.Opponent == "stockfish" {
+		if game.WhitePlayerID.Valid {
+			userColor = "w"
+		} else {
+			userColor = "b"
+		}
+	}
+
 	return &pieces.GameState{
 		CurrentPlayer:        string(game.CurrentPlayer),
 		Board:                snap.Board,
 		Castle:               snap.Castle,
 		EnPassantTarget:      snap.EnPassantTarget,
+		PlayAgainst:          game.Opponent,
+		UserColor:            userColor,
+		StockfishLevel:       int32(game.StockfishLevel),
 		MoveNumber:           game.MoveCount,
 		Status:               game.State,
 		InCheck:              game.InCheck,

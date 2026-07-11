@@ -159,7 +159,7 @@ func (server *Server) wsOnDisconnect(s *melody.Session) {
 
 	if remaining == 0 {
 		go func(gid pgtype.UUID) {
-			time.Sleep(5 * time.Minute)
+			time.Sleep(30 * time.Minute)
 			server.activeGamesMu.Lock()
 			delete(server.activeGames, gid)
 			server.activeGamesMu.Unlock()
@@ -339,8 +339,17 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	server.activeGamesMu.RUnlock()
 
 	if !ok {
-		wsWriteError(s, "game not found")
-		return
+		// Game evicted from memory — reload from DB transparently.
+		game, err := server.store.GetGameByID(s.Request.Context(), gameID)
+		if err != nil {
+			wsWriteError(s, "game not found")
+			return
+		}
+		restored := restoreGameState(game)
+		server.activeGamesMu.Lock()
+		server.activeGames[gameID] = restored
+		server.activeGamesMu.Unlock()
+		gamestate = restored
 	}
 	var body struct {
 		Move string `json:"move"`
@@ -724,17 +733,19 @@ func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
 }
 
 func restoreGameState(game db.Game) *pieces.GameState {
-	boardState, stockfishHistory := board.DeserializeGameState(game.BoardState)
+	snap := board.DeserializeGameState(game.BoardState)
 	return &pieces.GameState{
 		CurrentPlayer:        string(game.CurrentPlayer),
-		Board:                boardState,
+		Board:                snap.Board,
+		Castle:               snap.Castle,
+		EnPassantTarget:      snap.EnPassantTarget,
 		MoveNumber:           game.MoveCount,
 		Status:               game.State,
 		InCheck:              game.InCheck,
 		WhiteTimeRemainingMs: game.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: game.BlackTimeRemainingMs,
 		LastMoveAt:           game.LastMoveAt.Time,
-		StockfishGame:        stockfishHistory,
+		StockfishGame:        snap.StockfishGame,
 		CapturedPieces:       make(map[string][]pieces.PieceInterface),
 		TimeoutCh:            make(chan struct{}),
 	}

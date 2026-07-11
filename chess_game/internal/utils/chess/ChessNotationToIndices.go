@@ -16,7 +16,7 @@ func ChessNotationToIndices(position string) (int, int,error) {
 	}
 	letter := position[0]
 	num, err := strconv.Atoi(position[1:])
-	if err != nil{
+	if err != nil || num < 1 || num > 8 {
 		return 0,0,ErrInvalidPos
 	}
 	var rowPos, colPos int

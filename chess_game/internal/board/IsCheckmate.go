@@ -57,6 +57,11 @@ func moveLeavesKingInCheck(game *pieces.GameState, from, to string) bool {
 	pieceCopy.AssignPosition(to)
 	boardCopy[toRow][toCol] = pieces.Square{Occupied: true, Piece: pieceCopy}
 
+	// An en-passant capture also removes the pawn that double-pushed.
+	if piece.GetPieceType() == "P" && fromCol != toCol && to == game.EnPassantTarget {
+		boardCopy[fromRow][toCol] = pieces.Square{Occupied: false, Piece: nil}
+	}
+
 	// Locate the current player's king on the copied board.
 	var kingPos string
 	for _, row := range boardCopy {

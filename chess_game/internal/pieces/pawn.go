@@ -1,9 +1,6 @@
 package pieces
 
 import (
-	"fmt"
-	"strconv"
-
 	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
@@ -17,126 +14,45 @@ type Pawn struct {
 func (p *Pawn) GetLegalSquares(g *GameState) []string {
 	var positions []string
 
-	letter := string(p.Position[0])
-	num, _ := strconv.Atoi(p.Position[1:])
-	var added bool
+	row, col, err := chess.ChessNotationToIndices(p.Position)
+	if err != nil {
+		return positions
+	}
 
-	switch num {
-	case 2:
-		added = true
-		pos1 := fmt.Sprintf("%s%d", letter, num+1)
-		rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
-		if isInBounds(rowpos1, colpos1) && !g.Board[rowpos1][colpos1].Occupied {
-			positions = append(positions, pos1)
+	// White pawns move up the board, black pawns move down.
+	dir := 1
+	homeRow := 1
+	if p.Color == "b" {
+		dir = -1
+		homeRow = 6
+	}
 
-			pos2 := fmt.Sprintf("%s%d", letter, num+2)
-			rowpos2, colpos2, _ := chess.ChessNotationToIndices(pos2)
+	// Single push, and double push from the home rank.
+	pushRow := row + dir
+	if isInBounds(pushRow, col) && !g.Board[pushRow][col].Occupied {
+		positions = append(positions, chess.Indices_to_chess_notation(pushRow, col))
 
-			if isInBounds(rowpos2, colpos2) && !g.Board[rowpos2][colpos2].Occupied {
-				positions = append(positions, pos2)
-			}
-		}
-
-		//positions = append(positions, pos1, pos2)
-
-		row, col, _ := chess.ChessNotationToIndices(p.Position)
-		diagRowR := row + 1
-		diagColR := col + 1
-		if isInBounds(diagRowR, diagColR) && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
-			diagRight := chess.Indices_to_chess_notation(diagRowR, diagColR)
-			positions = append(positions, diagRight)
-		}
-
-		diagRowL := row + 1
-		diagColL := col - 1
-		if isInBounds(diagRowL, diagColL) && g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
-			diagRight := chess.Indices_to_chess_notation(diagRowL, diagColL)
-			positions = append(positions, diagRight)
-		}
-
-	case 7:
-		added = true
-		pos1 := fmt.Sprintf("%s%d", letter, num-1)
-		rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
-		if !g.Board[rowpos1][colpos1].Occupied {
-			positions = append(positions, pos1)
-
-			pos2 := fmt.Sprintf("%s%d", letter, num-2)
-			rowpos2, colpos2, _ := chess.ChessNotationToIndices(pos2)
-
-			if !g.Board[rowpos2][colpos2].Occupied {
-				positions = append(positions, pos2)
-			}
-		}
-		//positions = append(positions, pos1, pos2)
-
-		row, col, _ := chess.ChessNotationToIndices(p.Position)
-
-		diagRowR := row - 1
-		diagColR := col - 1
-
-		if isInBounds(diagRowR, diagColR) && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
-			diagRight := chess.Indices_to_chess_notation(diagRowR, diagColR)
-			positions = append(positions, diagRight)
-		}
-
-		diagRowL := row - 1
-		diagColL := col + 1
-
-		if isInBounds(diagRowL, diagColL) && g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
-			diagRight := chess.Indices_to_chess_notation(diagRowL, diagColL)
-			positions = append(positions, diagRight)
+		doubleRow := row + 2*dir
+		if row == homeRow && isInBounds(doubleRow, col) && !g.Board[doubleRow][col].Occupied {
+			positions = append(positions, chess.Indices_to_chess_notation(doubleRow, col))
 		}
 	}
 
-	if !added {
-		switch p.Color {
-		case "w":
-			pos1 := fmt.Sprintf("%s%d", letter, num+1)
-			rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
-			if isInBounds(rowpos1, colpos1) && !g.Board[rowpos1][colpos1].Occupied {
-				positions = append(positions, pos1)
-			}
-			//positions = append(positions, pos1)
-
-			row, col, _ := chess.ChessNotationToIndices(p.Position)
-			diagRowR := row + 1
-			diagColR := col + 1
-			if isInBounds(diagRowR, diagColR) && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
-				diagRight := chess.Indices_to_chess_notation(diagRowR, diagColR)
-				positions = append(positions, diagRight)
-			}
-
-			diagRowL := row + 1
-			diagColL := col - 1
-			if isInBounds(diagRowL, diagColL) && g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
-				diagRight := chess.Indices_to_chess_notation(diagRowL, diagColL)
-				positions = append(positions, diagRight)
-			}
-		case "b":
-			pos1 := fmt.Sprintf("%s%d", letter, num-1)
-			rowpos1, colpos1, _ := chess.ChessNotationToIndices(pos1)
-			if !g.Board[rowpos1][colpos1].Occupied {
-				positions = append(positions, pos1)
-			}
-			//positions = append(positions, pos1)
-
-			row, col, _ := chess.ChessNotationToIndices(p.Position)
-			diagRowR := row - 1
-			diagColR := col - 1
-			if isInBounds(diagRowR, diagColR) && g.Board[diagRowR][diagColR].Occupied && g.Board[diagRowR][diagColR].Piece.GetColor() != p.Color {
-				diagRight := chess.Indices_to_chess_notation(diagRowR, diagColR)
-				positions = append(positions, diagRight)
-			}
-
-			diagRowL := row - 1
-			diagColL := col + 1
-			if isInBounds(diagRowL, diagColL) && g.Board[diagRowL][diagColL].Occupied && g.Board[diagRowL][diagColL].Piece.GetColor() != p.Color {
-				diagRight := chess.Indices_to_chess_notation(diagRowL, diagColL)
-				positions = append(positions, diagRight)
-			}
+	// Diagonal captures, including en passant onto the empty target square.
+	for _, dc := range []int{-1, 1} {
+		capRow, capCol := row+dir, col+dc
+		if !isInBounds(capRow, capCol) {
+			continue
+		}
+		target := chess.Indices_to_chess_notation(capRow, capCol)
+		square := g.Board[capRow][capCol]
+		if square.Occupied && square.Piece.GetColor() != p.Color {
+			positions = append(positions, target)
+		} else if !square.Occupied && g.EnPassantTarget != "" && target == g.EnPassantTarget {
+			positions = append(positions, target)
 		}
 	}
+
 	return positions
 }
 

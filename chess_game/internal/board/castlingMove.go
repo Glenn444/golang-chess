@@ -2,230 +2,111 @@ package board
 
 import (
 	"errors"
+	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/Glenn444/golang-chess/internal/pieces"
-	"github.com/Glenn444/golang-chess/internal/utils/chess"
 )
 
-
-// O-O Kingside castling
-// O-O-O Queenside castling
+// CastlingMove performs kingside ("O-O", "e1g1", "e8g8") or queenside
+// ("O-O-O", "e1c1", "e8c8") castling for the current player.
 func CastlingMove(gameState *pieces.GameState, move string) error {
-	var (
-    WhiteKingside  = []string{"e1", "f1", "g1"}
-    WhiteQueenside = []string{"e1", "d1", "c1"}
-    BlackKingside  = []string{"e8", "f8", "g8"}
-    BlackQueenside = []string{"e8", "d8", "c8"}
-)
-	var castled bool
-	switch gameState.CurrentPlayer {
-	case "w":
-		//kingside castling
-		switch move {
-		case "O-O", "e1g1":
-			//ensure rules of castling hold
-			//1. King is not in check ✅
-			//2. The King does not pass through a square in check ✅
-			//3. Has the king or rook already moved previously? ✅
-
-			f1 := !gameState.Board[0][5].Occupied
-			g1 := !gameState.Board[0][6].Occupied
-			rookSquareOccupied := gameState.Board[0][7].Occupied && gameState.Board[0][7].Piece.GetPieceType() == "R"
-			kingSquareOccupied := gameState.Board[0][4].Occupied && gameState.Board[0][4].Piece.GetPieceType() == "K"
-			if f1 && g1 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.WhiteKingMoved &&
-				!gameState.Castle.WhiteRookKingsideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,WhiteKingside){
-				kingPos := chess.Indices_to_chess_notation(0, 6)
-				rookPos := chess.Indices_to_chess_notation(0, 5)
-				gameState.Board[0][6] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.King{
-						PieceType: "K",
-						Color:     gameState.CurrentPlayer,
-						Position:  kingPos,
-					},
-				}
-
-				gameState.Board[0][5] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.Rook{
-						PieceType: "R",
-						Color:     gameState.CurrentPlayer,
-						Position:  rookPos,
-					},
-				}
-
-				//clear initial King Position and Rook Position
-				gameState.Board[0][4] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-
-				gameState.Board[0][7] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-				castled = true
-				gameState.StockfishGame = append(gameState.StockfishGame, "e1g1")
-
-			}
-
-			//Queenside castling
-		case "O-O-O", "e1c1":
-
-			b1 := !gameState.Board[0][1].Occupied
-			c1 := !gameState.Board[0][2].Occupied
-			d1 := !gameState.Board[0][3].Occupied
-			rookSquareOccupied := gameState.Board[0][0].Occupied && gameState.Board[0][0].Piece.GetPieceType() == "R"
-			kingSquareOccupied := gameState.Board[0][4].Occupied && gameState.Board[0][4].Piece.GetPieceType() == "K"
-			if b1 && c1 && d1 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.WhiteKingMoved &&
-				!gameState.Castle.WhiteRookQueensideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,WhiteQueenside) {
-				kingPos := chess.Indices_to_chess_notation(0, 2)
-				rookPos := chess.Indices_to_chess_notation(0, 1)
-
-				gameState.Board[0][2] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.King{
-						PieceType: "K",
-						Color:     gameState.CurrentPlayer,
-						Position:  kingPos,
-					},
-				}
-
-				gameState.Board[0][1] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.Rook{
-						PieceType: "R",
-						Color:     gameState.CurrentPlayer,
-						Position:  rookPos,
-					},
-				}
-
-				//clear initial King Position and Rook Position
-				gameState.Board[0][4] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-
-				gameState.Board[0][0] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-				castled = true
-				gameState.StockfishGame = append(gameState.StockfishGame, "e1c1")
-			}
-
-		}
-
-	case "b":
-		//kingside castling
-		switch move {
-		case "O-O", "e8g8":
-			//ensure rules of castling hold
-
-			f8 := !gameState.Board[7][5].Occupied
-			g8 := !gameState.Board[7][6].Occupied
-			rookSquareOccupied := gameState.Board[7][7].Occupied && gameState.Board[7][7].Piece.GetPieceType() == "R"
-			kingSquareOccupied := gameState.Board[7][4].Occupied && gameState.Board[7][4].Piece.GetPieceType() == "K"
-			if f8 && g8 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.BlackKingMoved &&
-				!gameState.Castle.BlackRookKingsideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,BlackKingside){
-				kingPos := chess.Indices_to_chess_notation(7, 6)
-				rookPos := chess.Indices_to_chess_notation(7, 5)
-				gameState.Board[7][6] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.King{
-						PieceType: "K",
-						Color:     gameState.CurrentPlayer,
-						Position:  kingPos,
-					},
-				}
-
-				gameState.Board[7][5] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.Rook{
-						PieceType: "R",
-						Color:     gameState.CurrentPlayer,
-						Position:  rookPos,
-					},
-				}
-
-				//clear initial King Position and Rook Position
-				gameState.Board[7][4] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-
-				gameState.Board[7][7] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-				castled = true
-				gameState.StockfishGame = append(gameState.StockfishGame, "e8g8")
-
-			}
-
-			//Queenside castling
-		case "O-O-O", "e8c8":
-
-			b8 := !gameState.Board[7][1].Occupied
-			c8 := !gameState.Board[7][2].Occupied
-			d8 := !gameState.Board[7][3].Occupied
-			rookSquareOccupied := gameState.Board[7][0].Occupied && gameState.Board[7][0].Piece.GetPieceType() == "R"
-			kingSquareOccupied := gameState.Board[7][4].Occupied && gameState.Board[7][4].Piece.GetPieceType() == "K"
-			if b8 && c8 && d8 && rookSquareOccupied && kingSquareOccupied && !gameState.Castle.BlackKingMoved &&
-				!gameState.Castle.BlackRookQueensideMoved && !IsKinginCheck(gameState) && !CastlingSquareisAttacked(gameState,BlackQueenside) {
-				kingPos := chess.Indices_to_chess_notation(7, 2)
-				rookPos := chess.Indices_to_chess_notation(7, 1)
-				gameState.Board[7][1] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.King{
-						PieceType: "K",
-						Color:     gameState.CurrentPlayer,
-						Position:  kingPos,
-					},
-				}
-
-				gameState.Board[7][2] = pieces.Square{
-					Occupied: true,
-					Piece: &pieces.Rook{
-						PieceType: "R",
-						Color:     gameState.CurrentPlayer,
-						Position:  rookPos,
-					},
-				}
-
-				//clear initial King Position and Rook Position
-				gameState.Board[7][4] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-
-				gameState.Board[7][0] = pieces.Square{
-					Occupied: false,
-					Piece:    nil,
-				}
-				castled = true
-				gameState.StockfishGame = append(gameState.StockfishGame, "e8c8")
-			}
-		}
+	row := 0
+	if gameState.CurrentPlayer == "b" {
+		row = 7
 	}
-	if !castled {
+
+	var kingside bool
+	switch move {
+	case "O-O", "e1g1", "e8g8":
+		kingside = true
+	case "O-O-O", "e1c1", "e8c8":
+		kingside = false
+	default:
 		return errors.New("invalid castling move")
 	}
-	//change current player after making move
-	if gameState.CurrentPlayer == "w" {
-		gameState.CurrentPlayer = "b"
-	} else {
-		gameState.CurrentPlayer = "w"
+	// A coordinate move must belong to the player on move.
+	if (strings.HasPrefix(move, "e1") && gameState.CurrentPlayer != "w") ||
+		(strings.HasPrefix(move, "e8") && gameState.CurrentPlayer != "b") {
+		return errors.New("invalid castling move")
 	}
 
+	rank := row + 1
+	sq := func(col int) string { return fmt.Sprintf("%c%d", 'a'+col, rank) }
+
+	var rookFromCol, kingToCol, rookToCol int
+	var emptyCols []int
+	var kingPath []string // squares the king stands on or crosses; none may be attacked
+	if kingside {
+		rookFromCol, kingToCol, rookToCol = 7, 6, 5
+		emptyCols = []int{5, 6}
+		kingPath = []string{sq(4), sq(5), sq(6)}
+	} else {
+		rookFromCol, kingToCol, rookToCol = 0, 2, 3
+		emptyCols = []int{1, 2, 3}
+		kingPath = []string{sq(4), sq(3), sq(2)}
+	}
+
+	c := &gameState.Castle
+	var kingMoved, rookMoved *bool
+	if gameState.CurrentPlayer == "w" {
+		kingMoved = &c.WhiteKingMoved
+		if kingside {
+			rookMoved = &c.WhiteRookKingsideMoved
+		} else {
+			rookMoved = &c.WhiteRookQueensideMoved
+		}
+	} else {
+		kingMoved = &c.BlackKingMoved
+		if kingside {
+			rookMoved = &c.BlackRookKingsideMoved
+		} else {
+			rookMoved = &c.BlackRookQueensideMoved
+		}
+	}
+
+	if *kingMoved || *rookMoved {
+		return errors.New("castling not allowed: king or rook has already moved")
+	}
+	kingSq := gameState.Board[row][4]
+	rookSq := gameState.Board[row][rookFromCol]
+	if !kingSq.Occupied || kingSq.Piece.GetPieceType() != "K" || kingSq.Piece.GetColor() != gameState.CurrentPlayer ||
+		!rookSq.Occupied || rookSq.Piece.GetPieceType() != "R" || rookSq.Piece.GetColor() != gameState.CurrentPlayer {
+		return errors.New("castling not allowed: king or rook not on its starting square")
+	}
+	for _, col := range emptyCols {
+		if gameState.Board[row][col].Occupied {
+			return errors.New("castling not allowed: squares between king and rook are occupied")
+		}
+	}
+	if CastlingSquareisAttacked(gameState, kingPath) {
+		return errors.New("castling not allowed: king is in check or would pass through an attacked square")
+	}
+
+	king := kingSq.Piece
+	rook := rookSq.Piece
+	king.AssignPosition(sq(kingToCol))
+	rook.AssignPosition(sq(rookToCol))
+	gameState.Board[row][4] = pieces.Square{}
+	gameState.Board[row][rookFromCol] = pieces.Square{}
+	gameState.Board[row][kingToCol] = pieces.Square{Occupied: true, Piece: king}
+	gameState.Board[row][rookToCol] = pieces.Square{Occupied: true, Piece: rook}
+
+	*kingMoved = true
+	*rookMoved = true
+	gameState.EnPassantTarget = ""
+	gameState.StockfishGame = append(gameState.StockfishGame, sq(4)+sq(kingToCol))
+
+	switchPlayer(gameState)
 	return nil
 }
 
+// CastlingSquareisAttacked reports whether an opponent piece attacks any of
+// the given squares.
 func CastlingSquareisAttacked(game *pieces.GameState, castlingSquares []string) bool {
 	for _, squares := range game.Board {
 		for _, square := range squares {
-
 			if square.Occupied && square.Piece.GetColor() != game.CurrentPlayer {
 				legalSquares := square.Piece.GetLegalSquares(game)
 				for _, castlingSquare := range castlingSquares {
@@ -234,7 +115,6 @@ func CastlingSquareisAttacked(game *pieces.GameState, castlingSquares []string) 
 					}
 				}
 			}
-
 		}
 	}
 	return false

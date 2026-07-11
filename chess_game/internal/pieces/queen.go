@@ -58,7 +58,7 @@ func (q *Queen)Clone()PieceInterface{
 	}
 }
 func (q *Queen) String() string {
-	if q.Color == "white" {
+	if q.Color == "w" {
 		return "[♕]" // or "wQ"
 	}
 	return "[♛]" // or "bQ"

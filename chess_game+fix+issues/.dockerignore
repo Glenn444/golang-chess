@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docs
+docs/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+/server
+*.exe
+*.test
+*.out
+
+# Environment (loaded at runtime)
+.env
+*.env
+!app.env
+
+# Dependencies
+vendor/
+
+# Tests
+*_test.go
+
+# SQL migrations source (not needed at runtime)
+sql/
+
+# Makefile and other dev files
+Makefile
+README.md

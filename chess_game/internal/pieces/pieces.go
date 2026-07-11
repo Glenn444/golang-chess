@@ -31,6 +31,7 @@ type GameState struct {
     PlayAgainst          string
     UserColor            string
     Castle               Castling
+    EnPassantTarget      string
     MoveNumber           int32
     Status               db.GameState
     InCheck              bool

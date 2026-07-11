@@ -38,7 +38,10 @@ func (maker *JWTMaker) CreateToken(username string,tokenType TokenType,duration 
 	
 
 	signedJwtTokenString, err := jwtToken.SignedString([]byte(maker.secretKey))
-	return signedJwtTokenString,nil
+	if err != nil {
+		return "", err
+	}
+	return signedJwtTokenString, nil
 }
 
 	//verifyToken checks if the token is valid or not

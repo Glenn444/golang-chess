@@ -377,22 +377,24 @@ SET
     black_time_remaining_ms = $8,
     ended_by_player_id     = $9,
     end_reason             = $10,
+    last_move_at           = $11,
     updated_at             = NOW()
 WHERE id = $1
 RETURNING id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility
 `
 
 type UpdateGameStateParams struct {
-	ID                   pgtype.UUID `json:"id"`
-	State                GameState   `json:"state"`
-	InCheck              bool        `json:"in_check"`
-	CurrentPlayer        PlayerColor `json:"current_player"`
-	MoveCount            int32       `json:"move_count"`
-	BoardState           string      `json:"board_state"`
-	WhiteTimeRemainingMs int64       `json:"white_time_remaining_ms"`
-	BlackTimeRemainingMs int64       `json:"black_time_remaining_ms"`
-	EndedByPlayerID      pgtype.UUID `json:"ended_by_player_id"`
-	EndReason            string      `json:"end_reason"`
+	ID                   pgtype.UUID        `json:"id"`
+	State                GameState          `json:"state"`
+	InCheck              bool               `json:"in_check"`
+	CurrentPlayer        PlayerColor        `json:"current_player"`
+	MoveCount            int32              `json:"move_count"`
+	BoardState           string             `json:"board_state"`
+	WhiteTimeRemainingMs int64              `json:"white_time_remaining_ms"`
+	BlackTimeRemainingMs int64              `json:"black_time_remaining_ms"`
+	EndedByPlayerID      pgtype.UUID        `json:"ended_by_player_id"`
+	EndReason            string             `json:"end_reason"`
+	LastMoveAt           pgtype.Timestamptz `json:"last_move_at"`
 }
 
 func (q *Queries) UpdateGameState(ctx context.Context, arg UpdateGameStateParams) (Game, error) {
@@ -407,6 +409,7 @@ func (q *Queries) UpdateGameState(ctx context.Context, arg UpdateGameStateParams
 		arg.BlackTimeRemainingMs,
 		arg.EndedByPlayerID,
 		arg.EndReason,
+		arg.LastMoveAt,
 	)
 	var i Game
 	err := row.Scan(

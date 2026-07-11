@@ -52,13 +52,13 @@ type Querier interface {
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	// Returns the most-recent, unexpired, unused code that still has attempts left.
 	// The app layer must hash the user-supplied digit string before comparing code_hash.
-	GetValidOTP(ctx context.Context, userID pgtype.UUID) (EmailOtp, error)
+	GetValidOTP(ctx context.Context, arg GetValidOTPParams) (EmailOtp, error)
 	GetVoiceSessionByID(ctx context.Context, id pgtype.UUID) (VoiceSession, error)
 	GetVoiceSessionsByGameID(ctx context.Context, gameID pgtype.UUID) ([]VoiceSession, error)
 	// Call this on every failed verification attempt.
 	IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) (EmailOtp, error)
 	// Burn all live codes for a user before issuing a new one.
-	InvalidateUserOTPs(ctx context.Context, userID pgtype.UUID) error
+	InvalidateUserOTPs(ctx context.Context, arg InvalidateUserOTPsParams) error
 	JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams) (Game, error)
 	JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams) (Game, error)
 	ListPublicGames(ctx context.Context) ([]Game, error)

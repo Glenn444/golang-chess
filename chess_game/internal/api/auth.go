@@ -21,6 +21,18 @@ import (
 // loginUser
 // refreshToken
 
+const (
+	// A confirm-email code must never be usable to reset a password (and vice
+	// versa) — every OTP is scoped to one purpose.
+	otpPurposeConfirmEmail  = "confirm_email"
+	otpPurposePasswordReset = "password_reset"
+
+	// otpLifetime matches the "expires in 15 minutes" wording in the emails.
+	otpLifetime = 15 * time.Minute
+	// A user may request a fresh code this long after the previous one.
+	otpResendCooldown = time.Minute
+)
+
 type CreateUserRequest struct {
 	Username string `json:"username" binding:"required,min=3,max=30,username"`
 	Email    string `json:"email" binding:"required,email"`
@@ -110,7 +122,8 @@ func (server *Server) createUser(ctx *gin.Context) {
 	argEmailOtp := db.CreateEmailOTPParams{
 		UserID:    user.ID,
 		CodeHash:  otpHash,
-		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(server.config.AcessTokenDuration), Valid: true},
+		ExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(otpLifetime), Valid: true},
+		Purpose:   otpPurposeConfirmEmail,
 	}
 	//verify email
 	_, err = server.store.CreateEmailOTP(ctx, argEmailOtp)
@@ -189,7 +202,10 @@ func (server *Server) confirmEmail(ctx *gin.Context) {
 	}
 
 	//2. Get valid OTP Code from db
-	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
+	emailOTP, err := server.store.GetValidOTP(ctx, db.GetValidOTPParams{
+		UserID:  user.ID,
+		Purpose: otpPurposeConfirmEmail,
+	})
 	if handleDBError(ctx, err,
 		WithNotFoundMsg(ErrOTPNotFound),
 		WithLogArgs("confirmEmail: failed GetValidOTP", "user_id", user.ID),
@@ -289,25 +305,34 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 	}
 
 	//get a valid OTP if exists then the user cannot generate new OTP
-	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
+	emailOTP, err := server.store.GetValidOTP(ctx, db.GetValidOTPParams{
+		UserID:  user.ID,
+		Purpose: otpPurposeConfirmEmail,
+	})
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		if handleDBError(ctx, err, WithLogArgs("sendEmailOTP: failed GetValidOTP", "user_id", user.ID)) {
 			return
 		}
 	}
 
-	// valid OTP exists — enforce cooldown
-	if err == nil && emailOTP.ExpiresAt.Time.After(time.Now()) {
-		// This is expected behaviour, not an error — use Warn
-		slog.Warn("sendEmailOTP: cooldown active",
-			"user_id", user.ID,
-			"expires_at", emailOTP.ExpiresAt.Time,
-		)
-		remaining := time.Until(emailOTP.ExpiresAt.Time).Round(time.Second)
-		ctx.JSON(http.StatusTooManyRequests, errorMessage(
-			fmt.Sprintf("please wait %s before requesting a new OTP", remaining),
-		))
-		return
+	// A live code exists — enforce a short resend cooldown, then burn it so
+	// only one code is ever valid at a time.
+	if err == nil {
+		if cooldownEnds := emailOTP.CreatedAt.Time.Add(otpResendCooldown); time.Now().Before(cooldownEnds) {
+			remaining := time.Until(cooldownEnds).Round(time.Second)
+			ctx.JSON(http.StatusTooManyRequests, errorMessage(
+				fmt.Sprintf("please wait %s before requesting a new OTP", remaining),
+			))
+			return
+		}
+		if err := server.store.InvalidateUserOTPs(ctx, db.InvalidateUserOTPsParams{
+			UserID:  user.ID,
+			Purpose: otpPurposeConfirmEmail,
+		}); err != nil {
+			slog.Error("sendEmailOTP: failed InvalidateUserOTPs", "err", err, "user_id", user.ID)
+			ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+			return
+		}
 	}
 	//3. generate otp
 	otpCode, err := auth.GenerateOTP(6)
@@ -331,9 +356,10 @@ func (server *Server) sendEmailOTP(ctx *gin.Context) {
 		UserID:   user.ID,
 		CodeHash: hashedOTP,
 		ExpiresAt: pgtype.Timestamptz{
-			Time:  time.Now().Add(server.config.AcessTokenDuration),
+			Time:  time.Now().Add(otpLifetime),
 			Valid: true,
 		},
+		Purpose: otpPurposeConfirmEmail,
 	})
 	if handleDBError(ctx, err, WithLogArgs("sendEmailOT: failed CreateEmailOTP", "user_id", user.ID)) {
 		return
@@ -378,22 +404,46 @@ func (server *Server) forgotPassword(ctx *gin.Context) {
 	}
 	req.Email = strings.ToLower(req.Email)
 
+	// Don't reveal whether an email is registered: unknown addresses get the
+	// same success response as known ones.
+	genericResp := SendEmailOTPResp{
+		Message: "if that email is registered, a password reset code has been sent",
+		Email:   req.Email,
+	}
+
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
-	if handleDBError(ctx, err,
-		WithNotFoundMsg(ErrUserNotFound),
-		WithLogArgs("forgotPassword: GetUserByEmail", "email", req.Email)) {
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			ctx.JSON(http.StatusOK, genericResp)
+			return
+		}
+		handleDBError(ctx, err, WithLogArgs("forgotPassword: GetUserByEmail", "email", req.Email))
 		return
 	}
 
-	// Rate-limit: check for an existing valid OTP.
-	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
+	// Rate-limit: a fresh code can be requested after the cooldown; the old
+	// one is burnt so only one live code exists per purpose.
+	emailOTP, err := server.store.GetValidOTP(ctx, db.GetValidOTPParams{
+		UserID:  user.ID,
+		Purpose: otpPurposePasswordReset,
+	})
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		handleDBError(ctx, err, WithLogArgs("forgotPassword: GetValidOTP", "user_id", user.ID))
 		return
 	}
-	if err == nil && emailOTP.ExpiresAt.Time.After(time.Now()) {
-		ctx.JSON(http.StatusTooManyRequests, errorMessage("a reset code was already sent — check your email or wait before requesting another"))
-		return
+	if err == nil {
+		if cooldownEnds := emailOTP.CreatedAt.Time.Add(otpResendCooldown); time.Now().Before(cooldownEnds) {
+			ctx.JSON(http.StatusTooManyRequests, errorMessage("a reset code was already sent — check your email or wait before requesting another"))
+			return
+		}
+		if err := server.store.InvalidateUserOTPs(ctx, db.InvalidateUserOTPsParams{
+			UserID:  user.ID,
+			Purpose: otpPurposePasswordReset,
+		}); err != nil {
+			slog.Error("forgotPassword: InvalidateUserOTPs", "err", err, "user_id", user.ID)
+			ctx.JSON(http.StatusInternalServerError, errorMessage(ErrInternalServer))
+			return
+		}
 	}
 
 	otpCode, err := auth.GenerateOTP(6)
@@ -414,9 +464,10 @@ func (server *Server) forgotPassword(ctx *gin.Context) {
 		UserID:   user.ID,
 		CodeHash: otpHash,
 		ExpiresAt: pgtype.Timestamptz{
-			Time:  time.Now().Add(server.config.AcessTokenDuration),
+			Time:  time.Now().Add(otpLifetime),
 			Valid: true,
 		},
+		Purpose: otpPurposePasswordReset,
 	})
 	if handleDBError(ctx, err, WithLogArgs("forgotPassword: CreateEmailOTP", "user_id", user.ID)) {
 		return
@@ -429,10 +480,7 @@ func (server *Server) forgotPassword(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, SendEmailOTPResp{
-		Message: "password reset code sent to your email",
-		Email:   user.Email,
-	})
+	ctx.JSON(http.StatusOK, genericResp)
 }
 
 type ResetPasswordRequest struct {
@@ -462,13 +510,20 @@ func (server *Server) resetPassword(ctx *gin.Context) {
 	req.Email = strings.ToLower(req.Email)
 
 	user, err := server.store.GetUserByEmail(ctx, req.Email)
-	if handleDBError(ctx, err,
-		WithNotFoundMsg(ErrUserNotFound),
-		WithLogArgs("resetPassword: GetUserByEmail", "email", req.Email)) {
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// Same response as a wrong code — don't reveal whether the email exists.
+			ctx.JSON(http.StatusForbidden, errorMessage(ErrOTPInvalid))
+			return
+		}
+		handleDBError(ctx, err, WithLogArgs("resetPassword: GetUserByEmail", "email", req.Email))
 		return
 	}
 
-	emailOTP, err := server.store.GetValidOTP(ctx, user.ID)
+	emailOTP, err := server.store.GetValidOTP(ctx, db.GetValidOTPParams{
+		UserID:  user.ID,
+		Purpose: otpPurposePasswordReset,
+	})
 	if handleDBError(ctx, err,
 		WithNotFoundMsg(ErrOTPNotFound),
 		WithLogArgs("resetPassword: GetValidOTP", "user_id", user.ID)) {
@@ -503,9 +558,15 @@ func (server *Server) resetPassword(ctx *gin.Context) {
 		return
 	}
 
-	// Mark OTP as used and revoke all existing sessions (security).
-	_, _ = server.store.MarkOTPUsed(ctx, emailOTP.ID)
-	_ = server.store.RevokeAllUserSessions(ctx, user.ID)
+	// Mark OTP as used and revoke all existing sessions (security). The
+	// password is already changed, so respond 200 either way — but a failure
+	// here means a replayable code or live sessions, so log it loudly.
+	if _, err := server.store.MarkOTPUsed(ctx, emailOTP.ID); err != nil {
+		slog.Error("resetPassword: MarkOTPUsed failed — reset code is still replayable", "err", err, "user_id", user.ID)
+	}
+	if err := server.store.RevokeAllUserSessions(ctx, user.ID); err != nil {
+		slog.Error("resetPassword: RevokeAllUserSessions failed — old sessions remain active", "err", err, "user_id", user.ID)
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "password reset successfully — please sign in again"})
 }
@@ -629,6 +690,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	maxAgeRefresh := int(week.Seconds())
 	domain, secure := server.cookieConfig()
 
+	ctx.SetSameSite(http.SameSiteLaxMode)
 	ctx.SetCookie("access_token", access_token, maxAgeAccess, "/", domain, secure, true)
 	ctx.SetCookie("refresh_token", savedSession.RefreshToken, maxAgeRefresh, "/", domain, secure, true)
 
@@ -652,8 +714,6 @@ func (server *Server) loginUser(ctx *gin.Context) {
 // @Success      200  {object}  map[string]string
 // @Router       /users/logout [post]
 func (server *Server) logoutUser(ctx *gin.Context) {
-	domain, secure := server.cookieConfig()
-
 	// Try to revoke the session if we can read the refresh token.
 	if refreshToken, err := ctx.Cookie("refresh_token"); err == nil && refreshToken != "" {
 		if err := server.store.RevokeSession(ctx, refreshToken); err != nil {
@@ -661,13 +721,17 @@ func (server *Server) logoutUser(ctx *gin.Context) {
 		}
 	}
 
-	// Clear cookies on both old and new domain.
-	ctx.SetCookie("access_token", "", -1, "/", domain, secure, true)
-	ctx.SetCookie("refresh_token", "", -1, "/", domain, secure, true)
-	ctx.SetCookie("access_token", "", -1, "/", "api.chesske.com", true, true)
-	ctx.SetCookie("refresh_token", "", -1, "/", "api.chesske.com", true, true)
+	server.clearAuthCookies(ctx)
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "logged out"})
+}
+
+// clearAuthCookies expires both auth cookies on the configured domain.
+func (server *Server) clearAuthCookies(ctx *gin.Context) {
+	domain, secure := server.cookieConfig()
+	ctx.SetSameSite(http.SameSiteLaxMode)
+	ctx.SetCookie("access_token", "", -1, "/", domain, secure, true)
+	ctx.SetCookie("refresh_token", "", -1, "/", domain, secure, true)
 }
 
 // RefreshTokenRequest accepts the token via cookie or JSON body.
@@ -701,19 +765,7 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 		}
 		refreshToken = req.RefreshToken
 	}
-	// TEMP DEBUG
-	slog.Info("refreshToken: debug",
-		"cookie_err", err,
-		"cookie_empty", refreshToken == "",
-		"cookie_prefix", func() string {
-			if len(refreshToken) > 20 {
-				return refreshToken[:20]
-			}
-			return refreshToken
-		}(),
-		"domain", server.config.PUBLIC_HOST,
-		"environment", server.config.Environment,
-	)
+
 	//verify the refresh token and get the payload
 	payload, err := server.tokenMaker.VerifyToken(refreshToken, token.RefreshTokenType)
 	if err != nil {
@@ -723,20 +775,13 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 
 	// check session in DB — this is what JWT alone can't do
 	session, err := server.store.GetSessionByRefreshToken(ctx, refreshToken)
-	slog.Info("refreshToken: session lookup",
-		"err", err,
-		"found", err == nil,
-		"token_prefix", refreshToken[:20],
-	)
-	slog.Info("refreshToken: full token check",
-    "cookie_len", len(refreshToken),
-    "cookie_suffix", refreshToken[len(refreshToken)-10:],
-)
-	if handleDBError(ctx, err, WithNotFoundMsg(ErrSessionNotFound)) {
-		ctx.SetCookie("refresh_token", "", -1, "/", "api.chesske.com", true, true)
-		ctx.SetCookie("refresh_token", "", -1, "/", ".chesske.com", true, true)
-		ctx.SetCookie("access_token", "", -1, "/", "api.chesske.com", true, true)
-		ctx.SetCookie("access_token", "", -1, "/", ".chesske.com", true, true)
+	if err != nil {
+		// Clear the stale cookies BEFORE the error body is written — headers
+		// can't be added once the response has been flushed.
+		server.clearAuthCookies(ctx)
+		handleDBError(ctx, err,
+			WithNotFoundMsg(ErrSessionNotFound),
+			WithLogArgs("refreshToken: GetSessionByRefreshToken"))
 		return
 	}
 
@@ -763,6 +808,7 @@ func (server *Server) refreshToken(ctx *gin.Context) {
 	// Set new access token cookie.
 	maxAge := int(server.config.AcessTokenDuration.Seconds())
 	domain, secure := server.cookieConfig()
+	ctx.SetSameSite(http.SameSiteLaxMode)
 	ctx.SetCookie("access_token", accessToken, maxAge, "/", domain, secure, true)
 
 	resp := RefreshTokenResponse{

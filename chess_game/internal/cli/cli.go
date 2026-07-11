@@ -16,18 +16,30 @@ func Cli(g *pieces.GameState) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	cliApp := NewCLI(g)
+
+	// One engine for the whole game — spawning per move leaks a Stockfish
+	// process each turn.
+	var sf *stockfish.Stockfish
+	if g.PlayAgainst == "stockfish" {
+		var err error
+		sf, err = stockfish.NewStockfish()
+		if err != nil {
+			log.Fatalf("stockfish failed to start: %v", err)
+		}
+		if sf == nil {
+			fmt.Println("stockfish engine not configured (STOCKFISH_ENGINE_PATH not set)")
+			return
+		}
+		defer sf.Close()
+	}
+
 	for {
 		if g.UserColor != g.CurrentPlayer && g.PlayAgainst == "stockfish" {
 			fmt.Printf("stockfish to play\n")
-			sf, err := stockfish.NewStockfish()
+			stockfishMove, err := sf.GetBestMove(g.StockfishGame)
 			if err != nil {
-				log.Fatalf("stockfish failed to start: %v", err)
+				log.Fatalf("stockfish: %v", err)
 			}
-			if sf == nil {
-				fmt.Println("stockfish engine not configured (STOCKFISH_ENGINE_PATH not set)")
-				return
-			}
-			stockfishMove := sf.GetBestMove(g.StockfishGame)
 			if stockfishMove == "" {
 				fmt.Println("stockfish returned no move")
 				return

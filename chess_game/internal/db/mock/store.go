@@ -498,6 +498,36 @@ func (mr *MockStoreMockRecorder) GetMovesByGameID(ctx, gameID any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMovesByGameID", reflect.TypeOf((*MockStore)(nil).GetMovesByGameID), ctx, gameID)
 }
 
+// GetPushSubscriptionByUser mocks base method.
+func (m *MockStore) GetPushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) (db.GetPushSubscriptionByUserRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPushSubscriptionByUser", ctx, userID)
+	ret0, _ := ret[0].(db.GetPushSubscriptionByUserRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPushSubscriptionByUser indicates an expected call of GetPushSubscriptionByUser.
+func (mr *MockStoreMockRecorder) GetPushSubscriptionByUser(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPushSubscriptionByUser", reflect.TypeOf((*MockStore)(nil).GetPushSubscriptionByUser), ctx, userID)
+}
+
+// GetPushSubscriptionExists mocks base method.
+func (m *MockStore) GetPushSubscriptionExists(ctx context.Context, userID pgtype.UUID) (pgtype.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPushSubscriptionExists", ctx, userID)
+	ret0, _ := ret[0].(pgtype.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPushSubscriptionExists indicates an expected call of GetPushSubscriptionExists.
+func (mr *MockStoreMockRecorder) GetPushSubscriptionExists(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPushSubscriptionExists", reflect.TypeOf((*MockStore)(nil).GetPushSubscriptionExists), ctx, userID)
+}
+
 // GetSessionByRefreshToken mocks base method.
 func (m *MockStore) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (db.Session, error) {
 	m.ctrl.T.Helper()
@@ -559,18 +589,18 @@ func (mr *MockStoreMockRecorder) GetUserByUsername(ctx, username any) *gomock.Ca
 }
 
 // GetValidOTP mocks base method.
-func (m *MockStore) GetValidOTP(ctx context.Context, userID pgtype.UUID) (db.EmailOtp, error) {
+func (m *MockStore) GetValidOTP(ctx context.Context, arg db.GetValidOTPParams) (db.EmailOtp, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetValidOTP", ctx, userID)
+	ret := m.ctrl.Call(m, "GetValidOTP", ctx, arg)
 	ret0, _ := ret[0].(db.EmailOtp)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetValidOTP indicates an expected call of GetValidOTP.
-func (mr *MockStoreMockRecorder) GetValidOTP(ctx, userID any) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetValidOTP(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidOTP", reflect.TypeOf((*MockStore)(nil).GetValidOTP), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidOTP", reflect.TypeOf((*MockStore)(nil).GetValidOTP), ctx, arg)
 }
 
 // GetVoiceSessionByID mocks base method.
@@ -603,36 +633,6 @@ func (mr *MockStoreMockRecorder) GetVoiceSessionsByGameID(ctx, gameID any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVoiceSessionsByGameID", reflect.TypeOf((*MockStore)(nil).GetVoiceSessionsByGameID), ctx, gameID)
 }
 
-// GetPushSubscriptionByUser mocks base method.
-func (m *MockStore) GetPushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) (db.GetPushSubscriptionByUserRow, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPushSubscriptionByUser", ctx, userID)
-	ret0, _ := ret[0].(db.GetPushSubscriptionByUserRow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPushSubscriptionByUser indicates an expected call of GetPushSubscriptionByUser.
-func (mr *MockStoreMockRecorder) GetPushSubscriptionByUser(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPushSubscriptionByUser", reflect.TypeOf((*MockStore)(nil).GetPushSubscriptionByUser), ctx, userID)
-}
-
-// GetPushSubscriptionExists mocks base method.
-func (m *MockStore) GetPushSubscriptionExists(ctx context.Context, userID pgtype.UUID) (pgtype.UUID, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPushSubscriptionExists", ctx, userID)
-	ret0, _ := ret[0].(pgtype.UUID)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPushSubscriptionExists indicates an expected call of GetPushSubscriptionExists.
-func (mr *MockStoreMockRecorder) GetPushSubscriptionExists(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPushSubscriptionExists", reflect.TypeOf((*MockStore)(nil).GetPushSubscriptionExists), ctx, userID)
-}
-
 // IncrementOTPAttempts mocks base method.
 func (m *MockStore) IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) (db.EmailOtp, error) {
 	m.ctrl.T.Helper()
@@ -649,17 +649,17 @@ func (mr *MockStoreMockRecorder) IncrementOTPAttempts(ctx, id any) *gomock.Call 
 }
 
 // InvalidateUserOTPs mocks base method.
-func (m *MockStore) InvalidateUserOTPs(ctx context.Context, userID pgtype.UUID) error {
+func (m *MockStore) InvalidateUserOTPs(ctx context.Context, arg db.InvalidateUserOTPsParams) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InvalidateUserOTPs", ctx, userID)
+	ret := m.ctrl.Call(m, "InvalidateUserOTPs", ctx, arg)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // InvalidateUserOTPs indicates an expected call of InvalidateUserOTPs.
-func (mr *MockStoreMockRecorder) InvalidateUserOTPs(ctx, userID any) *gomock.Call {
+func (mr *MockStoreMockRecorder) InvalidateUserOTPs(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidateUserOTPs", reflect.TypeOf((*MockStore)(nil).InvalidateUserOTPs), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidateUserOTPs", reflect.TypeOf((*MockStore)(nil).InvalidateUserOTPs), ctx, arg)
 }
 
 // JoinGameAsBlack mocks base method.

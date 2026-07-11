@@ -178,7 +178,7 @@ func TestConfirmEmail(t *testing.T) {
 		}
 
 		store.EXPECT().GetUserByEmail(gomock.Any(), user.Email).Return(user, nil)
-		store.EXPECT().GetValidOTP(gomock.Any(), user.ID).Return(emailOTP, nil)
+		store.EXPECT().GetValidOTP(gomock.Any(), db.GetValidOTPParams{UserID: user.ID, Purpose: otpPurposeConfirmEmail}).Return(emailOTP, nil)
 		store.EXPECT().MarkOTPUsed(gomock.Any(), emailOTP.ID).Return(db.EmailOtp{}, nil)
 		store.EXPECT().ConfirmEmail(gomock.Any(), user.ID).Return(db.User{}, nil)
 
@@ -250,7 +250,7 @@ func TestConfirmEmail(t *testing.T) {
 		}
 
 		store.EXPECT().GetUserByEmail(gomock.Any(), user.Email).Return(user, nil)
-		store.EXPECT().GetValidOTP(gomock.Any(), user.ID).Return(emailOTP, nil)
+		store.EXPECT().GetValidOTP(gomock.Any(), db.GetValidOTPParams{UserID: user.ID, Purpose: otpPurposeConfirmEmail}).Return(emailOTP, nil)
 		store.EXPECT().IncrementOTPAttempts(gomock.Any(), emailOTP.ID).Return(db.EmailOtp{}, nil)
 
 		ctx, rec := authCtx(http.MethodPost, "/users/confirm-email", ConfirmEmail{

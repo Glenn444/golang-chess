@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"regexp"
 	"sync"
@@ -245,9 +246,15 @@ func (server *Server) welcome(ctx *gin.Context) {
 // cookieConfig returns the domain and secure flag for SetCookie calls.
 // In development (localhost) we use empty domain + Secure=false so cookies
 // work over plain HTTP. In production we use the real domain + Secure=true.
+// A port in PUBLIC_HOST would make the Domain attribute invalid (browsers
+// reject the cookie), so it is stripped.
 func (server *Server) cookieConfig() (domain string, secure bool) {
 	if server.config.Environment == "production" {
-		return server.config.PUBLIC_HOST, true
+		host := server.config.PUBLIC_HOST
+		if h, _, err := net.SplitHostPort(host); err == nil {
+			host = h
+		}
+		return host, true
 	}
 	return "", false
 }

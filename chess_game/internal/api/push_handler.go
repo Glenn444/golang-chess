@@ -90,12 +90,8 @@ func (server *Server) getPushSubscription(ctx *gin.Context) {
 // notifyOpponent sends a push notification to the player who was waiting
 // (the player in the game who is NOT joiningUserID), but only if that player
 // is not currently connected via WebSocket.
-func (server *Server) notifyOpponent(ctx *gin.Context, gameID pgtype.UUID, joiningUserID pgtype.UUID, joiningUsername string) {
-	game, err := server.store.GetGameByID(ctx, gameID)
-	if err != nil {
-		slog.Warn("push: notifyOpponent — GetGameByID failed", "game_id", uidStr(gameID), "err", err)
-		return
-	}
+func (server *Server) notifyOpponent(ctx *gin.Context, game db.Game, joiningUserID pgtype.UUID, joiningUsername string) {
+	gameID := game.ID
 
 	// Determine the waiting player.
 	var opponentID pgtype.UUID

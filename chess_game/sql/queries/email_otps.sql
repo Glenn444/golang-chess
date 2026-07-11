@@ -1,6 +1,6 @@
 -- name: CreateEmailOTP :one
-INSERT INTO email_otps (user_id, code_hash, expires_at)
-VALUES ($1, $2, $3)
+INSERT INTO email_otps (user_id, code_hash, expires_at, purpose)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetValidOTP :one
@@ -8,6 +8,7 @@ RETURNING *;
 -- The app layer must hash the user-supplied digit string before comparing code_hash.
 SELECT * FROM email_otps
 WHERE user_id  = $1
+  AND purpose  = $2
   AND expires_at > NOW()
   AND used_at  IS NULL
   AND attempts < 5
@@ -34,6 +35,7 @@ RETURNING *;
 UPDATE email_otps
 SET used_at = NOW()
 WHERE user_id = $1
+  AND purpose = $2
   AND used_at IS NULL;
 
 -- name: CountRecentOTPsForUser :one

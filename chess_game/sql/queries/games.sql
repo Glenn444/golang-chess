@@ -67,6 +67,7 @@ SET
     black_time_remaining_ms = $8,
     ended_by_player_id     = $9,
     end_reason             = $10,
+    last_move_at           = $11,
     updated_at             = NOW()
 WHERE id = $1
 RETURNING *;

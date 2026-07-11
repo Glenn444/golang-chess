@@ -26,6 +26,9 @@ const (
 	// WebSocket keepalive
 	pingInterval = 30 * time.Second
 	authTimeout  = 10 * time.Second
+
+	// How long an empty room keeps its game state in memory.
+	gameEvictionDelay = 30 * time.Minute
 )
 
 // WSEvent is the JSON envelope for every WebSocket message.
@@ -105,34 +108,28 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 		u := wsUser(s)
 		gameID := wsGameID(s)
 
-		server.activeGamesMu.Lock()
-		if _, exists := server.activeGames[gameID]; exists {
-			server.activeGamesMu.Unlock()
-			server.sendGameState(s, gameID, u)
-			slog.Info("ws: reconnected", "username", u.Username)
-			return
-		}
-		server.activeGamesMu.Unlock()
-
-		game, err := server.store.GetGameByID(s.Request.Context(), gameID)
-		if err != nil {
+		if _, err := server.getOrRestoreGame(s.Request.Context(), gameID); err != nil {
 			slog.Error("ws: failed to load game on connect", "game_id", gameID, "err", err)
 			s.CloseWithMsg(melody.FormatCloseMessage(1011, "failed to load game"))
 			return
 		}
-		server.activeGamesMu.Lock()
-		server.activeGames[gameID] = restoreGameState(game)
-		server.activeGamesMu.Unlock()
 
 		// Send game_state with opponent info.
 		server.sendGameState(s, gameID, u)
-		slog.Info("ws: game loaded into memory", "game_id", gameID)
 		slog.Info("ws: connected", "username", u.Username)
 		return
 	}
 
 	slog.Info("ws: connected — waiting for auth")
 	s.Write([]byte(`{"type":"auth_required"}`))
+
+	// Drop sockets that never authenticate within the deadline.
+	go func() {
+		time.Sleep(authTimeout)
+		if !s.IsClosed() && !wsIsAuthenticated(s) {
+			s.CloseWithMsg(melody.FormatCloseMessage(4401, "authentication timeout"))
+		}
+	}()
 }
 
 func (server *Server) wsOnDisconnect(s *melody.Session) {
@@ -151,7 +148,7 @@ func (server *Server) wsOnDisconnect(s *melody.Session) {
 
 	remaining := 0
 	server.melody.BroadcastFilter([]byte{}, func(other *melody.Session) bool {
-		if other != s && uuidEq(wsGameID(other), gameID) {
+		if other != s && wsIsAuthenticated(other) && uuidEq(wsGameID(other), gameID) {
 			remaining++
 		}
 		return false
@@ -159,7 +156,12 @@ func (server *Server) wsOnDisconnect(s *melody.Session) {
 
 	if remaining == 0 {
 		go func(gid pgtype.UUID) {
-			time.Sleep(30 * time.Minute)
+			time.Sleep(gameEvictionDelay)
+			// Only evict if the room is still empty — players may have
+			// reconnected and be mid-game.
+			if server.countConnectedPlayers(gid) > 0 {
+				return
+			}
 			server.activeGamesMu.Lock()
 			delete(server.activeGames, gid)
 			server.activeGamesMu.Unlock()
@@ -257,31 +259,10 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 	slog.Info("ws: authenticated", "username", user.Username, "game_id", gameID)
 
 	// Load or restore game state.
-	server.activeGamesMu.Lock()
-	if _, exists := server.activeGames[gameID]; exists {
-		server.activeGamesMu.Unlock()
-		server.sendGameState(s, gameID, user)
-		out, _ := json.Marshal(WSEvent{Type: EventPlayerReconnected, Payload: wsMarshal(gin.H{
-			"username": user.Username,
-			"color":    playerColor,
-		})})
-		server.wsRelayToOthers(s, gameID, out)
-		slog.Info("ws: reconnected", "username", user.Username)
-		server.maybeStartWatcher(gameID, dbGame.State)
-		return
-	}
-	server.activeGamesMu.Unlock()
-
-	// First player — restore from DB.
-	game, err := server.store.GetGameByID(s.Request.Context(), gameID)
-	if err != nil {
+	if _, err := server.getOrRestoreGame(s.Request.Context(), gameID); err != nil {
 		wsWriteError(s, "failed to load game")
 		return
 	}
-
-	server.activeGamesMu.Lock()
-	server.activeGames[gameID] = restoreGameState(game)
-	server.activeGamesMu.Unlock()
 
 	server.sendGameState(s, gameID, user)
 	out, _ := json.Marshal(WSEvent{Type: EventPlayerReconnected, Payload: wsMarshal(gin.H{
@@ -289,9 +270,34 @@ func (server *Server) wsHandleAuth(s *melody.Session, payload json.RawMessage) {
 		"color":    playerColor,
 	})})
 	server.wsRelayToOthers(s, gameID, out)
-	slog.Info("ws: game loaded into memory", "game_id", gameID)
-	slog.Info("ws: connected", "username", user.Username)
 	server.maybeStartWatcher(gameID, dbGame.State)
+}
+
+// getOrRestoreGame returns the in-memory game state, restoring it from the DB
+// exactly once when it was evicted. Concurrent callers get the same instance.
+func (server *Server) getOrRestoreGame(ctx context.Context, gameID pgtype.UUID) (*pieces.GameState, error) {
+	server.activeGamesMu.RLock()
+	gs, ok := server.activeGames[gameID]
+	server.activeGamesMu.RUnlock()
+	if ok {
+		return gs, nil
+	}
+
+	game, err := server.store.GetGameByID(ctx, gameID)
+	if err != nil {
+		return nil, err
+	}
+
+	server.activeGamesMu.Lock()
+	defer server.activeGamesMu.Unlock()
+	// Another goroutine may have restored it while we were reading the DB.
+	if gs, ok := server.activeGames[gameID]; ok {
+		return gs, nil
+	}
+	gs = restoreGameState(game)
+	server.activeGames[gameID] = gs
+	slog.Info("ws: game loaded into memory", "game_id", uidStr(gameID))
+	return gs, nil
 }
 
 // wsHandleChat persists the message then broadcasts it to the game room.
@@ -334,22 +340,10 @@ type MoveResult struct {
 }
 
 func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payload json.RawMessage) {
-	server.activeGamesMu.RLock()
-	gamestate, ok := server.activeGames[gameID]
-	server.activeGamesMu.RUnlock()
-
-	if !ok {
-		// Game evicted from memory — reload from DB transparently.
-		game, err := server.store.GetGameByID(s.Request.Context(), gameID)
-		if err != nil {
-			wsWriteError(s, "game not found")
-			return
-		}
-		restored := restoreGameState(game)
-		server.activeGamesMu.Lock()
-		server.activeGames[gameID] = restored
-		server.activeGamesMu.Unlock()
-		gamestate = restored
+	gamestate, err := server.getOrRestoreGame(s.Request.Context(), gameID)
+	if err != nil {
+		wsWriteError(s, "game not found")
+		return
 	}
 	var body struct {
 		Move string `json:"move"`
@@ -361,6 +355,12 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 
 	gamestate.GameStateMu.Lock()
 	defer gamestate.GameStateMu.Unlock()
+
+	if wsGameIsOver(gamestate.Status) {
+		wsWriteError(s, "game is already over")
+		return
+	}
+
 	previousPlayer := gamestate.CurrentPlayer
 	user := wsUser(s)
 
@@ -370,36 +370,31 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		return
 	}
 
-	err := board.Move(gamestate, body.Move)
-	if err != nil {
+	// Unlimited games carry zero on both clocks from creation. Evaluate before
+	// deducting: in a timed game at most one clock can reach zero.
+	unlimited := gamestate.WhiteTimeRemainingMs == 0 && gamestate.BlackTimeRemainingMs == 0
+
+	if err := board.Move(gamestate, body.Move); err != nil {
 		wsWriteError(s, err.Error())
 		return
 	}
 
 	// Deduct elapsed time from the player who just moved (skip if unlimited).
-	if gamestate.WhiteTimeRemainingMs > 0 || gamestate.BlackTimeRemainingMs > 0 {
-		now := time.Now()
+	now := time.Now()
+	if !unlimited {
 		elapsed := now.Sub(gamestate.LastMoveAt).Milliseconds()
 		if previousPlayer == "w" {
-			gamestate.WhiteTimeRemainingMs -= elapsed
-			if gamestate.WhiteTimeRemainingMs <= 0 {
-				gamestate.WhiteTimeRemainingMs = 0
-			}
+			gamestate.WhiteTimeRemainingMs = max(0, gamestate.WhiteTimeRemainingMs-elapsed)
 		} else {
-			gamestate.BlackTimeRemainingMs -= elapsed
-			if gamestate.BlackTimeRemainingMs <= 0 {
-				gamestate.BlackTimeRemainingMs = 0
-			}
+			gamestate.BlackTimeRemainingMs = max(0, gamestate.BlackTimeRemainingMs-elapsed)
 		}
-		gamestate.LastMoveAt = now
 	}
+	gamestate.LastMoveAt = now
 
 	check := board.IsKinginCheck(gamestate)
 	isCheckmate := board.IsCheckmate(gamestate)
 	isStalemate := board.IsStalemate(gamestate)
-
-	// Check for timeout.
-	timedOut := gamestate.WhiteTimeRemainingMs <= 0 || gamestate.BlackTimeRemainingMs <= 0
+	timedOut := !unlimited && (gamestate.WhiteTimeRemainingMs <= 0 || gamestate.BlackTimeRemainingMs <= 0)
 
 	gameStatus := db.GameStateActive
 	var endReason string
@@ -408,14 +403,24 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		gameStatus = db.GameStateCheckmate
 		endReason = "checkmate"
 	case timedOut:
+		// The game_state enum has no timeout value; end_reason disambiguates.
 		gameStatus = db.GameStateCheckmate
 		endReason = "timeout"
 	case isStalemate:
 		gameStatus = db.GameStateStalemate
 		endReason = "stalemate"
 	}
+	gameOver := endReason != ""
 
 	gamestate.MoveNumber++
+	gamestate.Status = gameStatus
+	gamestate.InCheck = check
+
+	// Only stamp who ended the game when it actually ended.
+	var endedBy pgtype.UUID
+	if gameOver {
+		endedBy = user.ID
+	}
 
 	_, err = server.store.UpdateGameState(s.Request.Context(), db.UpdateGameStateParams{
 		ID:                   gameID,
@@ -426,21 +431,21 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 		BoardState:           board.SerializeGameState(gamestate),
 		WhiteTimeRemainingMs: gamestate.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: gamestate.BlackTimeRemainingMs,
-		EndedByPlayerID:      user.ID,
+		EndedByPlayerID:      endedBy,
 		EndReason:            endReason,
+		LastMoveAt:           pgtype.Timestamptz{Time: now, Valid: true},
 	})
 	if err != nil {
 		slog.Error("ws: wsHandleMove, failed UpdateGameState", "err", err)
 	}
 
 	// Cancel the current timeout watcher; start a new one for the next player if the game continues.
-	close(gamestate.TimeoutCh)
-	gamestate.TimeoutCh = make(chan struct{})
-	if isCheckmate || isStalemate || timedOut {
+	stopTimeoutWatcher(gamestate)
+	if gameOver {
 		server.activeGamesMu.Lock()
 		delete(server.activeGames, gameID)
 		server.activeGamesMu.Unlock()
-	} else if gamestate.WhiteTimeRemainingMs > 0 || gamestate.BlackTimeRemainingMs > 0 {
+	} else if !unlimited {
 		server.startTimeoutWatcher(gameID, gamestate.TimeoutCh)
 	}
 
@@ -471,10 +476,33 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	server.wsBroadcastToGame(gameID, out)
 }
 
-// wsRelayToOthers forwards a message to every other session in the same game room.
+// wsGameIsOver reports whether the game has reached a terminal state. The
+// zero value (in-memory games created before their first persist) and
+// waiting/active games are playable.
+func wsGameIsOver(status db.GameState) bool {
+	switch status {
+	case db.GameStateCheckmate, db.GameStateStalemate, db.GameStateResign,
+		db.GameStateDraw, db.GameStateAbandoned:
+		return true
+	}
+	return false
+}
+
+// stopTimeoutWatcher cancels the running watcher (if any) and arms a fresh
+// channel. Must be called with GameStateMu held so the close/replace is
+// atomic — closing the same channel twice panics.
+func stopTimeoutWatcher(gs *pieces.GameState) {
+	if gs.TimeoutCh != nil {
+		close(gs.TimeoutCh)
+	}
+	gs.TimeoutCh = make(chan struct{})
+}
+
+// wsRelayToOthers forwards a message to every other authenticated session in
+// the same game room.
 func (server *Server) wsRelayToOthers(s *melody.Session, gameID pgtype.UUID, msg []byte) {
 	server.melody.BroadcastFilter(msg, func(other *melody.Session) bool {
-		return other != s && uuidEq(wsGameID(other), gameID)
+		return other != s && wsIsAuthenticated(other) && uuidEq(wsGameID(other), gameID)
 	})
 }
 
@@ -525,10 +553,11 @@ func (server *Server) wsUserInGame(userID pgtype.UUID, gameID pgtype.UUID) bool 
 	return found
 }
 
-// wsBroadcastToGame sends a message to ALL sessions in the game room.
+// wsBroadcastToGame sends a message to all authenticated sessions in the game
+// room. Unauthenticated sockets must not see game traffic.
 func (server *Server) wsBroadcastToGame(gameID pgtype.UUID, msg []byte) {
 	server.melody.BroadcastFilter(msg, func(s *melody.Session) bool {
-		return uuidEq(wsGameID(s), gameID)
+		return wsIsAuthenticated(s) && uuidEq(wsGameID(s), gameID)
 	})
 }
 
@@ -549,7 +578,10 @@ func (server *Server) sendGameState(s *melody.Session, gameID pgtype.UUID, user 
 	if err != nil {
 		slog.Warn("ws: sendGameState — DB lookup failed, sending without opponent info",
 			"game_id", gameID, "err", err)
-		out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: wsMarshal(gs)})
+		gs.GameStateMu.RLock()
+		payload := wsMarshal(gs)
+		gs.GameStateMu.RUnlock()
+		out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: payload})
 		s.Write(out)
 		return
 	}
@@ -564,7 +596,11 @@ func (server *Server) sendGameState(s *melody.Session, gameID pgtype.UUID, user 
 		Game:             gs,
 		OpponentUsername: opponentName,
 	}
-	out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: wsMarshal(payload)})
+	// A concurrent move mutates the board — snapshot under the read lock.
+	gs.GameStateMu.RLock()
+	raw := wsMarshal(payload)
+	gs.GameStateMu.RUnlock()
+	out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: raw})
 	s.Write(out)
 }
 
@@ -634,17 +670,19 @@ func (server *Server) maybeStartWatcher(gameID pgtype.UUID, gameState db.GameSta
 	if server.countConnectedPlayers(gameID) < 2 {
 		return
 	}
-	server.activeGamesMu.Lock()
-	defer server.activeGamesMu.Unlock()
+	server.activeGamesMu.RLock()
 	gs, ok := server.activeGames[gameID]
+	server.activeGamesMu.RUnlock()
 	if !ok {
 		return
 	}
+
+	gs.GameStateMu.Lock()
+	defer gs.GameStateMu.Unlock()
 	if gs.WhiteTimeRemainingMs == 0 && gs.BlackTimeRemainingMs == 0 {
 		return // unlimited time game
 	}
-	close(gs.TimeoutCh)
-	gs.TimeoutCh = make(chan struct{})
+	stopTimeoutWatcher(gs)
 	server.startTimeoutWatcher(gameID, gs.TimeoutCh)
 }
 
@@ -703,6 +741,7 @@ func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
 	} else {
 		gs.BlackTimeRemainingMs = 0
 	}
+	gs.Status = db.GameStateCheckmate
 	params := db.UpdateGameStateParams{
 		ID:                   gameID,
 		State:                db.GameStateCheckmate,
@@ -713,6 +752,7 @@ func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
 		WhiteTimeRemainingMs: gs.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: gs.BlackTimeRemainingMs,
 		EndReason:            "timeout",
+		LastMoveAt:           pgtype.Timestamptz{Time: gs.LastMoveAt, Valid: true},
 	}
 	result := MoveResult{
 		CurrentPlayer:        gs.CurrentPlayer,
@@ -744,9 +784,12 @@ func restoreGameState(game db.Game) *pieces.GameState {
 		InCheck:              game.InCheck,
 		WhiteTimeRemainingMs: game.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: game.BlackTimeRemainingMs,
-		LastMoveAt:           game.LastMoveAt.Time,
-		StockfishGame:        snap.StockfishGame,
-		CapturedPieces:       make(map[string][]pieces.PieceInterface),
-		TimeoutCh:            make(chan struct{}),
+		// Clocks pause while the game is out of memory: resume from the stored
+		// remaining time instead of charging the mover for the downtime (which
+		// used to forfeit any game restored after a long gap).
+		LastMoveAt:     time.Now(),
+		StockfishGame:  snap.StockfishGame,
+		CapturedPieces: make(map[string][]pieces.PieceInterface),
+		TimeoutCh:      make(chan struct{}),
 	}
 }

@@ -159,6 +159,7 @@ type EmailOtp struct {
 	Attempts  int16              `json:"attempts"`
 	UsedAt    pgtype.Timestamptz `json:"used_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	Purpose   string             `json:"purpose"`
 }
 
 type Game struct {

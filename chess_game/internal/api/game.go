@@ -11,6 +11,7 @@ import (
 	db "github.com/Glenn444/golang-chess/internal/db"
 	"github.com/Glenn444/golang-chess/internal/pieces"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CreateGameReq struct{
@@ -99,6 +100,7 @@ func (server *Server) createGame(ctx *gin.Context) {
 	}
 
 	//initialise a game state in memory
+	now := time.Now()
 	timeMs := int64(req.TimeControl) * 60 * 1000 // 0 = unlimited
 	gameState := &pieces.GameState{
 		CurrentPlayer:        "w",
@@ -108,7 +110,7 @@ func (server *Server) createGame(ctx *gin.Context) {
 		PlayAgainst:          req.Opponent,
 		WhiteTimeRemainingMs: timeMs,
 		BlackTimeRemainingMs: timeMs,
-		LastMoveAt:           time.Now(),
+		LastMoveAt:           now,
 		TimeoutCh:            make(chan struct{}),
 	}
 
@@ -122,6 +124,7 @@ func (server *Server) createGame(ctx *gin.Context) {
 		BoardState:           board.SerializeGameState(gameState),
 		WhiteTimeRemainingMs: timeMs,
 		BlackTimeRemainingMs: timeMs,
+		LastMoveAt:           pgtype.Timestamptz{Time: now, Valid: true},
 	})
 	if handleDBError(ctx, err, WithLogArgs("createGame: failed to persist board state", "game_id", game.ID)) {
 		return
@@ -351,8 +354,9 @@ func (server *Server) joinGame(ctx *gin.Context) {
 		return
 	}
 
-	// Send push notification to the player who was waiting.
-	server.notifyOpponent(ctx, gameID, user.ID, user.Username)
+	// Send push notification to the player who was waiting. `updated` carries
+	// both player IDs after the join — no need to refetch the game.
+	server.notifyOpponent(ctx, updated, user.ID, user.Username)
 
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
 }
@@ -410,19 +414,25 @@ func (server *Server) resignGame(ctx *gin.Context) {
 		BlackTimeRemainingMs: game.BlackTimeRemainingMs,
 		EndedByPlayerID:      user.ID,
 		EndReason:            "resign",
+		LastMoveAt:           game.LastMoveAt,
 	})
 	if handleDBError(ctx, err, WithLogArgs("resignGame: UpdateGameState", "game_id", ctx.Param("id"))) {
 		return
 	}
 
-	// Cancel timeout watcher and evict from memory on resign.
+	// Cancel timeout watcher and evict from memory on resign. The channel is
+	// swapped under GameStateMu (never while holding activeGamesMu) so it can't
+	// race a concurrent close in wsHandleMove.
 	server.activeGamesMu.Lock()
-	if gs, ok := server.activeGames[gameID]; ok {
-		close(gs.TimeoutCh)
-		gs.TimeoutCh = make(chan struct{})
-		delete(server.activeGames, gameID)
-	}
+	gs, inMemory := server.activeGames[gameID]
+	delete(server.activeGames, gameID)
 	server.activeGamesMu.Unlock()
+	if inMemory {
+		gs.GameStateMu.Lock()
+		gs.Status = db.GameStateResign
+		stopTimeoutWatcher(gs)
+		gs.GameStateMu.Unlock()
+	}
 
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
 }

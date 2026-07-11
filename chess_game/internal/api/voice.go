@@ -228,6 +228,18 @@ func (server *Server) activateVoiceSession(ctx *gin.Context) {
 		return
 	}
 
+	// only a player in the session's game may accept the call
+	game, err := server.store.GetGameByID(ctx, voiceSession.GameID)
+	if handleDBError(ctx, err,
+		WithNotFoundMsg(ErrGameNotFound),
+		WithLogArgs("activateVoiceSession: GetGameByID", "vid", ctx.Param("vid"))) {
+		return
+	}
+	if !uuidEq(game.WhitePlayerID, user.ID) && !uuidEq(game.BlackPlayerID, user.ID) {
+		ctx.JSON(http.StatusForbidden, errorMessage(ErrNotAPlayer))
+		return
+	}
+
 	// only the recipient (non-initiator) accepts the call
 	if uuidEq(voiceSession.InitiatorID, user.ID) {
 		ctx.JSON(http.StatusForbidden, errorMessage("only the call recipient can accept the call"))

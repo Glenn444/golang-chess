@@ -26,19 +26,25 @@ func (q *Queries) CountRecentOTPsForUser(ctx context.Context, userID pgtype.UUID
 }
 
 const createEmailOTP = `-- name: CreateEmailOTP :one
-INSERT INTO email_otps (user_id, code_hash, expires_at)
-VALUES ($1, $2, $3)
-RETURNING id, user_id, code_hash, expires_at, attempts, used_at, created_at
+INSERT INTO email_otps (user_id, code_hash, expires_at, purpose)
+VALUES ($1, $2, $3, $4)
+RETURNING id, user_id, code_hash, expires_at, attempts, used_at, created_at, purpose
 `
 
 type CreateEmailOTPParams struct {
 	UserID    pgtype.UUID        `json:"user_id"`
 	CodeHash  string             `json:"code_hash"`
 	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	Purpose   string             `json:"purpose"`
 }
 
 func (q *Queries) CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) (EmailOtp, error) {
-	row := q.db.QueryRow(ctx, createEmailOTP, arg.UserID, arg.CodeHash, arg.ExpiresAt)
+	row := q.db.QueryRow(ctx, createEmailOTP,
+		arg.UserID,
+		arg.CodeHash,
+		arg.ExpiresAt,
+		arg.Purpose,
+	)
 	var i EmailOtp
 	err := row.Scan(
 		&i.ID,
@@ -48,6 +54,7 @@ func (q *Queries) CreateEmailOTP(ctx context.Context, arg CreateEmailOTPParams) 
 		&i.Attempts,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.Purpose,
 	)
 	return i, err
 }
@@ -64,8 +71,9 @@ func (q *Queries) DeleteExpiredOTPs(ctx context.Context) error {
 }
 
 const getValidOTP = `-- name: GetValidOTP :one
-SELECT id, user_id, code_hash, expires_at, attempts, used_at, created_at FROM email_otps
+SELECT id, user_id, code_hash, expires_at, attempts, used_at, created_at, purpose FROM email_otps
 WHERE user_id  = $1
+  AND purpose  = $2
   AND expires_at > NOW()
   AND used_at  IS NULL
   AND attempts < 5
@@ -73,10 +81,15 @@ ORDER BY created_at DESC
 LIMIT 1
 `
 
+type GetValidOTPParams struct {
+	UserID  pgtype.UUID `json:"user_id"`
+	Purpose string      `json:"purpose"`
+}
+
 // Returns the most-recent, unexpired, unused code that still has attempts left.
 // The app layer must hash the user-supplied digit string before comparing code_hash.
-func (q *Queries) GetValidOTP(ctx context.Context, userID pgtype.UUID) (EmailOtp, error) {
-	row := q.db.QueryRow(ctx, getValidOTP, userID)
+func (q *Queries) GetValidOTP(ctx context.Context, arg GetValidOTPParams) (EmailOtp, error) {
+	row := q.db.QueryRow(ctx, getValidOTP, arg.UserID, arg.Purpose)
 	var i EmailOtp
 	err := row.Scan(
 		&i.ID,
@@ -86,6 +99,7 @@ func (q *Queries) GetValidOTP(ctx context.Context, userID pgtype.UUID) (EmailOtp
 		&i.Attempts,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.Purpose,
 	)
 	return i, err
 }
@@ -94,7 +108,7 @@ const incrementOTPAttempts = `-- name: IncrementOTPAttempts :one
 UPDATE email_otps
 SET attempts = attempts + 1
 WHERE id = $1
-RETURNING id, user_id, code_hash, expires_at, attempts, used_at, created_at
+RETURNING id, user_id, code_hash, expires_at, attempts, used_at, created_at, purpose
 `
 
 // Call this on every failed verification attempt.
@@ -109,6 +123,7 @@ func (q *Queries) IncrementOTPAttempts(ctx context.Context, id pgtype.UUID) (Ema
 		&i.Attempts,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.Purpose,
 	)
 	return i, err
 }
@@ -117,12 +132,18 @@ const invalidateUserOTPs = `-- name: InvalidateUserOTPs :exec
 UPDATE email_otps
 SET used_at = NOW()
 WHERE user_id = $1
+  AND purpose = $2
   AND used_at IS NULL
 `
 
+type InvalidateUserOTPsParams struct {
+	UserID  pgtype.UUID `json:"user_id"`
+	Purpose string      `json:"purpose"`
+}
+
 // Burn all live codes for a user before issuing a new one.
-func (q *Queries) InvalidateUserOTPs(ctx context.Context, userID pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, invalidateUserOTPs, userID)
+func (q *Queries) InvalidateUserOTPs(ctx context.Context, arg InvalidateUserOTPsParams) error {
+	_, err := q.db.Exec(ctx, invalidateUserOTPs, arg.UserID, arg.Purpose)
 	return err
 }
 
@@ -131,7 +152,7 @@ UPDATE email_otps
 SET used_at = NOW()
 WHERE id      = $1
   AND used_at IS NULL
-RETURNING id, user_id, code_hash, expires_at, attempts, used_at, created_at
+RETURNING id, user_id, code_hash, expires_at, attempts, used_at, created_at, purpose
 `
 
 // Call this immediately after a successful match to prevent replay.
@@ -146,6 +167,7 @@ func (q *Queries) MarkOTPUsed(ctx context.Context, id pgtype.UUID) (EmailOtp, er
 		&i.Attempts,
 		&i.UsedAt,
 		&i.CreatedAt,
+		&i.Purpose,
 	)
 	return i, err
 }

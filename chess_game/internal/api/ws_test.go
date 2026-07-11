@@ -189,6 +189,39 @@ func TestWSMakeMoveIntegration(t *testing.T) {
 		require.Equal(t, "b", moveResult.CurrentPlayer)
 		require.False(t, moveResult.InCheck)
 		require.False(t, moveResult.IsCheckmate)
+		// Regression: unlimited games (both clocks zero) must not end in a
+		// phantom "timeout" on the first move.
+		require.Equal(t, "", moveResult.EndReason)
+	})
+
+	t.Run("move rejected after game is over", func(t *testing.T) {
+		server, store, _ := newTestWSServer(t)
+		srv, _, gameID := setupWSRouter(t, server, store)
+
+		server.activeGamesMu.Lock()
+		server.activeGames[gameID].Status = db.GameStateResign
+		server.activeGamesMu.Unlock()
+
+		wsURL := wsURL(srv.URL) + "/ws?dummy=1"
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		require.NoError(t, err)
+		defer conn.Close()
+
+		drainGameState(t, conn)
+
+		moveEvent := WSEvent{
+			Type:    EventMakeMove,
+			Payload: json.RawMessage(`{"move":"e4"}`),
+		}
+		require.NoError(t, conn.WriteJSON(moveEvent))
+
+		var respEvent WSEvent
+		require.NoError(t, conn.ReadJSON(&respEvent))
+		require.Equal(t, EventError, respEvent.Type)
+
+		var errPayload map[string]string
+		require.NoError(t, json.Unmarshal(respEvent.Payload, &errPayload))
+		require.Equal(t, "game is already over", errPayload["error"])
 	})
 
 	t.Run("not your turn returns error", func(t *testing.T) {

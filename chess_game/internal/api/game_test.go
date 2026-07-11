@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/olahol/melody"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -28,15 +29,19 @@ func newTestGameServer(t *testing.T) (*Server, *mock_db.MockStore) {
 	t.Cleanup(ctrl.Finish)
 	store := mock_db.NewMockStore(ctrl)
 	store.EXPECT().GetUserByID(gomock.Any(), gomock.Any()).Return(db.User{Username: "someuser"}, nil).AnyTimes()
+	// notifyOpponent looks up the waiting player's push subscription after a
+	// join; default to "no subscription" so it no-ops in handler tests.
+	store.EXPECT().GetPushSubscriptionByUser(gomock.Any(), gomock.Any()).Return(db.GetPushSubscriptionByUserRow{}, pgx.ErrNoRows).AnyTimes()
 	tokenMaker, _ := token.NewJWTMaker("12345678901234567890123456789012")
 	server := &Server{
 		config: config.Config{
 			TokenSymmetricKey: "12345678901234567890123456789012",
 		},
-		tokenMaker:  tokenMaker,
-		store:       store,
+		tokenMaker:    tokenMaker,
+		store:         store,
+		melody:        melody.New(),
 		activeGames:   make(map[pgtype.UUID]*pieces.GameState),
-	createGameMUs: make(map[pgtype.UUID]*sync.Mutex),
+		createGameMUs: make(map[pgtype.UUID]*sync.Mutex),
 	}
 	return server, store
 }

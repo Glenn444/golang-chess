@@ -488,6 +488,16 @@ func (server *Server) resignGame(ctx *gin.Context) {
 	}
 	server.finishGame(ctx, gameID, winner)
 
+	// Tell the opponent over the WebSocket — without this they would only
+	// discover the resignation on their next page load.
+	server.wsBroadcastToGame(gameID, mustMarshalEvent(EventMakeMove, MoveResult{
+		CurrentPlayer:        string(game.CurrentPlayer),
+		EndReason:            "resign",
+		EndedByPlayerID:      uidStr(user.ID),
+		WhiteTimeRemainingMs: game.WhiteTimeRemainingMs,
+		BlackTimeRemainingMs: game.BlackTimeRemainingMs,
+	}))
+
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
 }
 

@@ -18,82 +18,118 @@
 <meta name="description" content="{{.Meta.Description}}">
 {{if .Meta.NoIndex}}<meta name="robots" content="noindex">{{end}}
 <style>
-  :root { color-scheme: dark; }
+  :root {
+    color-scheme: dark;
+    --bg-base: #0E0F13; --bg-elev: #1E2129; --bg-raised: #16181F;
+    --border: #2E323D; --border-strong: #3A3E4A;
+    --text: #E8E6E1; --text-2: #A5A29B; --muted: #6B6963;
+    --amber: #E5A93B; --amber-l: #F5C76A; --red: #D26A6A; --green: #5FAE7E;
+    --board-l: #D9C9A8; --board-d: #2A2D36;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #0E0F13; color: #E8E6E1; min-height: 100dvh;
+    background: var(--bg-base); color: var(--text); min-height: 100dvh;
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     display: flex; flex-direction: column; align-items: center;
   }
   a { color: inherit; text-decoration: none; }
   .top {
-    width: 100%; max-width: 900px; display: flex; align-items: center; gap: 10px;
-    padding: 16px 20px;
+    width: 100%; max-width: 960px; display: flex; align-items: center; gap: 10px;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 6px;
   }
-  .knight { color: #E5A93B; font-size: 26px; line-height: 1; }
-  .brand { font-weight: 700; font-size: 18px; }
+  .knight { color: var(--amber); font-size: 24px; line-height: 1; }
+  .brand { font-weight: 700; font-size: 17px; }
   .top .pill { margin-left: auto; }
   .pill {
     font-size: 11px; font-weight: 700; letter-spacing: 1.3px;
     padding: 5px 12px; border-radius: 999px; white-space: nowrap;
   }
-  .pill.live { background: rgba(210,106,106,0.14); color: #D26A6A; border: 1px solid rgba(210,106,106,0.4); }
+  .pill.live { background: rgba(210,106,106,0.14); color: var(--red); border: 1px solid rgba(210,106,106,0.4); }
   .pill.live::before { content: "●"; margin-right: 6px; animation: blink 1.6s ease-in-out infinite; }
   @keyframes blink { 50% { opacity: 0.25; } }
-  .pill.done { background: rgba(107,105,99,0.16); color: #A5A29B; border: 1px solid rgba(107,105,99,0.4); }
-  .pill.wait { background: rgba(229,169,59,0.14); color: #E5A93B; border: 1px solid rgba(229,169,59,0.4); }
+  .pill.done { background: rgba(107,105,99,0.16); color: var(--text-2); border: 1px solid rgba(107,105,99,0.4); }
+  .pill.wait { background: rgba(229,169,59,0.14); color: var(--amber); border: 1px solid rgba(229,169,59,0.4); }
+
   main {
-    width: 100%; max-width: 900px; padding: 8px 16px 24px;
-    display: grid; grid-template-columns: minmax(0, 560px) 1fr; gap: 20px; justify-content: center;
+    width: 100%; max-width: 960px; padding: 4px 6px calc(20px + env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: minmax(0, 620px) 1fr; gap: 18px; justify-content: center;
   }
-  @media (max-width: 760px) { main { grid-template-columns: minmax(0, 560px); } }
-  .stage { display: flex; flex-direction: column; gap: 10px; }
+  @media (max-width: 760px) { main { grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 0; } }
+  .stage { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+
+  /* Player strips — mirror the app's CompactPlayerStrip */
   .prow {
-    display: flex; align-items: center; gap: 10px;
-    background: #1E2129; border: 1px solid #2E323D; border-radius: 12px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px; width: 100%;
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
   }
-  .prow .dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; }
-  .prow .dot.w { background: #F3E9DC; } .prow .dot.b { background: #17181D; }
-  .prow .name { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .prow .clock {
-    margin-left: auto; font-variant-numeric: tabular-nums;
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center; font-weight: 700; font-size: 15px; color: #1A1408;
+  }
+  .avatar.amber { background: linear-gradient(135deg, #F5C76A, #C68A1F); }
+  .avatar.rose { background: linear-gradient(135deg, #E8A0B4, #B25D77); }
+  .pinfo { flex: 1; min-width: 0; }
+  .pname { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .psub { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .psub .csq { width: 9px; height: 9px; border-radius: 2px; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .csq.w { background: #F3E9DC; } .csq.b { background: #17181D; }
+  .clock {
+    font-variant-numeric: tabular-nums;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 19px; padding: 4px 12px; border-radius: 8px;
-    background: #0E0F13; border: 1px solid #2E323D;
+    font-size: 20px; font-weight: 500; padding: 6px 12px; border-radius: 10px; text-align: center;
+    background: var(--bg-base); border: 1px solid var(--border-strong);
   }
-  .prow.turn { border-color: #E5A93B; box-shadow: 0 0 0 2px rgba(229,169,59,0.15); }
-  .prow.turn .clock { color: #E5A93B; border-color: #E5A93B; }
+  .prow.turn { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(229,169,59,0.18); }
+  .prow.turn .clock { color: var(--amber); border-color: var(--amber); background: rgba(229,169,59,0.12); }
+  .clock.low { color: var(--red) !important; border-color: rgba(210,106,106,0.4) !important; background: rgba(210,106,106,0.15) !important; }
+
+  /* Board — same colors/radii as the app */
+  .boardwrap { width: 100%; border-radius: 14px; padding: 6px; background: var(--bg-raised); border: 1px solid var(--border); }
   .board {
     display: grid; grid-template-columns: repeat(8, 1fr); width: 100%;
     aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden;
-    border: 1px solid #2E323D;
   }
-  .sq { display: flex; align-items: center; justify-content: center; position: relative; }
-  .sq.l { background: #D9C9A8; } .sq.d { background: #2A2D36; }
-  .sq .pc { font-size: min(7.2vw, 40px); line-height: 1; user-select: none; }
-  .pc.w { color: #F7F0E1; text-shadow: 0 1px 2px rgba(0,0,0,0.55); }
-  .pc.b { color: #15161A; text-shadow: 0 1px 1px rgba(255,255,255,0.12); }
-  .status { text-align: center; color: #A5A29B; font-size: 14px; min-height: 20px; }
+  .sq { position: relative; display: flex; align-items: center; justify-content: center; }
+  .sq.l { background: var(--board-l); } .sq.d { background: var(--board-d); }
+  .sq.hl::after { content: ""; position: absolute; inset: 0; background: rgba(229,169,59,0.32); pointer-events: none; }
+  .sq img {
+    width: 88%; height: 88%; pointer-events: none; user-select: none;
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,0.45)) drop-shadow(0 4px 6px rgba(0,0,0,0.35));
+  }
+
+  /* Status bar — mirrors the app's */
+  .status {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 16px; font-size: 14px; color: var(--text-2);
+  }
+  .status .dot { width: 8px; height: 8px; border-radius: 999px; background: var(--amber); flex-shrink: 0; }
+  .status b { color: var(--text); font-weight: 600; }
+  .status .mv { margin-left: auto; font-size: 12px; color: var(--muted); }
+
   .banner {
-    display: none; text-align: center; background: rgba(229,169,59,0.1);
-    border: 1px solid rgba(229,169,59,0.4); color: #E5A93B;
-    border-radius: 12px; padding: 12px; font-weight: 600; font-size: 15px;
+    display: none; text-align: center; width: 100%; background: rgba(229,169,59,0.1);
+    border: 1px solid rgba(229,169,59,0.4); color: var(--amber);
+    border-radius: 14px; padding: 12px; font-weight: 600; font-size: 15px;
   }
   .banner.show { display: block; }
+
   .side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .movebox {
-    background: #1E2129; border: 1px solid #2E323D; border-radius: 12px;
-    padding: 14px; flex: 1; min-height: 120px; max-height: 480px; overflow-y: auto;
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px; flex: 1; min-height: 100px; max-height: 460px; overflow-y: auto;
   }
-  .movebox h2 { font-size: 12px; letter-spacing: 1.2px; color: #6B6963; margin-bottom: 10px; }
+  .movebox h2 { font-size: 11px; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 10px; }
   .mvgrid { display: grid; grid-template-columns: 34px 1fr 1fr; gap: 4px 8px; font-size: 13px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .mvgrid .n { color: #6B6963; }
+  .mvgrid .n { color: var(--muted); }
   .cta {
-    display: block; text-align: center; background: #E5A93B; color: #17130A;
-    font-weight: 700; font-size: 15px; border-radius: 12px; padding: 13px 20px;
+    display: block; text-align: center; font-weight: 700; font-size: 15px;
+    background: linear-gradient(180deg, var(--amber-l) 0%, var(--amber) 100%);
+    color: #1A1408; border-radius: 14px; padding: 13px 20px;
   }
-  footer { color: #6B6963; font-size: 13px; padding: 16px; }
+  @media (max-width: 760px) { .side { padding: 0 2px; } .movebox { max-height: 220px; } }
+  footer { color: var(--muted); font-size: 12px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
 </style>
 </head>
 <body>
@@ -104,30 +140,46 @@
 
   {{if .Locked}}
   <main style="grid-template-columns: minmax(0,480px);">
-    <div class="stage" style="text-align:center; background:#1E2129; border:1px solid #2E323D; border-radius:20px; padding:40px 28px;">
-      <div style="font-size:44px;">&#128274;</div>
-      <h1 style="font-size:24px;">This game is private</h1>
-      <p style="color:#A5A29B; font-size:15px; line-height:1.5;">Only the two players can see it. But an open board is waiting for you.</p>
-      <a class="cta" href="{{.HomeURL}}" style="margin-top:12px;">Play on Chesske</a>
+    <div style="text-align:center; background:var(--bg-elev); border:1px solid var(--border); border-radius:20px; padding:40px 28px;">
+      <div style="font-size:44px; margin-bottom:8px;">&#128274;</div>
+      <h1 style="font-size:24px; margin-bottom:8px;">This game is private</h1>
+      <p style="color:var(--text-2); font-size:15px; line-height:1.5; margin-bottom:20px;">Only the two players can see it. But an open board is waiting for you.</p>
+      <a class="cta" href="{{.HomeURL}}">Play on Chesske</a>
     </div>
   </main>
   {{else}}
   <main>
     <div class="stage">
       <div id="rowTop" class="prow">
-        <span class="dot b"></span><span id="nameB" class="name">{{if .BlackName}}{{.BlackName}}{{else}}Waiting for opponent…{{end}}</span>
+        <div class="avatar rose" id="avB">{{.BlackInitial}}</div>
+        <div class="pinfo">
+          <div id="nameB" class="pname">{{if .BlackName}}{{.BlackName}}{{else}}Waiting for opponent…{{end}}</div>
+          <div class="psub"><span class="csq b"></span>Playing black</div>
+        </div>
         <span id="clkB" class="clock">{{.BlackClock}}</span>
       </div>
-      <div id="board" class="board" aria-label="chess board">
-        {{range .Board}}{{range .}}<div class="sq {{if .Light}}l{{else}}d{{end}}">{{if .Glyph}}<span class="pc {{if .White}}w{{else}}b{{end}}">{{.Glyph}}</span>{{end}}</div>{{end}}{{end}}
-      </div>
+
+      <div class="boardwrap"><div id="board" class="board" aria-label="chess board">
+        {{range .Board}}{{range .}}<div class="sq {{if .Light}}l{{else}}d{{end}}{{if .Highlight}} hl{{end}}">{{if .Code}}<img src="https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/{{.Code}}.svg" alt="{{.Code}}">{{end}}</div>{{end}}{{end}}
+      </div></div>
+
       <div id="rowBot" class="prow">
-        <span class="dot w"></span><span id="nameW" class="name">{{if .WhiteName}}{{.WhiteName}}{{else}}Waiting for opponent…{{end}}</span>
+        <div class="avatar amber" id="avW">{{.WhiteInitial}}</div>
+        <div class="pinfo">
+          <div id="nameW" class="pname">{{if .WhiteName}}{{.WhiteName}}{{else}}Waiting for opponent…{{end}}</div>
+          <div class="psub"><span class="csq w"></span>Playing white</div>
+        </div>
         <span id="clkW" class="clock">{{.WhiteClock}}</span>
       </div>
+
       <div id="banner" class="banner{{if .ResultText}} show{{end}}">{{.ResultText}}</div>
-      <div id="status" class="status">{{if .Live}}Move {{.MoveCount}} &middot; {{.TimeLabel}}{{else if .Finished}}{{.TimeLabel}} &middot; {{.MoveCount}} moves played{{else}}The game hasn't started yet{{end}}</div>
+      <div class="status">
+        <span class="dot"></span>
+        <span id="statusText">{{if .Live}}<b>Live</b>&nbsp;· spectating{{else if .Finished}}Game over{{else}}Waiting to start{{end}}</span>
+        <span id="statusMv" class="mv">Move {{.MoveCount}}{{if .TimeLabel}} · {{.TimeLabel}}{{end}}</span>
+      </div>
     </div>
+
     <div class="side">
       <div class="movebox">
         <h2>MOVES</h2>
@@ -143,11 +195,12 @@
 <script>
 (function () {
   var GAME_ID = {{.GameID}};
+  var CDN = 'https://cdn.jsdelivr.net/gh/lichess-org/lila@master/public/piece/cburnett/';
   var FILES = ['a','b','c','d','e','f','g','h'];
-  var GLYPH = { K:'♚', Q:'♛', R:'♜', B:'♝', N:'♞', P:'♟' };
 
   var pos = null;              // { e2: {t:'P', c:'l'}, ... }
   var moves = [];
+  var lastMv = null;           // ['e2','e4']
   var st = { wMs: 0, bMs: 0, turn: 'w', live: true, lastAt: Date.now(), unlimited: false };
 
   function flatten(board2d) {
@@ -181,10 +234,15 @@
     if (!pos) return;
     var html = '';
     for (var r = 7; r >= 0; r--) for (var f = 0; f < 8; f++) {
+      var sqName = FILES[f] + (r + 1);
       var light = (r + f) % 2 === 1;
-      var piece = pos[FILES[f] + (r + 1)];
-      html += '<div class="sq ' + (light ? 'l' : 'd') + '">';
-      if (piece) html += '<span class="pc ' + (piece.c === 'l' ? 'w' : 'b') + '">' + GLYPH[piece.t] + '</span>';
+      var piece = pos[sqName];
+      var hl = lastMv && (lastMv[0] === sqName || lastMv[1] === sqName);
+      html += '<div class="sq ' + (light ? 'l' : 'd') + (hl ? ' hl' : '') + '">';
+      if (piece) {
+        var code = (piece.c === 'l' ? 'w' : 'b') + piece.t;
+        html += '<img src="' + CDN + code + '.svg" alt="' + code + '">';
+      }
       html += '</div>';
     }
     document.getElementById('board').innerHTML = html;
@@ -213,18 +271,25 @@
     if (st.live && !st.unlimited) {
       if (st.turn === 'w') w -= now - st.lastAt; else b -= now - st.lastAt;
     }
-    document.getElementById('clkW').textContent = fmt(w);
-    document.getElementById('clkB').textContent = fmt(b);
+    var cw = document.getElementById('clkW'), cb = document.getElementById('clkB');
+    cw.textContent = fmt(w);
+    cb.textContent = fmt(b);
+    cw.className = 'clock' + (!st.unlimited && w < 60000 ? ' low' : '');
+    cb.className = 'clock' + (!st.unlimited && b < 60000 ? ' low' : '');
     document.getElementById('rowBot').className = 'prow' + (st.live && st.turn === 'w' ? ' turn' : '');
     document.getElementById('rowTop').className = 'prow' + (st.live && st.turn === 'b' ? ' turn' : '');
   }
   setInterval(renderClocks, 300);
 
-  function setStatus(text) { document.getElementById('status').textContent = text; }
+  function setStatus(html, mv) {
+    document.getElementById('statusText').innerHTML = html;
+    if (mv != null) document.getElementById('statusMv').textContent = mv;
+  }
 
   function nameOf(color) {
     return document.getElementById(color === 'w' ? 'nameW' : 'nameB').textContent;
   }
+  function esc(s) { var d = document.createElement('i'); d.textContent = s; return d.innerHTML; }
 
   function gameOver(reason, winner) {
     st.live = false;
@@ -238,7 +303,8 @@
     else text = 'Game over';
     var banner = document.getElementById('banner');
     banner.textContent = text; banner.className = 'banner show';
-    setStatus(moves.length + ' moves played');
+    setStatus('Game over', moves.length + ' moves');
+    renderClocks();
   }
 
   var tries = 0;
@@ -255,13 +321,20 @@
         var g = msg.payload.game;
         pos = flatten(g.Board);
         moves = (g.StockfishGame || []).slice();
+        lastMv = moves.length ? [moves[moves.length-1].slice(0,2), moves[moves.length-1].slice(2,4)] : null;
         st.wMs = g.WhiteTimeRemainingMs; st.bMs = g.BlackTimeRemainingMs;
         st.unlimited = g.WhiteTimeRemainingMs === 0 && g.BlackTimeRemainingMs === 0;
         st.turn = g.CurrentPlayer; st.lastAt = Date.now();
-        if (msg.payload.white_username) document.getElementById('nameW').textContent = msg.payload.white_username;
-        if (msg.payload.black_username) document.getElementById('nameB').textContent = msg.payload.black_username;
+        if (msg.payload.white_username) {
+          document.getElementById('nameW').textContent = msg.payload.white_username;
+          document.getElementById('avW').textContent = msg.payload.white_username.charAt(0).toUpperCase();
+        }
+        if (msg.payload.black_username) {
+          document.getElementById('nameB').textContent = msg.payload.black_username;
+          document.getElementById('avB').textContent = msg.payload.black_username.charAt(0).toUpperCase();
+        }
         renderBoard(); renderMoves(); renderClocks();
-        if (st.live) setStatus('Move ' + g.MoveNumber + ' · ' + nameOf(st.turn) + ' to move');
+        if (st.live) setStatus('<b>' + esc(nameOf(st.turn)) + '</b>&nbsp;to move', 'Move ' + g.MoveNumber);
         tries = 0;
       }
 
@@ -270,6 +343,7 @@
         if (mv.move && pos) {
           pos = applyMove(pos, mv.move);
           moves.push(mv.move);
+          lastMv = [mv.move.slice(0, 2), mv.move.slice(2, 4)];
           renderBoard(); renderMoves();
         }
         st.wMs = mv.white_time_remaining_ms; st.bMs = mv.black_time_remaining_ms;
@@ -278,14 +352,14 @@
         if (mv.is_checkmate) gameOver('checkmate', mv.winner || (mv.current_player === 'w' ? 'b' : 'w'));
         else if (mv.is_stalemate) gameOver('stalemate', '');
         else if (mv.end_reason) gameOver(mv.end_reason, mv.winner || '');
-        else setStatus('Move ' + moves.length + ' · ' + nameOf(st.turn) + ' to move');
+        else setStatus('<b>' + esc(nameOf(st.turn)) + '</b>&nbsp;to move' + (mv.in_check ? ' · check!' : ''), 'Move ' + moves.length);
       }
     };
 
     ws.onclose = function () {
       if (!st.live) return;
       if (tries++ < 6) setTimeout(connect, Math.min(1000 * Math.pow(2, tries), 15000));
-      else setStatus('Connection lost — reload to keep watching');
+      else setStatus('Connection lost — reload to keep watching', null);
     };
   }
   connect();

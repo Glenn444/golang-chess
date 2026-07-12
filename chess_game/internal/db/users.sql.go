@@ -158,6 +158,16 @@ func (q *Queries) DeleteUser(ctx context.Context, id pgtype.UUID) error {
 	return err
 }
 
+const deleteUserAvatar = `-- name: DeleteUserAvatar :exec
+DELETE FROM user_avatars
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteUserAvatar(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteUserAvatar, userID)
+	return err
+}
+
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 SELECT id, user_id, refresh_token, user_agent, client_ip, is_revoked, expires_at, created_at FROM sessions
 WHERE refresh_token = $1
@@ -177,6 +187,23 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 		&i.ExpiresAt,
 		&i.CreatedAt,
 	)
+	return i, err
+}
+
+const getUserAvatar = `-- name: GetUserAvatar :one
+SELECT image, updated_at FROM user_avatars
+WHERE user_id = $1
+`
+
+type GetUserAvatarRow struct {
+	Image     []byte             `json:"image"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetUserAvatar(ctx context.Context, userID pgtype.UUID) (GetUserAvatarRow, error) {
+	row := q.db.QueryRow(ctx, getUserAvatar, userID)
+	var i GetUserAvatarRow
+	err := row.Scan(&i.Image, &i.UpdatedAt)
 	return i, err
 }
 
@@ -345,6 +372,23 @@ type UpdateUserRatingParams struct {
 
 func (q *Queries) UpdateUserRating(ctx context.Context, arg UpdateUserRatingParams) error {
 	_, err := q.db.Exec(ctx, updateUserRating, arg.ID, arg.Rating)
+	return err
+}
+
+const upsertUserAvatar = `-- name: UpsertUserAvatar :exec
+INSERT INTO user_avatars (user_id, image, updated_at)
+VALUES ($1, $2, NOW())
+ON CONFLICT (user_id) DO UPDATE
+SET image = EXCLUDED.image, updated_at = NOW()
+`
+
+type UpsertUserAvatarParams struct {
+	UserID pgtype.UUID `json:"user_id"`
+	Image  []byte      `json:"image"`
+}
+
+func (q *Queries) UpsertUserAvatar(ctx context.Context, arg UpsertUserAvatarParams) error {
+	_, err := q.db.Exec(ctx, upsertUserAvatar, arg.UserID, arg.Image)
 	return err
 }
 

@@ -36,9 +36,9 @@ type sharePageMeta struct {
 }
 
 type boardCellView struct {
-	Glyph string
-	Light bool
-	White bool
+	Code      string // lichess piece code, e.g. "wK" — empty for empty squares
+	Light     bool
+	Highlight bool // part of the last move
 }
 
 type inviteView struct {
@@ -59,11 +59,13 @@ type spectateView struct {
 	Live       bool
 	Waiting    bool
 	Finished   bool
-	StatusPill string
-	ResultText string
-	WhiteName  string
-	BlackName  string
-	MoveCount  int32
+	StatusPill   string
+	ResultText   string
+	WhiteName    string
+	BlackName    string
+	WhiteInitial string
+	BlackInitial string
+	MoveCount    int32
 	TimeLabel  string
 	WhiteClock string
 	BlackClock string
@@ -225,6 +227,7 @@ func (server *Server) spectatePage(ctx *gin.Context) {
 
 	timeLabel := shareTimeLabel(game.WhiteTimeRemainingMs, game.BlackTimeRemainingMs)
 	title, desc := spectateMeta(game, whiteName, blackName, timeLabel)
+	hlFrom, hlTo := lastMoveSquares(snap.StockfishGame)
 
 	v := spectateView{
 		Meta: sharePageMeta{
@@ -242,10 +245,12 @@ func (server *Server) spectatePage(ctx *gin.Context) {
 		BlackName:  blackName,
 		MoveCount:  game.MoveCount,
 		TimeLabel:  timeLabel,
-		WhiteClock: shareClock(game.WhiteTimeRemainingMs, game.BlackTimeRemainingMs, game.WhiteTimeRemainingMs),
-		BlackClock: shareClock(game.WhiteTimeRemainingMs, game.BlackTimeRemainingMs, game.BlackTimeRemainingMs),
-		Board:      boardCells(snap.Board),
-		HomeURL:    base,
+		WhiteClock:   shareClock(game.WhiteTimeRemainingMs, game.BlackTimeRemainingMs, game.WhiteTimeRemainingMs),
+		BlackClock:   shareClock(game.WhiteTimeRemainingMs, game.BlackTimeRemainingMs, game.BlackTimeRemainingMs),
+		WhiteInitial: nameInitial(whiteName),
+		BlackInitial: nameInitial(blackName),
+		Board:        boardCells(snap.Board, hlFrom, hlTo),
+		HomeURL:      base,
 	}
 	if finished {
 		v.ResultText = gameResultText(game, whiteName, blackName)
@@ -344,18 +349,44 @@ var pieceGlyphs = map[string]string{
 	"K": "♚", "Q": "♛", "R": "♜", "B": "♝", "N": "♞", "P": "♟",
 }
 
+func nameInitial(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "?"
+	}
+	return strings.ToUpper(name[:1])
+}
+
+// lastMoveSquares returns the from/to squares of the last UCI move, for the
+// board highlight ("" when no moves have been played).
+func lastMoveSquares(uciMoves []string) (from, to string) {
+	if len(uciMoves) == 0 {
+		return "", ""
+	}
+	last := uciMoves[len(uciMoves)-1]
+	if len(last) < 4 {
+		return "", ""
+	}
+	return last[0:2], last[2:4]
+}
+
+var boardFiles = [8]string{"a", "b", "c", "d", "e", "f", "g", "h"}
+
 // boardCells converts the engine board (row 0 = rank 1) into display rows
-// from White's perspective (rank 8 first). Both colors use the filled glyph
-// set; CSS colors them.
-func boardCells(b [][]pieces.Square) [][]boardCellView {
+// from White's perspective (rank 8 first), using lichess piece codes so the
+// page renders the exact same SVG set as the app.
+func boardCells(b [][]pieces.Square, hlFrom, hlTo string) [][]boardCellView {
 	rows := make([][]boardCellView, 0, 8)
 	for r := 7; r >= 0; r-- {
 		row := make([]boardCellView, 0, 8)
 		for f := 0; f < 8; f++ {
-			cell := boardCellView{Light: (r+f)%2 == 1}
+			sq := boardFiles[f] + string(rune('1'+r))
+			cell := boardCellView{
+				Light:     (r+f)%2 == 1,
+				Highlight: sq != "" && (sq == hlFrom || sq == hlTo),
+			}
 			if r < len(b) && f < len(b[r]) && b[r][f].Occupied && b[r][f].Piece != nil {
-				cell.Glyph = pieceGlyphs[strings.ToUpper(b[r][f].Piece.GetPieceType())]
-				cell.White = b[r][f].Piece.GetColor() == "w"
+				cell.Code = b[r][f].Piece.GetColor() + strings.ToUpper(b[r][f].Piece.GetPieceType())
 			}
 			row = append(row, cell)
 		}

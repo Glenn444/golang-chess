@@ -363,6 +363,20 @@ func (mr *MockStoreMockRecorder) DeleteUser(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockStore)(nil).DeleteUser), ctx, id)
 }
 
+// DeleteUserAvatar mocks base method.
+func (m *MockStore) DeleteUserAvatar(ctx context.Context, userID pgtype.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUserAvatar", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUserAvatar indicates an expected call of DeleteUserAvatar.
+func (mr *MockStoreMockRecorder) DeleteUserAvatar(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserAvatar", reflect.TypeOf((*MockStore)(nil).DeleteUserAvatar), ctx, userID)
+}
+
 // EndVoiceSession mocks base method.
 func (m *MockStore) EndVoiceSession(ctx context.Context, id pgtype.UUID) (db.VoiceSession, error) {
 	m.ctrl.T.Helper()
@@ -541,6 +555,21 @@ func (m *MockStore) GetSessionByRefreshToken(ctx context.Context, refreshToken s
 func (mr *MockStoreMockRecorder) GetSessionByRefreshToken(ctx, refreshToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionByRefreshToken", reflect.TypeOf((*MockStore)(nil).GetSessionByRefreshToken), ctx, refreshToken)
+}
+
+// GetUserAvatar mocks base method.
+func (m *MockStore) GetUserAvatar(ctx context.Context, userID pgtype.UUID) (db.GetUserAvatarRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserAvatar", ctx, userID)
+	ret0, _ := ret[0].(db.GetUserAvatarRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserAvatar indicates an expected call of GetUserAvatar.
+func (mr *MockStoreMockRecorder) GetUserAvatar(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserAvatar", reflect.TypeOf((*MockStore)(nil).GetUserAvatar), ctx, userID)
 }
 
 // GetUserByEmail mocks base method.
@@ -864,6 +893,20 @@ func (m *MockStore) UpdateUserRating(ctx context.Context, arg db.UpdateUserRatin
 func (mr *MockStoreMockRecorder) UpdateUserRating(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserRating", reflect.TypeOf((*MockStore)(nil).UpdateUserRating), ctx, arg)
+}
+
+// UpsertUserAvatar mocks base method.
+func (m *MockStore) UpsertUserAvatar(ctx context.Context, arg db.UpsertUserAvatarParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertUserAvatar", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpsertUserAvatar indicates an expected call of UpsertUserAvatar.
+func (mr *MockStoreMockRecorder) UpsertUserAvatar(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertUserAvatar", reflect.TypeOf((*MockStore)(nil).UpsertUserAvatar), ctx, arg)
 }
 
 // UsernameExists mocks base method.

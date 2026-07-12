@@ -94,3 +94,17 @@ WHERE expires_at < NOW();
 UPDATE users
 SET rating = $2, updated_at = NOW()
 WHERE id = $1;
+
+-- name: UpsertUserAvatar :exec
+INSERT INTO user_avatars (user_id, image, updated_at)
+VALUES ($1, $2, NOW())
+ON CONFLICT (user_id) DO UPDATE
+SET image = EXCLUDED.image, updated_at = NOW();
+
+-- name: GetUserAvatar :one
+SELECT image, updated_at FROM user_avatars
+WHERE user_id = $1;
+
+-- name: DeleteUserAvatar :exec
+DELETE FROM user_avatars
+WHERE user_id = $1;

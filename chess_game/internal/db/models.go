@@ -229,6 +229,12 @@ type User struct {
 	Rating            int32              `json:"rating"`
 }
 
+type UserAvatar struct {
+	UserID    pgtype.UUID        `json:"user_id"`
+	Image     []byte             `json:"image"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type VoiceSession struct {
 	ID          pgtype.UUID        `json:"id"`
 	GameID      pgtype.UUID        `json:"game_id"`

@@ -199,6 +199,11 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	// ── Protected (Bearer JWT + rate-limited) ─────────────────────────────────
 	authUsers := router.Group("/users").Use(authMiddleware(server.tokenMaker), authLimiter)
 	authUsers.GET("/me", server.getMe)
+	authUsers.POST("/me/avatar", server.uploadAvatar)
+	authUsers.DELETE("/me/avatar", server.deleteAvatar)
+
+	// Public — avatars show on player cards and spectator pages.
+	router.GET("/users/:id/avatar", server.getAvatar)
 
 	// Public — no auth required, just returns visible games.
 	router.GET("/games/public", server.listPublicGames)

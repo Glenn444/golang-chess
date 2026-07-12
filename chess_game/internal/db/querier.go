@@ -35,6 +35,7 @@ type Querier interface {
 	DeleteMovesByGameID(ctx context.Context, gameID pgtype.UUID) error
 	DeletePushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) error
 	DeleteUser(ctx context.Context, id pgtype.UUID) error
+	DeleteUserAvatar(ctx context.Context, userID pgtype.UUID) error
 	EndVoiceSession(ctx context.Context, id pgtype.UUID) (VoiceSession, error)
 	GetActiveGamesByUser(ctx context.Context, whitePlayerID pgtype.UUID) ([]Game, error)
 	GetActiveVoiceSessionByGameID(ctx context.Context, gameID pgtype.UUID) (VoiceSession, error)
@@ -47,6 +48,7 @@ type Querier interface {
 	GetPushSubscriptionByUser(ctx context.Context, userID pgtype.UUID) (GetPushSubscriptionByUserRow, error)
 	GetPushSubscriptionExists(ctx context.Context, userID pgtype.UUID) (pgtype.UUID, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
+	GetUserAvatar(ctx context.Context, userID pgtype.UUID) (GetUserAvatarRow, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
@@ -73,6 +75,7 @@ type Querier interface {
 	UpdateLastLogin(ctx context.Context, id pgtype.UUID) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserRating(ctx context.Context, arg UpdateUserRatingParams) error
+	UpsertUserAvatar(ctx context.Context, arg UpsertUserAvatarParams) error
 	UsernameExists(ctx context.Context, username string) (bool, error)
 }
 

@@ -78,7 +78,7 @@ func TestSpectatePage(t *testing.T) {
 		require.Equal(t, http.StatusOK, rec.Code)
 		body := rec.Body.String()
 		require.Contains(t, body, "LIVE")
-		require.Contains(t, body, "♜") // rendered pieces
+		require.Contains(t, body, "cburnett/bR.svg") // rendered pieces (app's SVG set)
 		require.Contains(t, body, "spectate=1")
 		require.Contains(t, body, `property="og:image"`)
 		// 64 server-rendered squares (the live-update script contains the same

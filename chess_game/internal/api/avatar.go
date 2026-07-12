@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -24,6 +25,13 @@ const (
 	avatarMaxUpload = 5 << 20 // 5MB raw upload cap
 	avatarSize      = 256     // stored as a 256×256 JPEG
 	avatarJPEGQual  = 85
+
+	// Decode-bomb guard: decoders allocate based on header-CLAIMED dimensions,
+	// so a tiny file claiming 50000×50000 would try to allocate gigabytes. The
+	// byte-size cap does not protect against this — dimensions are checked via
+	// DecodeConfig (header only) before any pixel decode.
+	avatarMaxDim    = 10_000
+	avatarMaxPixels = 24_000_000 // 24MP — covers any phone/DSLR export
 )
 
 // @Summary      Upload profile picture
@@ -52,7 +60,27 @@ func (server *Server) uploadAvatar(ctx *gin.Context) {
 	}
 	defer file.Close()
 
-	src, _, err := image.Decode(file)
+	data, err := io.ReadAll(io.LimitReader(file, avatarMaxUpload+1))
+	if err != nil || len(data) > avatarMaxUpload {
+		ctx.JSON(http.StatusBadRequest, errorMessage("image too large (max 5MB)"))
+		return
+	}
+
+	// Header-only parse first: reject absurd claimed dimensions before the
+	// real decoder allocates pixel buffers for them.
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorMessage("unsupported image — use JPEG, PNG, GIF or WebP"))
+		return
+	}
+	if cfg.Width <= 0 || cfg.Height <= 0 ||
+		cfg.Width > avatarMaxDim || cfg.Height > avatarMaxDim ||
+		cfg.Width*cfg.Height > avatarMaxPixels {
+		ctx.JSON(http.StatusBadRequest, errorMessage("image dimensions too large (max 24 megapixels)"))
+		return
+	}
+
+	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorMessage("unsupported image — use JPEG, PNG, GIF or WebP"))
 		return

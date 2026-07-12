@@ -329,6 +329,66 @@ func (q *Queries) JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams
 	return i, err
 }
 
+const listLiveGames = `-- name: ListLiveGames :many
+SELECT g.id, g.move_count, g.current_player,
+       g.white_time_remaining_ms, g.black_time_remaining_ms,
+       g.created_at, g.updated_at,
+       wu.username AS white_username, wu.rating AS white_rating,
+       bu.username AS black_username, bu.rating AS black_rating
+FROM games g
+JOIN users wu ON wu.id = g.white_player_id
+JOIN users bu ON bu.id = g.black_player_id
+WHERE g.state = 'active' AND g.visibility = 'public' AND g.opponent = 'person'
+ORDER BY g.updated_at DESC
+LIMIT 50
+`
+
+type ListLiveGamesRow struct {
+	ID                   pgtype.UUID        `json:"id"`
+	MoveCount            int32              `json:"move_count"`
+	CurrentPlayer        PlayerColor        `json:"current_player"`
+	WhiteTimeRemainingMs int64              `json:"white_time_remaining_ms"`
+	BlackTimeRemainingMs int64              `json:"black_time_remaining_ms"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	WhiteUsername        string             `json:"white_username"`
+	WhiteRating          int32              `json:"white_rating"`
+	BlackUsername        string             `json:"black_username"`
+	BlackRating          int32              `json:"black_rating"`
+}
+
+func (q *Queries) ListLiveGames(ctx context.Context) ([]ListLiveGamesRow, error) {
+	rows, err := q.db.Query(ctx, listLiveGames)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLiveGamesRow{}
+	for rows.Next() {
+		var i ListLiveGamesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.MoveCount,
+			&i.CurrentPlayer,
+			&i.WhiteTimeRemainingMs,
+			&i.BlackTimeRemainingMs,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.WhiteUsername,
+			&i.WhiteRating,
+			&i.BlackUsername,
+			&i.BlackRating,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listPublicGames = `-- name: ListPublicGames :many
 SELECT id, white_player_id, black_player_id, state, in_check, current_player, move_count, created_at, updated_at, board_state, white_time_remaining_ms, black_time_remaining_ms, last_move_at, ended_by_player_id, end_reason, visibility, opponent, stockfish_level FROM games
 WHERE state = 'waiting' AND visibility = 'public' AND opponent = 'person'

@@ -202,6 +202,7 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 
 	// Public — no auth required, just returns visible games.
 	router.GET("/games/public", server.listPublicGames)
+	router.GET("/games/live", server.listLiveGames)
 
 	authGames := router.Group("/games").Use(authMiddleware(server.tokenMaker), authLimiter)
 	authGames.POST("", server.createGame)
@@ -234,6 +235,14 @@ func NewServer(cfg config.Config, store db.Store) (*Server, error) {
 	// No token in query string — client sends an "auth" message as the first
 	// frame after upgrading. Game room is selected via ?game_id=<uuid>.
 	router.GET("/ws", server.handleWebSocket)
+
+	// ── Share pages (server-rendered — link scrapers don't run JS) ───────────
+	// Served on the apex domain via nginx path routing: chesske.com/invite/…,
+	// chesske.com/game/… (live spectator page) and the og:image cards.
+	router.GET("/invite/:id", server.invitePage)
+	router.GET("/game/:id", server.spectatePage)
+	router.GET("/og/invite/:id", server.ogInviteCard)
+	router.GET("/og/game/:id", server.ogGameCard)
 
 	server.router = router
 	server.ready.Store(true)

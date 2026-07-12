@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game not found — Chesske</title>
+<meta property="og:site_name" content="Chesske">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Chesske — play chess online">
+<meta property="og:description" content="This game doesn't exist anymore, but a fresh board is one click away. Play chess online with voice and chat.">
+<meta name="description" content="This game doesn't exist anymore. Play chess online on Chesske.">
+<meta name="robots" content="noindex">
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0E0F13; color: #E8E6E1; min-height: 100dvh;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  a { color: inherit; text-decoration: none; }
+  .top { width: 100%; max-width: 720px; display: flex; align-items: center; gap: 10px; padding: 20px 24px; }
+  .knight { color: #E5A93B; font-size: 26px; line-height: 1; }
+  .brand { font-weight: 700; font-size: 18px; }
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; width: 100%; }
+  .card {
+    background: #1E2129; border: 1px solid #2E323D; border-radius: 20px;
+    padding: 44px 32px; max-width: 440px; width: 100%; text-align: center;
+  }
+  .big { font-size: 52px; margin-bottom: 14px; }
+  h1 { font-size: 24px; margin-bottom: 10px; }
+  p { color: #A5A29B; font-size: 15px; line-height: 1.55; margin-bottom: 26px; }
+  .cta {
+    display: block; background: #E5A93B; color: #17130A; font-weight: 700; font-size: 16px;
+    border-radius: 14px; padding: 15px 24px;
+  }
+  footer { color: #6B6963; font-size: 13px; padding: 20px; }
+</style>
+</head>
+<body>
+  <div class="top"><span class="knight">&#9822;</span><a class="brand" href="{{.HomeURL}}">Chesske</a></div>
+  <main>
+    <div class="card">
+      <div class="big">&#9823;</div>
+      <h1>This game doesn't exist</h1>
+      <p>The link may be wrong, or the game was deleted. Either way — the pieces are already set up for a new one.</p>
+      <a class="cta" href="{{.HomeURL}}">Play on Chesske</a>
+    </div>
+  </main>
+  <footer>Chesske — play chess online with voice &amp; chat</footer>
+</body>
+</html>

@@ -55,6 +55,19 @@ WHERE id = $1
   AND white_player_id IS NULL
 RETURNING *;
 
+-- name: ListLiveGames :many
+SELECT g.id, g.move_count, g.current_player,
+       g.white_time_remaining_ms, g.black_time_remaining_ms,
+       g.created_at, g.updated_at,
+       wu.username AS white_username, wu.rating AS white_rating,
+       bu.username AS black_username, bu.rating AS black_rating
+FROM games g
+JOIN users wu ON wu.id = g.white_player_id
+JOIN users bu ON bu.id = g.black_player_id
+WHERE g.state = 'active' AND g.visibility = 'public' AND g.opponent = 'person'
+ORDER BY g.updated_at DESC
+LIMIT 50;
+
 -- name: UpdateGameState :one
 UPDATE games
 SET

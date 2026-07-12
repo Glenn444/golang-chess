@@ -61,6 +61,7 @@ type Querier interface {
 	InvalidateUserOTPs(ctx context.Context, arg InvalidateUserOTPsParams) error
 	JoinGameAsBlack(ctx context.Context, arg JoinGameAsBlackParams) (Game, error)
 	JoinGameAsWhite(ctx context.Context, arg JoinGameAsWhiteParams) (Game, error)
+	ListLiveGames(ctx context.Context) ([]ListLiveGamesRow, error)
 	ListPublicGames(ctx context.Context) ([]Game, error)
 	ListWaitingGames(ctx context.Context) ([]Game, error)
 	// Call this immediately after a successful match to prevent replay.

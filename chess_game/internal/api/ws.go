@@ -23,6 +23,7 @@ const (
 	wsKeyGameID        = "ws_game_id"
 	wsKeyPlayerColor   = "ws_player_color"
 	wsKeyAuthenticated = "ws_authenticated"
+	wsKeySpectator     = "ws_spectator"
 
 	// WebSocket keepalive
 	pingInterval = 30 * time.Second
@@ -80,7 +81,9 @@ func (server *Server) setupMelody() {
 
 // handleWebSocket upgrades to WebSocket. No auth token in query string —
 // the client authenticates by sending an "auth" message as the first frame.
-// Only ?game_id=<uuid> is required.
+// Only ?game_id=<uuid> is required. With ?spectate=1 the socket becomes a
+// read-only spectator: no auth needed, but only public person-vs-person
+// games can be watched, and the session receives moves — never chat/voice.
 func (server *Server) handleWebSocket(ctx *gin.Context) {
 	parsed, err := uuid.Parse(ctx.Query("game_id"))
 	if err != nil {
@@ -88,9 +91,16 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 		return
 	}
 	gameID := pgtype.UUID{Bytes: parsed, Valid: true}
+	spectate := ctx.Query("spectate") == "1"
 
 	// Verify the game exists before upgrading.
-	if _, err := server.store.GetGameByID(ctx, gameID); err != nil {
+	game, err := server.store.GetGameByID(ctx, gameID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, errorMessage(ErrGameNotFound))
+		return
+	}
+	// Private games answer 404 to spectators so their existence isn't leaked.
+	if spectate && game.Visibility != "public" {
 		ctx.JSON(http.StatusNotFound, errorMessage(ErrGameNotFound))
 		return
 	}
@@ -98,6 +108,7 @@ func (server *Server) handleWebSocket(ctx *gin.Context) {
 	if err := server.melody.HandleRequestWithKeys(ctx.Writer, ctx.Request, map[string]any{
 		wsKeyGameID:        gameID,
 		wsKeyAuthenticated: false,
+		wsKeySpectator:     spectate,
 	}); err != nil {
 		slog.Error("ws: upgrade failed", "err", err)
 	}
@@ -121,6 +132,18 @@ func (server *Server) wsOnConnect(s *melody.Session) {
 		slog.Info("ws: connected", "username", u.Username)
 		// The engine may be on turn (user plays black, or reconnect mid-turn).
 		server.maybeTriggerEngine(gameID, gs)
+		return
+	}
+
+	if wsIsSpectator(s) {
+		gameID := wsGameID(s)
+		if _, err := server.getOrRestoreGame(s.Request.Context(), gameID); err != nil {
+			slog.Error("ws: failed to load game for spectator", "game_id", gameID, "err", err)
+			s.CloseWithMsg(melody.FormatCloseMessage(1011, "failed to load game"))
+			return
+		}
+		server.sendGameStateSpectator(s, gameID)
+		slog.Info("ws: spectator connected", "game_id", uidStr(gameID))
 		return
 	}
 
@@ -184,6 +207,12 @@ func (server *Server) wsOnMessage(s *melody.Session, raw []byte) {
 
 	// Pong responses just reset the keepalive — no further processing.
 	if event.Type == EventPong {
+		return
+	}
+
+	// Spectators are read-only.
+	if wsIsSpectator(s) {
+		wsWriteError(s, "spectators cannot send events")
 		return
 	}
 
@@ -342,6 +371,9 @@ type MoveResult struct {
 	IsStalemate           bool   `json:"is_stalemate"`
 	EndReason             string `json:"end_reason"`
 	EndedByPlayerID       string `json:"ended_by_player_id"`
+	// Winner color ("w"/"b", "" for draws) — set only when the game ends, so
+	// spectators (who don't know player IDs) can attribute the result.
+	Winner                string `json:"winner,omitempty"`
 	WhiteTimeRemainingMs  int64  `json:"white_time_remaining_ms"`
 	BlackTimeRemainingMs  int64  `json:"black_time_remaining_ms"`
 }
@@ -384,7 +416,7 @@ func (server *Server) wsHandleMove(s *melody.Session, gameID pgtype.UUID, payloa
 	}
 
 	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
-	server.wsBroadcastToGame(gameID, out)
+	server.wsBroadcastToWatchers(gameID, out)
 
 	if gameOver {
 		server.finishGame(context.Background(), gameID, winner)
@@ -500,6 +532,7 @@ func (server *Server) applyMoveLocked(ctx context.Context, gameID pgtype.UUID, g
 		IsStalemate:          isStalemate,
 		EndReason:            endReason,
 		EndedByPlayerID:      uidStr(moverID),
+		Winner:               winner,
 		WhiteTimeRemainingMs: gamestate.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: gamestate.BlackTimeRemainingMs,
 	}
@@ -549,7 +582,7 @@ func (server *Server) maybeTriggerEngine(gameID pgtype.UUID, gamestate *pieces.G
 			return
 		}
 
-		server.wsBroadcastToGame(gameID, mustMarshalEvent(EventMakeMove, result))
+		server.wsBroadcastToWatchers(gameID, mustMarshalEvent(EventMakeMove, result))
 		if gameOver {
 			server.finishGame(context.Background(), gameID, winner)
 		}
@@ -690,11 +723,44 @@ func (server *Server) wsUserInGame(userID pgtype.UUID, gameID pgtype.UUID) bool 
 }
 
 // wsBroadcastToGame sends a message to all authenticated sessions in the game
-// room. Unauthenticated sockets must not see game traffic.
+// room. Unauthenticated sockets must not see game traffic. Chat, voice and
+// presence stay on this channel — spectators never receive them.
 func (server *Server) wsBroadcastToGame(gameID pgtype.UUID, msg []byte) {
 	server.melody.BroadcastFilter(msg, func(s *melody.Session) bool {
 		return wsIsAuthenticated(s) && uuidEq(wsGameID(s), gameID)
 	})
+}
+
+// wsBroadcastToWatchers sends a message to players AND spectators of a game.
+// Only board-state traffic (moves, game endings) belongs here.
+func (server *Server) wsBroadcastToWatchers(gameID pgtype.UUID, msg []byte) {
+	server.melody.BroadcastFilter(msg, func(s *melody.Session) bool {
+		return (wsIsAuthenticated(s) || wsIsSpectator(s)) && uuidEq(wsGameID(s), gameID)
+	})
+}
+
+// sendGameStateSpectator sends the current game state with both player names
+// to a spectator session. No opponent/user context applies.
+func (server *Server) sendGameStateSpectator(s *melody.Session, gameID pgtype.UUID) {
+	server.activeGamesMu.RLock()
+	gs, ok := server.activeGames[gameID]
+	server.activeGamesMu.RUnlock()
+	if !ok || gs == nil {
+		wsWriteError(s, "game state not available")
+		return
+	}
+
+	payload := GameStatePayload{Game: gs}
+	if game, err := server.store.GetGameByID(s.Request.Context(), gameID); err == nil {
+		payload.WhiteUsername = server.lookupUsername(s.Request.Context(), game.WhitePlayerID)
+		payload.BlackUsername = server.lookupUsername(s.Request.Context(), game.BlackPlayerID)
+	}
+
+	gs.GameStateMu.RLock()
+	raw := wsMarshal(payload)
+	gs.GameStateMu.RUnlock()
+	out, _ := json.Marshal(WSEvent{Type: "game_state", Payload: raw})
+	s.Write(out)
 }
 
 // sendGameState builds the game_state payload with opponent info and sends it
@@ -767,6 +833,15 @@ func wsIsAuthenticated(s *melody.Session) bool {
 	}
 	auth, _ := v.(bool)
 	return auth
+}
+
+func wsIsSpectator(s *melody.Session) bool {
+	v, exists := s.Get(wsKeySpectator)
+	if !exists {
+		return false
+	}
+	spec, _ := v.(bool)
+	return spec
 }
 
 func wsWriteError(s *melody.Session, msg string) {
@@ -890,9 +965,14 @@ func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
 		EndReason:            "timeout",
 		LastMoveAt:           pgtype.Timestamptz{Time: gs.LastMoveAt, Valid: true},
 	}
+	winner := "w"
+	if timedOutColor == "w" {
+		winner = "b"
+	}
 	result := MoveResult{
 		CurrentPlayer:        gs.CurrentPlayer,
 		EndReason:            "timeout",
+		Winner:               winner,
 		WhiteTimeRemainingMs: gs.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: gs.BlackTimeRemainingMs,
 	}
@@ -904,13 +984,9 @@ func (server *Server) handleTimeout(gameID pgtype.UUID, timedOutColor string) {
 	}
 
 	out, _ := json.Marshal(WSEvent{Type: EventMakeMove, Payload: wsMarshal(result)})
-	server.wsBroadcastToGame(gameID, out)
+	server.wsBroadcastToWatchers(gameID, out)
 	slog.Info("handleTimeout: game ended by clock", "game_id", uidStr(gameID), "timed_out_color", timedOutColor)
 
-	winner := "w"
-	if timedOutColor == "w" {
-		winner = "b"
-	}
 	server.finishGame(ctx, gameID, winner)
 }
 

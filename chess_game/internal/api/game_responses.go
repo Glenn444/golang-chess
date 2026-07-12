@@ -41,6 +41,8 @@ type GameMoveResponse struct {
 type GameStatePayload struct {
 	Game             *pieces.GameState `json:"game"`
 	OpponentUsername string            `json:"opponent_username"`
+	WhiteUsername    string            `json:"white_username,omitempty"`
+	BlackUsername    string            `json:"black_username,omitempty"`
 }
 
 // ── Mappers ────────────────────────────────────────────────────────

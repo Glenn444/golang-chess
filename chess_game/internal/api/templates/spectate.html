@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Meta.Title}}</title>
+<link rel="canonical" href="{{.Meta.PageURL}}">
+<meta property="og:site_name" content="Chesske">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{.Meta.Title}}">
+<meta property="og:description" content="{{.Meta.Description}}">
+<meta property="og:image" content="{{.Meta.ImageURL}}">
+<meta property="og:url" content="{{.Meta.PageURL}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{.Meta.Title}}">
+<meta name="twitter:description" content="{{.Meta.Description}}">
+<meta name="twitter:image" content="{{.Meta.ImageURL}}">
+<meta name="description" content="{{.Meta.Description}}">
+{{if .Meta.NoIndex}}<meta name="robots" content="noindex">{{end}}
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0E0F13; color: #E8E6E1; min-height: 100dvh;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  a { color: inherit; text-decoration: none; }
+  .top {
+    width: 100%; max-width: 900px; display: flex; align-items: center; gap: 10px;
+    padding: 16px 20px;
+  }
+  .knight { color: #E5A93B; font-size: 26px; line-height: 1; }
+  .brand { font-weight: 700; font-size: 18px; }
+  .top .pill { margin-left: auto; }
+  .pill {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.3px;
+    padding: 5px 12px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.live { background: rgba(210,106,106,0.14); color: #D26A6A; border: 1px solid rgba(210,106,106,0.4); }
+  .pill.live::before { content: "●"; margin-right: 6px; animation: blink 1.6s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: 0.25; } }
+  .pill.done { background: rgba(107,105,99,0.16); color: #A5A29B; border: 1px solid rgba(107,105,99,0.4); }
+  .pill.wait { background: rgba(229,169,59,0.14); color: #E5A93B; border: 1px solid rgba(229,169,59,0.4); }
+  main {
+    width: 100%; max-width: 900px; padding: 8px 16px 24px;
+    display: grid; grid-template-columns: minmax(0, 560px) 1fr; gap: 20px; justify-content: center;
+  }
+  @media (max-width: 760px) { main { grid-template-columns: minmax(0, 560px); } }
+  .stage { display: flex; flex-direction: column; gap: 10px; }
+  .prow {
+    display: flex; align-items: center; gap: 10px;
+    background: #1E2129; border: 1px solid #2E323D; border-radius: 12px; padding: 10px 14px;
+  }
+  .prow .dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+  .prow .dot.w { background: #F3E9DC; } .prow .dot.b { background: #17181D; }
+  .prow .name { font-weight: 600; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prow .clock {
+    margin-left: auto; font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 19px; padding: 4px 12px; border-radius: 8px;
+    background: #0E0F13; border: 1px solid #2E323D;
+  }
+  .prow.turn { border-color: #E5A93B; box-shadow: 0 0 0 2px rgba(229,169,59,0.15); }
+  .prow.turn .clock { color: #E5A93B; border-color: #E5A93B; }
+  .board {
+    display: grid; grid-template-columns: repeat(8, 1fr); width: 100%;
+    aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden;
+    border: 1px solid #2E323D;
+  }
+  .sq { display: flex; align-items: center; justify-content: center; position: relative; }
+  .sq.l { background: #D9C9A8; } .sq.d { background: #2A2D36; }
+  .sq .pc { font-size: min(7.2vw, 40px); line-height: 1; user-select: none; }
+  .pc.w { color: #F7F0E1; text-shadow: 0 1px 2px rgba(0,0,0,0.55); }
+  .pc.b { color: #15161A; text-shadow: 0 1px 1px rgba(255,255,255,0.12); }
+  .status { text-align: center; color: #A5A29B; font-size: 14px; min-height: 20px; }
+  .banner {
+    display: none; text-align: center; background: rgba(229,169,59,0.1);
+    border: 1px solid rgba(229,169,59,0.4); color: #E5A93B;
+    border-radius: 12px; padding: 12px; font-weight: 600; font-size: 15px;
+  }
+  .banner.show { display: block; }
+  .side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .movebox {
+    background: #1E2129; border: 1px solid #2E323D; border-radius: 12px;
+    padding: 14px; flex: 1; min-height: 120px; max-height: 480px; overflow-y: auto;
+  }
+  .movebox h2 { font-size: 12px; letter-spacing: 1.2px; color: #6B6963; margin-bottom: 10px; }
+  .mvgrid { display: grid; grid-template-columns: 34px 1fr 1fr; gap: 4px 8px; font-size: 13px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .mvgrid .n { color: #6B6963; }
+  .cta {
+    display: block; text-align: center; background: #E5A93B; color: #17130A;
+    font-weight: 700; font-size: 15px; border-radius: 12px; padding: 13px 20px;
+  }
+  footer { color: #6B6963; font-size: 13px; padding: 16px; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <span class="knight">&#9822;</span><a class="brand" href="{{.HomeURL}}">Chesske</a>
+    <span id="pill" class="pill {{if .Live}}live{{else if .Finished}}done{{else}}wait{{end}}">{{.StatusPill}}</span>
+  </div>
+
+  {{if .Locked}}
+  <main style="grid-template-columns: minmax(0,480px);">
+    <div class="stage" style="text-align:center; background:#1E2129; border:1px solid #2E323D; border-radius:20px; padding:40px 28px;">
+      <div style="font-size:44px;">&#128274;</div>
+      <h1 style="font-size:24px;">This game is private</h1>
+      <p style="color:#A5A29B; font-size:15px; line-height:1.5;">Only the two players can see it. But an open board is waiting for you.</p>
+      <a class="cta" href="{{.HomeURL}}" style="margin-top:12px;">Play on Chesske</a>
+    </div>
+  </main>
+  {{else}}
+  <main>
+    <div class="stage">
+      <div id="rowTop" class="prow">
+        <span class="dot b"></span><span id="nameB" class="name">{{if .BlackName}}{{.BlackName}}{{else}}Waiting for opponent…{{end}}</span>
+        <span id="clkB" class="clock">{{.BlackClock}}</span>
+      </div>
+      <div id="board" class="board" aria-label="chess board">
+        {{range .Board}}{{range .}}<div class="sq {{if .Light}}l{{else}}d{{end}}">{{if .Glyph}}<span class="pc {{if .White}}w{{else}}b{{end}}">{{.Glyph}}</span>{{end}}</div>{{end}}{{end}}
+      </div>
+      <div id="rowBot" class="prow">
+        <span class="dot w"></span><span id="nameW" class="name">{{if .WhiteName}}{{.WhiteName}}{{else}}Waiting for opponent…{{end}}</span>
+        <span id="clkW" class="clock">{{.WhiteClock}}</span>
+      </div>
+      <div id="banner" class="banner{{if .ResultText}} show{{end}}">{{.ResultText}}</div>
+      <div id="status" class="status">{{if .Live}}Move {{.MoveCount}} &middot; {{.TimeLabel}}{{else if .Finished}}{{.TimeLabel}} &middot; {{.MoveCount}} moves played{{else}}The game hasn't started yet{{end}}</div>
+    </div>
+    <div class="side">
+      <div class="movebox">
+        <h2>MOVES</h2>
+        <div id="mvgrid" class="mvgrid"></div>
+      </div>
+      <a class="cta" href="{{.HomeURL}}">Play your own game &rarr;</a>
+    </div>
+  </main>
+  {{end}}
+  <footer>You are watching as a spectator &middot; Chesske</footer>
+
+{{if .Live}}
+<script>
+(function () {
+  var GAME_ID = {{.GameID}};
+  var FILES = ['a','b','c','d','e','f','g','h'];
+  var GLYPH = { K:'♚', Q:'♛', R:'♜', B:'♝', N:'♞', P:'♟' };
+
+  var pos = null;              // { e2: {t:'P', c:'l'}, ... }
+  var moves = [];
+  var st = { wMs: 0, bMs: 0, turn: 'w', live: true, lastAt: Date.now(), unlimited: false };
+
+  function flatten(board2d) {
+    var p = {};
+    for (var r = 0; r < 8; r++) for (var f = 0; f < 8; f++) {
+      var cell = board2d[r] && board2d[r][f];
+      if (cell && cell.Occupied && cell.Piece) {
+        p[FILES[f] + (r + 1)] = { t: cell.Piece.PieceType.toUpperCase(), c: cell.Piece.Color === 'w' ? 'l' : 'd' };
+      }
+    }
+    return p;
+  }
+
+  function applyMove(p, mv) {
+    var from = mv.slice(0, 2), to = mv.slice(2, 4);
+    var promo = mv.length > 4 ? mv[4].toUpperCase() : null;
+    var piece = p[from];
+    if (!piece) return p;
+    var n = {}; for (var k in p) n[k] = p[k];
+    delete n[from];
+    if (piece.t === 'K' && from === 'e1' && to === 'g1') { delete n.h1; n.f1 = { t: 'R', c: 'l' }; }
+    if (piece.t === 'K' && from === 'e1' && to === 'c1') { delete n.a1; n.d1 = { t: 'R', c: 'l' }; }
+    if (piece.t === 'K' && from === 'e8' && to === 'g8') { delete n.h8; n.f8 = { t: 'R', c: 'd' }; }
+    if (piece.t === 'K' && from === 'e8' && to === 'c8') { delete n.a8; n.d8 = { t: 'R', c: 'd' }; }
+    if (piece.t === 'P' && from[0] !== to[0] && !p[to]) delete n[to[0] + from[1]];
+    n[to] = promo ? { t: promo, c: piece.c } : piece;
+    return n;
+  }
+
+  function renderBoard() {
+    if (!pos) return;
+    var html = '';
+    for (var r = 7; r >= 0; r--) for (var f = 0; f < 8; f++) {
+      var light = (r + f) % 2 === 1;
+      var piece = pos[FILES[f] + (r + 1)];
+      html += '<div class="sq ' + (light ? 'l' : 'd') + '">';
+      if (piece) html += '<span class="pc ' + (piece.c === 'l' ? 'w' : 'b') + '">' + GLYPH[piece.t] + '</span>';
+      html += '</div>';
+    }
+    document.getElementById('board').innerHTML = html;
+  }
+
+  function renderMoves() {
+    var html = '';
+    for (var i = 0; i < moves.length; i += 2) {
+      html += '<span class="n">' + (i / 2 + 1) + '.</span><span>' + moves[i] + '</span><span>' + (moves[i + 1] || '') + '</span>';
+    }
+    var el = document.getElementById('mvgrid');
+    el.innerHTML = html;
+    el.parentNode.scrollTop = el.parentNode.scrollHeight;
+  }
+
+  function fmt(ms) {
+    if (st.unlimited) return '∞';
+    ms = Math.max(0, ms);
+    var s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+  }
+
+  function renderClocks() {
+    var now = Date.now();
+    var w = st.wMs, b = st.bMs;
+    if (st.live && !st.unlimited) {
+      if (st.turn === 'w') w -= now - st.lastAt; else b -= now - st.lastAt;
+    }
+    document.getElementById('clkW').textContent = fmt(w);
+    document.getElementById('clkB').textContent = fmt(b);
+    document.getElementById('rowBot').className = 'prow' + (st.live && st.turn === 'w' ? ' turn' : '');
+    document.getElementById('rowTop').className = 'prow' + (st.live && st.turn === 'b' ? ' turn' : '');
+  }
+  setInterval(renderClocks, 300);
+
+  function setStatus(text) { document.getElementById('status').textContent = text; }
+
+  function nameOf(color) {
+    return document.getElementById(color === 'w' ? 'nameW' : 'nameB').textContent;
+  }
+
+  function gameOver(reason, winner) {
+    st.live = false;
+    var pill = document.getElementById('pill');
+    pill.className = 'pill done'; pill.textContent = 'FINISHED';
+    var text;
+    if (reason === 'checkmate') text = 'Checkmate — ' + nameOf(winner) + ' wins';
+    else if (reason === 'timeout') text = nameOf(winner) + ' wins on time';
+    else if (reason === 'resign') text = nameOf(winner) + ' wins by resignation';
+    else if (reason === 'stalemate') text = 'Draw by stalemate';
+    else text = 'Game over';
+    var banner = document.getElementById('banner');
+    banner.textContent = text; banner.className = 'banner show';
+    setStatus(moves.length + ' moves played');
+  }
+
+  var tries = 0;
+  function connect() {
+    var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    var ws = new WebSocket(proto + '://' + location.host + '/ws?game_id=' + GAME_ID + '&spectate=1');
+
+    ws.onmessage = function (e) {
+      var msg;
+      try { msg = JSON.parse(e.data); } catch (_) { return; }
+      if (msg.type === 'ping') { ws.send(JSON.stringify({ type: 'pong' })); return; }
+
+      if (msg.type === 'game_state' && msg.payload && msg.payload.game) {
+        var g = msg.payload.game;
+        pos = flatten(g.Board);
+        moves = (g.StockfishGame || []).slice();
+        st.wMs = g.WhiteTimeRemainingMs; st.bMs = g.BlackTimeRemainingMs;
+        st.unlimited = g.WhiteTimeRemainingMs === 0 && g.BlackTimeRemainingMs === 0;
+        st.turn = g.CurrentPlayer; st.lastAt = Date.now();
+        if (msg.payload.white_username) document.getElementById('nameW').textContent = msg.payload.white_username;
+        if (msg.payload.black_username) document.getElementById('nameB').textContent = msg.payload.black_username;
+        renderBoard(); renderMoves(); renderClocks();
+        if (st.live) setStatus('Move ' + g.MoveNumber + ' · ' + nameOf(st.turn) + ' to move');
+        tries = 0;
+      }
+
+      if (msg.type === 'make_move' && msg.payload) {
+        var mv = msg.payload;
+        if (mv.move && pos) {
+          pos = applyMove(pos, mv.move);
+          moves.push(mv.move);
+          renderBoard(); renderMoves();
+        }
+        st.wMs = mv.white_time_remaining_ms; st.bMs = mv.black_time_remaining_ms;
+        st.turn = mv.current_player; st.lastAt = Date.now();
+        renderClocks();
+        if (mv.is_checkmate) gameOver('checkmate', mv.winner || (mv.current_player === 'w' ? 'b' : 'w'));
+        else if (mv.is_stalemate) gameOver('stalemate', '');
+        else if (mv.end_reason) gameOver(mv.end_reason, mv.winner || '');
+        else setStatus('Move ' + moves.length + ' · ' + nameOf(st.turn) + ' to move');
+      }
+    };
+
+    ws.onclose = function () {
+      if (!st.live) return;
+      if (tries++ < 6) setTimeout(connect, Math.min(1000 * Math.pow(2, tries), 15000));
+      else setStatus('Connection lost — reload to keep watching');
+    };
+  }
+  connect();
+})();
+</script>
+{{end}}
+</body>
+</html>

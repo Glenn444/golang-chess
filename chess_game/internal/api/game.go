@@ -488,17 +488,65 @@ func (server *Server) resignGame(ctx *gin.Context) {
 	}
 	server.finishGame(ctx, gameID, winner)
 
-	// Tell the opponent over the WebSocket — without this they would only
-	// discover the resignation on their next page load.
-	server.wsBroadcastToGame(gameID, mustMarshalEvent(EventMakeMove, MoveResult{
+	// Tell the opponent (and any spectators) over the WebSocket — without this
+	// they would only discover the resignation on their next page load.
+	server.wsBroadcastToWatchers(gameID, mustMarshalEvent(EventMakeMove, MoveResult{
 		CurrentPlayer:        string(game.CurrentPlayer),
 		EndReason:            "resign",
 		EndedByPlayerID:      uidStr(user.ID),
+		Winner:               winner,
 		WhiteTimeRemainingMs: game.WhiteTimeRemainingMs,
 		BlackTimeRemainingMs: game.BlackTimeRemainingMs,
 	}))
 
 	ctx.JSON(http.StatusOK, server.toGameResponse(ctx, updated))
+}
+
+// LiveGameResponse is one row of the public "watch live" list.
+type LiveGameResponse struct {
+	ID                   string    `json:"id"`
+	WhiteUsername        string    `json:"white_username"`
+	WhiteRating          int32     `json:"white_rating"`
+	BlackUsername        string    `json:"black_username"`
+	BlackRating          int32     `json:"black_rating"`
+	CurrentPlayer        string    `json:"current_player"`
+	MoveCount            int32     `json:"move_count"`
+	WhiteTimeRemainingMs int64     `json:"white_time_remaining_ms"`
+	BlackTimeRemainingMs int64     `json:"black_time_remaining_ms"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+}
+
+// @Summary      List live games
+// @Description  Returns public person-vs-person games currently being played, newest activity first. No auth required — spectators use this.
+// @Tags         Games
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   api.LiveGameResponse
+// @Failure      500  {object}  map[string]string
+// @Router       /games/live [get]
+func (server *Server) listLiveGames(ctx *gin.Context) {
+	rows, err := server.store.ListLiveGames(ctx)
+	if handleDBError(ctx, err, WithLogArgs("listLiveGames: failed")) {
+		return
+	}
+	out := make([]LiveGameResponse, len(rows))
+	for i, r := range rows {
+		out[i] = LiveGameResponse{
+			ID:                   uidStr(r.ID),
+			WhiteUsername:        r.WhiteUsername,
+			WhiteRating:          r.WhiteRating,
+			BlackUsername:        r.BlackUsername,
+			BlackRating:          r.BlackRating,
+			CurrentPlayer:        string(r.CurrentPlayer),
+			MoveCount:            r.MoveCount,
+			WhiteTimeRemainingMs: r.WhiteTimeRemainingMs,
+			BlackTimeRemainingMs: r.BlackTimeRemainingMs,
+			CreatedAt:            r.CreatedAt.Time,
+			UpdatedAt:            r.UpdatedAt.Time,
+		}
+	}
+	ctx.JSON(http.StatusOK, out)
 }
 
 // GameReplayResponse carries everything a client needs to replay a finished
